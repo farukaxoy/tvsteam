@@ -3731,13 +3731,18 @@ function EmployeesView({ isAdmin, auth, employees, projects, updateState }) {
 
     let arr = [...expertList, ...manual];
 
-    // kullanıcı sadece kendi projesi + aktif + onaylı
+    // erişim: admin tüm projeler; proje/ekip lideri kendi projesinin tamamı; kullanıcı kendi projesi + aktif + onaylı
+    const isLeader = auth?.role === "project_leader" || auth?.role === "team_leader";
     if(!isAdmin){
-      arr = arr.filter(e =>
-        e.project === auth.project &&
-        e.active !== false &&
-        e.approved === true
-      );
+      // herkes sadece kendi projesini görebilir
+      arr = arr.filter(e => e.project === auth.project);
+      // normal kullanıcılar sadece aktif+onaylı görür; liderler tamamını görür
+      if(!isLeader){
+        arr = arr.filter(e =>
+          e.active !== false &&
+          e.approved === true
+        );
+      }
     }else{
       // admin için opsiyonel proje filtresi
       if(projectFilter) arr = arr.filter(e => e.project === projectFilter);
@@ -3768,13 +3773,20 @@ function EmployeesView({ isAdmin, auth, employees, projects, updateState }) {
   }, [filtered]);
 
   function addEmployee(name, role, project){
+    const isLeader = auth?.role === "project_leader" || auth?.role === "team_leader";
+    const canManage = isAdmin || isLeader;
+    if(!canManage) return;
+
+    // Liderler sadece kendi projelerine kayıt açabilir
+    const targetProject = isAdmin ? project : auth?.project;
+
     updateState(d => {
       d.employees ||= [];
 
       const empId = uid("emp");
       const cleanName = (name||"").trim();
       const cleanRole = (role||"").trim();
-      const cleanProject = project;
+      const cleanProject = targetProject;
 
       // 1) Manuel çalışan kaydı (admin eklediği) -> default onaylı
       const emp = {
@@ -3830,9 +3842,17 @@ function EmployeesView({ isAdmin, auth, employees, projects, updateState }) {
   }
 
   function toggleActive(empId){
+    const isLeader = auth?.role === "project_leader" || auth?.role === "team_leader";
+    const canManage = isAdmin || isLeader;
+    if(!canManage) return;
+
     updateState(d => {
       const e = (d.employees || []).find(x => x.id === empId);
       if(!e) return;
+
+      const isLeader = auth?.role === "project_leader" || auth?.role === "team_leader";
+      if(isLeader && e.project !== auth?.project) return;
+
       e.active = !e.active;
     });
   }
@@ -4028,6 +4048,9 @@ function DocsView({
   const [projectName, setProjectName] = useState(isAdmin ? (projects?.[0]?.name || "") : (auth?.project || ""));
   const [employeeId, setEmployeeId] = useState("");
 
+  const isLeader = auth?.role === "project_leader" || auth?.role === "team_leader";
+  const canManage = isAdmin || isLeader;
+
   function adminAddDocTemplate(nameArg){
     if(!isAdmin) return;
     const name = String(nameArg || "").trim();
@@ -4088,6 +4111,10 @@ function DocsView({
   const selectedEmp = useMemo(() => projectEmployees.find(e => e.id === employeeId) || null, [projectEmployees, employeeId]);
 
   function setDocSigned(empId, docKey, signed){
+    if(!canManage) return;
+
+    const emp = (Array.isArray(employees) ? employees : []).find(e => e.id === empId);
+    if(isLeader && emp && emp.project !== auth?.project) return;
     updateState(d => {
       d.employeeDocs ||= {};
       d.employeeDocs[empId] ||= {};
@@ -4098,6 +4125,10 @@ function DocsView({
   }
 
   function setDocDate(empId, docKey, dateStr){
+    if(!canManage) return;
+
+    const emp = (Array.isArray(employees) ? employees : []).find(e => e.id === empId);
+    if(isLeader && emp && emp.project !== auth?.project) return;
     updateState(d => {
       d.employeeDocs ||= {};
       d.employeeDocs[empId] ||= {};
@@ -4181,6 +4212,7 @@ function DocsView({
                       <td>
                         <input
                           type="checkbox"
+                          disabled={!canManage}
                           checked={!!rec.signed}
                           onChange={e => setDocSigned(selectedEmp.id, dt.key, e.target.checked)}
                         />
@@ -4190,6 +4222,7 @@ function DocsView({
                         <input
                           className="input"
                           type="date"
+                          disabled={!canManage}
                           value={rec.signedAt || ""}
                           onChange={e => setDocDate(selectedEmp.id, dt.key, e.target.value)}
                         />
