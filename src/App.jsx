@@ -15,10 +15,13 @@ const THEME_CSS = "";
 
 // ===================== SUPABASE CLIENT =====================
 // Env vars must be set in Netlify: VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY
+
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
 const supabase = (SUPABASE_URL && SUPABASE_ANON_KEY) ? createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
 
+console.log("SB URL", import.meta.env.VITE_SUPABASE_URL);
+console.log("SB ANON", (import.meta.env.VITE_SUPABASE_ANON_KEY || "").slice(0, 12));
 
 /* ===================== UYGULAMA ===================== */
 /* NOT: Buradan aşağısı senin mevcut 5098 satırlık kodundur.
