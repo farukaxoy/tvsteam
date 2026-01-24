@@ -774,67 +774,68 @@ for(const emp of (next.employees || [])){
   }
 
   /* ===== ITEM REQUEST (Uzman/Araç/Diğer kategori) ===== */
-  function requestItem(projectId){
-    if(isAdmin){
-      pushToast("Admin için doğrudan ekleme akışı istersen ekleyebiliriz. Şimdilik kullanıcı talep eder, admin onaylar.", "danger");
-      return;
-    }
-    const name = (newItemName || "").trim();
-    if(!name) return;
+  function requestItem(projectId) {
+  const name = (newItemName || "").trim();
+  if (!name) return;
 
-    const c = activeCategory;
-    updateState(d => {
-      const p = findProject(d, projectId);
-      if(!p) return;
-      p.itemsByCategory[c.key] ||= [];
-      p.itemsByCategory[c.key].push({
-        id: uid("item"),
-        name,
-        approved: c.approval?.item ? false : true,
-        requestedBy: auth.username,
-        createdAt: new Date().toISOString(),
-        months: {}
-      });
+  const c = activeCategory;
+
+  updateState((d) => {
+    const p = findProject(d, projectId);
+    if (!p) return;
+
+    p.itemsByCategory[c.key] ||= [];
+    p.itemsByCategory[c.key].push({
+      id: uid("item"),
+      name,
+      // Admin ekliyorsa direkt onaylı olsun; kullanıcı ekliyorsa kategori onayı varsa beklesin
+      approved: isAdmin ? true : c.approval?.item ? false : true,
+      requestedBy: isAdmin ? "admin" : auth.username,
+      createdAt: new Date().toISOString(),
+      months: {},
     });
+  });
 
-    setNewItemName("");
+  setNewItemName("");
+
+  if (!isAdmin) {
     pushNotification({
       to: "admin",
       title: `Yeni ${activeCategory.itemLabel} Talebi`,
       body: `${auth.project} • ${activeCategory.itemLabel}: ${name}`,
-      level: "warn"
+      level: "warn",
     });
     pushToast(`${activeCategory.itemLabel} talebi admin onayına gönderildi.`, "danger");
+  } else {
+    pushToast(`${activeCategory.itemLabel} eklendi.`, "ok");
   }
+}
 
-  function approveItem(projectId, catKey, itemId){
-    const cat = state.categories.find(c => c.key === catKey);
-    // Backward/Forward compatible signature:
-    // setMonthlyField(projectId, catKey, itemId, fieldKey, value)
-    // setMonthlyField(projectId, catKey, itemId, monthKey, fieldKey, value)
-    const mk = (typeof maybeValue !== "undefined") ? monthOrField : monthKey;
-    const fieldKey = (typeof maybeValue !== "undefined") ? fieldOrValue : monthOrField;
-    const value = (typeof maybeValue !== "undefined") ? maybeValue : fieldOrValue;
-    updateState(d => {
-      const it = findItem(d, projectId, catKey, itemId);
-      if(!it) return;
-      it.approved = true;
-      it.approvedAt = new Date().toISOString();
-      it.approvedBy = auth.username;
+
+  function approveItem(projectId, catKey, itemId) {
+  const cat = state.categories.find((c) => c.key === catKey);
+
+  updateState((d) => {
+    const it = findItem(d, projectId, catKey, itemId);
+    if (!it) return;
+    it.approved = true;
+    it.approvedAt = new Date().toISOString();
+    it.approvedBy = auth.username;
+  });
+
+  // İstek atan kullanıcıya bildirim (best effort)
+  const p = state.projects.find((pp) => pp.id === projectId);
+  const it0 = p?.itemsByCategory?.[catKey]?.find((x) => x.id === itemId);
+  if (it0?.requestedBy) {
+    pushNotification({
+      to: it0.requestedBy,
+      title: `${cat?.itemLabel || "Kayıt"} Onaylandı`,
+      body: `${p?.name || ""} • ${cat?.itemLabel || "Kayıt"}: ${it0.name}`,
+      level: "ok",
     });
-
-    // notify requester (best effort)
-    const p = state.projects.find(pp => pp.id === projectId);
-    const it0 = p?.itemsByCategory?.[catKey]?.find(x => x.id === itemId);
-    if(it0?.requestedBy){
-      pushNotification({
-        to: it0.requestedBy,
-        title: `${cat?.itemLabel || "Kayıt"} Onaylandı`,
-        body: `${p?.name} • ${cat?.itemLabel || "Kayıt"}: ${it0.name}`,
-        level: "ok"
-      });
-    }
   }
+}
+
 
   function rejectItem(projectId, catKey, itemId){
     if(!confirm("Talep reddedilsin mi? (silinir)")) return;
