@@ -470,6 +470,18 @@ function AppInner(){
       h.includes("access_token=") ||
       q.includes("access_token=")
     );
+
+  useEffect(() => {
+    if (!isRecovery) return;
+
+    const href = window.location.href || "";
+    if (!href.includes("code=")) return;
+
+    supabase.auth.exchangeCodeForSession(href).then(({ error }) => {
+      if (error) console.log("exchangeCodeForSession error:", error);
+      else console.log("exchangeCodeForSession OK");
+    });
+  }, [isRecovery]);
   }, []);
 
   async function sendResetEmail(){
