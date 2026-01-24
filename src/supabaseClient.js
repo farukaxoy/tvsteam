@@ -7,3 +7,8 @@ console.log("SB URL", supabaseUrl);
 console.log("SB ANON", (supabaseAnonKey || "").slice(0, 12));
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+
+supabase.auth.getSession().then(({ data, error }) => {
+  console.log("SESSION", data);
+  console.log("SESSION ERROR", error);
+});
