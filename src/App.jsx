@@ -416,119 +416,6 @@ function LogoMark(){
 
 /* ===================== MAIN APP ===================== */
 
-
-function ResetPasswordInline(){
-  const [email, setEmail] = useState("");
-  const [pw, setPw] = useState("");
-  const [loading, setLoading] = useState(false);
-
-  const isRecovery = useMemo(() => {
-    const h = window.location.hash || "";
-    const q = window.location.search || "";
-    return (
-      h.includes("type=recovery") ||
-      q.includes("type=recovery") ||
-      h.includes("access_token=") ||
-      q.includes("access_token=")
-    );
-  }, []);
-
-  if(!isRecovery) return null;
-
-  async function updatePw(){
-    if(!pw || pw.length < 6){
-      alert("Şifre en az 6 karakter olmalı.");
-      return;
-    }
-    if(!supabase){
-      alert("Supabase bağlantısı yok. Env değişkenlerini kontrol et.");
-      return;
-    }
-    setLoading(true);
-    const { error } = await supabase.auth.updateUser({ password: pw });
-    setLoading(false);
-
-    if(error){
-      alert(error.message || "Şifre güncellenemedi.");
-      return;
-    }
-
-    alert("Şifre güncellendi. Artık yeni şifreyle giriş yapabilirsin.");
-    window.history.replaceState({}, document.title, "/");
-    window.location.reload();
-  }
-
-  async function sendReset(){
-    const e = (email || "").trim().toLowerCase();
-    if(!e){
-      alert("Email gir.");
-      return;
-    }
-    if(!supabase){
-      alert("Supabase bağlantısı yok. Env değişkenlerini kontrol et.");
-      return;
-    }
-    setLoading(true);
-    const { error } = await supabase.auth.resetPasswordForEmail(e, {
-      redirectTo: "https://tvsteam.pages.dev"
-    });
-    setLoading(false);
-
-    if(error){
-      alert(error.message || "Reset maili gönderilemedi.");
-      return;
-    }
-    alert("Şifre sıfırlama maili gönderildi. Gelen kutunu kontrol et.");
-  }
-
-  return (
-    <div className="loginPage">
-      <div className="loginWrap">
-        <div className="loginRight" style={{maxWidth:520, margin:"0 auto"}}>
-          <div className="loginCard">
-            <div className="loginTitle">Şifre Sıfırlama</div>
-            <div className="loginSub">Yeni şifre belirle</div>
-
-            <div className="loginForm">
-              <div className="loginField">
-                <label>Yeni Şifre</label>
-                <input
-                  className="loginInput"
-                  type="password"
-                  placeholder="Yeni şifre"
-                  value={pw}
-                  onChange={e=>setPw(e.target.value)}
-                />
-              </div>
-
-              <button className="loginBtn" onClick={updatePw} disabled={loading}>
-                {loading ? "Güncelleniyor..." : "Şifreyi Güncelle"}
-              </button>
-
-              <div style={{opacity:.65, margin:"10px 0"}}>veya</div>
-
-              <div className="loginField">
-                <label>Reset Maili Gönder</label>
-                <input
-                  className="loginInput"
-                  placeholder="admin@mail.com"
-                  value={email}
-                  onChange={e=>setEmail(e.target.value)}
-                />
-              </div>
-
-              <button className="loginBtn" onClick={sendReset} disabled={loading}>
-                {loading ? "Gönderiliyor..." : "Reset Maili Gönder"}
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-
 function Toasts({ items, onClose }){
   if(!items || items.length === 0) return null;
   return (
@@ -570,7 +457,66 @@ function AppInner(){
   /* login */
   const [lu, setLu] = useState("");
   const [lp, setLp] = useState("");
-  const [showPw, setShowPw] = useState(false);
+  const \[showPw, setShowPw\] = useState\(false\);
+const [newPw, setNewPw] = useState("");
+  const [authBusy, setAuthBusy] = useState(false);
+
+  const isRecovery = useMemo(() => {
+    const h = window.location.hash || "";
+    const q = window.location.search || "";
+    return (
+      h.includes("type=recovery") ||
+      q.includes("type=recovery") ||
+      h.includes("access_token=") ||
+      q.includes("access_token=")
+    );
+  }, []);
+
+  async function sendResetEmail(){
+    if(!supabase){
+      pushToast("Supabase bağlantısı yok. Env değişkenlerini kontrol et.", "danger");
+      return;
+    }
+    const u = (lu || "").trim().toLowerCase();
+    if(!u){
+      pushToast("Önce kullanıcı adını yaz.", "warn");
+      return;
+    }
+    const email = u.includes("@") ? u : `${u}@tvsteam.local`;
+    setAuthBusy(true);
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: "https://tvsteam.pages.dev"
+    });
+    setAuthBusy(false);
+    if(error){
+      pushToast(`Reset maili gönderilemedi: ${error.message || ""}`, "danger");
+      return;
+    }
+    pushToast("Şifre sıfırlama maili gönderildi. Mail kutunu kontrol et.", "ok");
+  }
+
+  async function updatePassword(){
+    if(!supabase){
+      pushToast("Supabase bağlantısı yok. Env değişkenlerini kontrol et.", "danger");
+      return;
+    }
+    const p = (newPw || "").trim();
+    if(p.length < 6){
+      pushToast("Şifre en az 6 karakter olmalı.", "warn");
+      return;
+    }
+    setAuthBusy(true);
+    const { error } = await supabase.auth.updateUser({ password: p });
+    setAuthBusy(false);
+    if(error){
+      pushToast(`Şifre güncellenemedi: ${error.message || ""}`, "danger");
+      return;
+    }
+    pushToast("Şifre güncellendi. Yeni şifreyle giriş yapabilirsin.", "ok");
+    setNewPw("");
+    // URL temizle
+    window.history.replaceState({}, document.title, "/");
+  }
   const [theme, setTheme] = useState(() => localStorage.getItem("APP_THEME") || "light");
   const [toasts, setToasts] = useState([]);
 
@@ -1767,57 +1713,84 @@ for(const emp of (next.employees || [])){
               <div className="loginSub">Scaffolding Control Services</div>
 
               <div className="loginForm">
-                <div className="loginField">
-                  <label>E-Mail</label>
-                  <input
-                    className="loginInput"
-                    placeholder="kullanıcı adı (örn: socar)"
-                    value={lu}
-                    onChange={e=>setLu(e.target.value)}
-                    autoComplete="username"
-                  />
-                </div>
+                {isRecovery ? (
+                  <>
+                    <div className="loginField">
+                      <label>Yeni Şifre</label>
+                      <input
+                        className="loginInput"
+                        type="password"
+                        placeholder="Yeni şifre"
+                        value={newPw}
+                        onChange={e=>setNewPw(e.target.value)}
+                      />
+                    </div>
 
-                <div className="loginField">
-                  <label>Password</label>
-                  <div className="pwRow">
-                    <input
-                      className="loginInput"
-                      type={showPw ? "text" : "password"}
-                      placeholder="şifre"
-                      value={lp}
-                      onChange={e=>setLp(e.target.value)}
-                      autoComplete="current-password"
-                      onKeyDown={(e)=>{ if(e.key==="Enter") doLogin(); }}
-                    />
-                    <button
-                      className="iconBtn"
-                      type="button"
-                      onClick={()=>setShowPw(v=>!v)}
-                      aria-label={showPw ? "Şifreyi gizle" : "Şifreyi göster"}
-                      title={showPw ? "Şifreyi gizle" : "Şifreyi göster"}
-                    >
-                      {showPw ? (
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-                          <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                          <path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                        </svg>
-                      ) : (
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-                          <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                          <path d="M4 4 20 20" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-                        </svg>
-                      )}
+                    <button className="loginBtn" onClick={updatePassword} disabled={authBusy}>
+                      {authBusy ? "Güncelleniyor..." : "Şifreyi Güncelle"}
                     </button>
-                  </div>
-                </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="loginField">
+                      <label>E-Mail</label>
+                      <input
+                        className="loginInput"
+                        placeholder="kullanıcı adı (örn: socar)"
+                        value={lu}
+                        onChange={e=>setLu(e.target.value)}
+                        autoComplete="username"
+                      />
+                    </div>
 
-                <button className="loginBtn" onClick={doLogin}>Giriş</button>
+                    <div className="loginField">
+                      <label>Password</label>
+                      <div className="pwRow">
+                        <input
+                          className="loginInput"
+                          type={showPw ? "text" : "password"}
+                          placeholder="şifre"
+                          value={lp}
+                          onChange={e=>setLp(e.target.value)}
+                          autoComplete="current-password"
+                          onKeyDown={(e)=>{ if(e.key==="Enter") doLogin(); }}
+                        />
+                        <button
+                          className="iconBtn"
+                          type="button"
+                          onClick={()=>setShowPw(v=>!v)}
+                          aria-label={showPw ? "Şifreyi gizle" : "Şifreyi göster"}
+                          title={showPw ? "Şifreyi gizle" : "Şifreyi göster"}
+                        >
+                          {showPw ? (
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                              <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                              <path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                            </svg>
+                          ) : (
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                              <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                              <path d="M4 4 20 20" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                            </svg>
+                          )}
+                        </button>
+                      </div>
+                    </div>
+
+                    <button className="loginBtn" onClick={doLogin}>Giriş</button>
+                  </>
+                )}
 
                 <div className="loginMiniRow">
                   <button className="linkBtn" type="button" onClick={() => setTheme(t => t === "dark" ? "light" : "dark")}>
                     Tema: {theme === "dark" ? "Dark" : "Light"}
                   </button>
+                  {!isRecovery && (
+                    <button className="linkBtn" type="button" onClick={sendResetEmail} disabled={authBusy}>
+                      {authBusy ? "Gönderiliyor..." : "Şifremi unuttum"}
+                    </button>
+                  )}
+
 </div>
 </div>
             </div>
