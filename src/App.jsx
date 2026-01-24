@@ -1559,8 +1559,8 @@ for(const emp of (next.employees || [])){
         <div className="brand">
           <div className="logo"><LogoMark/></div>
           <div className="brandTitle">
-            <b>Veri Takip</b>
-            <span>{monthKey} • Onaylı veriler rapora girer</span>
+            <b>Scaffoldign Control Services</b>
+            <span>{monthKey} • Management Project</span>
           </div>
         </div>
 
