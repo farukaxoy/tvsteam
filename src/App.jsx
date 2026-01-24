@@ -2951,7 +2951,7 @@ function ExpertsEntryCompactView({ isAdmin, monthKey, monthDays, project, catego
             <input className="input sm" value={search} onChange={e=>setSearch(e.target.value)} placeholder="Uzman ara..." />
           </div>
           <div className="small" style={{flex:"1 1 320px"}}>
-            Yemek artık <b>sayı</b> olarak girilir. (Gün seçimi kaldırıldı — istersen tekrar ekleriz.)
+            Uzman Aylık Verilerini Buradan Giriniz)
           </div>
         </div>
 
