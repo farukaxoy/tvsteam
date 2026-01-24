@@ -1,0 +1,15 @@
+/* =========================================================
+   STYLE v1.0 (Modern Glass Theme)
+   Not: Ana tema stilleri app.js içinde THEME_CSS ile inject edilir.
+   Bu dosya sadece temel reset + yardımcı sınıfları içerir.
+========================================================= */
+
+*{ box-sizing: border-box; }
+a{ color: inherit; }
+button{ font-family: inherit; }
+input, textarea, select{ font-family: inherit; }
+
+#root{ min-height: 100vh; }
+
+/* Eğer tarayıcı extension'ları veya eski css kalıntıları varsa hizalamayı koru */
+.hidden{ display:none !important; }
