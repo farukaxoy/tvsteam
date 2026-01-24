@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import { createClient } from "@supabase/supabase-js";
 import "./style.css";
 
 /*
@@ -11,6 +12,13 @@ import "./style.css";
 // 🔧 PATCH: eski referanslar crash etmesin diye boş tanımlar
 const LOGIN_CSS = "";
 const THEME_CSS = "";
+
+// ===================== SUPABASE CLIENT =====================
+// Env vars must be set in Netlify: VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
+const supabase = (SUPABASE_URL && SUPABASE_ANON_KEY) ? createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
+
 
 /* ===================== UYGULAMA ===================== */
 /* NOT: Buradan aşağısı senin mevcut 5098 satırlık kodundur.
@@ -69,7 +77,6 @@ const CREDENTIALS = {
   tupras_batman: { password: "batman123", role: "user", project: "Tüpraş Batman" }
 };
 
-
 /* ROLLER (Admin panelinden kullanıcı ekleme için) */
 const ROLE_OPTIONS = [
   { value: "user", label: "Kullanıcı" },
@@ -80,7 +87,6 @@ const ROLE_OPTIONS = [
 function roleLabel(role){
   return ROLE_OPTIONS.find(r => r.value === role)?.label || String(role || "-");
 }
-
 
 /* ===================== MONTHLY CHECKLIST (FIXED) ===================== */
 const MONTHLY_CHECK_ITEMS = [
@@ -230,40 +236,6 @@ function defaultDocTemplates(){
   }));
 }
 
-
-
-/* ===================== PERSONEL EVRAK KATEGORİLERİ ===================== */
-
-function defaultPersonnelDocCategories(){
-  const names = [
-    "İSG Eğitim Sertifikası",
-    "Sağlık Muayenesi",
-    "Adli Sicil Kaydı"
-  ];
-  return names.map(n => ({ id: uid("pdoccat"), name: n }));
-}
-
-// Personel evrakları için bitiş süresi seçenekleri (gün)
-const PERSONNEL_DOC_DURATION_OPTIONS = [30, 60, 90, 120, 180, 365];
-
-function addDaysISO(startISO, days){
-  if(!startISO || !days) return "";
-  const d = new Date(startISO);
-  if(Number.isNaN(d.getTime())) return "";
-  d.setDate(d.getDate() + Number(days));
-  // ISO date only
-  return d.toISOString().slice(0,10);
-}
-
-function daysBetweenISO(aISO, bISO){
-  if(!aISO || !bISO) return null;
-  const a = new Date(aISO);
-  const b = new Date(bISO);
-  if(Number.isNaN(a.getTime()) || Number.isNaN(b.getTime())) return null;
-  const ms = b.getTime() - a.getTime();
-  return Math.ceil(ms / (1000*60*60*24));
-}
-
 /* ===================== STATE MODEL =====================
 state = {
   categories: [category...],
@@ -299,8 +271,6 @@ function seedState(){
     employees: [], // 👷 ÇALIŞANLAR
     docTemplates: defaultDocTemplates(), // 📄 İmzalı evrak şablonları
     employeeDocs: {}, // { [employeeId]: { [docKey]: { signed, signedAt } } }
-    personnelDocCategories: defaultPersonnelDocCategories(), // 🗂️ Personel evrak kategorileri
-    personnelDocs: {}, // { [employeeId]: [ {id, categoryId, startDate, durationDays, endDate, note, createdAt, createdBy, updatedAt, updatedBy} ] }
     actions: [], // ✅ Aksiyon / Düzeltici Faaliyet
     announcements: [], // 📣 Duyurular (admin yayınlar)
     authUsers: [], // 🔐 Admin tanımlı proje kullanıcıları
@@ -496,6 +466,46 @@ function AppInner(){
   };
 
   const closeToast = (id) => setToasts(prev => prev.filter(x => x.id !== id));
+
+
+  // Restore Supabase session (keeps login across refresh / devices when same credentials used)
+  useEffect(() => {
+    if(!supabase) return;
+    let cancelled = false;
+
+    (async () => {
+      const { data } = await supabase.auth.getSession();
+      const sess = data?.session;
+      if(!sess?.user?.id) return;
+
+      const userId = sess.user.id;
+      const { data: prof } = await supabase
+        .from("profiles")
+        .select("username, role, project_key")
+        .eq("user_id", userId)
+        .single();
+
+      if(cancelled || !prof) return;
+
+      const role = prof.role || "user";
+      const projectName = (prof.project_key && prof.project_key !== "ALL") ? prof.project_key : "";
+      const pr = projectName ? (state.projects || []).find(pp => pp.name === projectName) : null;
+
+      if(!auth){
+        setAuth({
+          username: prof.username || "",
+          role,
+          project: projectName,
+          projectId: pr ? pr.id : null,
+          projectName,
+          userId
+        });
+      }
+    })();
+
+    return () => { cancelled = true; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
 
   /* left panel actions */
@@ -697,30 +707,89 @@ for(const emp of (next.employees || [])){
   }
 
   /* ===== AUTH ===== */
-  function doLogin(){
-    const u = (lu || "").trim();
+  async function doLogin(){
+    const u = (lu || "").trim().toLowerCase();
     const p = (lp || "").trim();
 
+    if(!u || !p){
+      pushToast("Kullanıcı adı ve şifre zorunlu.", "warn");
+      return;
+    }
+
+    // Prefer Supabase (multi-device login). Fallback to local CREDENTIALS if Supabase is not configured.
+    if(supabase){
+      const email = `${u}@tvsteam.local`;
+
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password: p });
+      if(error){
+        pushToast(`Giriş başarısız: ${error.message || ""}`, "danger");
+        return;
+      }
+
+      const userId = data?.user?.id;
+      if(!userId){
+        pushToast("Giriş başarısız (userId yok).", "danger");
+        return;
+      }
+
+      const { data: prof, error: pErr } = await supabase
+        .from("profiles")
+        .select("username, role, project_key")
+        .eq("user_id", userId)
+        .single();
+
+      if(pErr || !prof){
+        pushToast("Profil bulunamadı. Admin role/proje atamalı (profiles).", "danger");
+        await supabase.auth.signOut();
+        return;
+      }
+
+      const role = prof.role || "user";
+      const projectName = (prof.project_key && prof.project_key !== "ALL") ? prof.project_key : null;
+      const pr = projectName ? (state.projects || []).find(pp => pp.name === projectName) : null;
+
+      const projectId = pr ? pr.id : null;
+
+      setAuth({
+        username: prof.username || u,
+        role,
+        project: projectName || "",
+        projectId,
+        projectName: projectName || "",
+        userId
+      });
+
+      setTab(role === "admin" ? "dashboard" : "entry");
+      setLu(""); setLp(""); setShowPw(false);
+      pushToast("Giriş başarılı.", "ok");
+      return;
+    }
+
+    // Fallback (single-device): legacy local users
     const dyn = (state.authUsers || []).find(x => x && x.username === u);
     const rec = CREDENTIALS[u] || (dyn ? { password: dyn.password, role: (dyn.role || "user"), project: (dyn.project || dyn.projectName || dyn.projectId) } : null);
     if(!rec || rec.password !== p){
       pushToast("Hatalı kullanıcı adı veya şifre.", "danger");
       return;
     }
-    // Proje kullanıcıları için proje eşlemesi (id/name uyumluluğu)
+
     let projectId = null;
     let projectName = null;
     if(rec.role !== "admin"){
       const raw = rec.projectId || rec.project || rec.projectName || "";
-      const pr = (state.projects || []).find(p => p.id === raw || p.name === raw || p.key === raw);
-      projectId = pr ? pr.id : null;
-      projectName = pr ? pr.name : (typeof raw === "string" ? raw : null);
+      const pr0 = (state.projects || []).find(pp => pp.id === raw || pp.name === raw || pp.key === raw);
+      projectId = pr0 ? pr0.id : null;
+      projectName = pr0 ? pr0.name : (typeof raw === "string" ? raw : null);
     }
     setAuth({ username: u, ...rec, projectId, projectName });
     setTab(rec.role === "admin" ? "dashboard" : "entry");
     setLu(""); setLp(""); setShowPw(false);
   }
-  function doLogout(){
+
+  async function doLogout(){
+    try{
+      if(supabase) await supabase.auth.signOut();
+    }catch{}
     setAuth(null);
     setTab("dashboard");
     setNotifOpen(false);
@@ -1342,13 +1411,12 @@ for(const emp of (next.employees || [])){
   }
 
 
-  function adminUpsertAuthUser(username, password, projectName, role){
-    const u = (username || "").trim();
+  async function adminUpsertAuthUser(username, password, projectName, role){
+    const u = (username || "").trim().toLowerCase();
     const p = (password || "").trim();
     const pr = (projectName || "").trim();
     const rr = (role || "").trim() || "user";
 
-    // rol doğrulama
     const allowed = new Set(ROLE_OPTIONS.map(r => r.value));
     const finalRole = allowed.has(rr) ? rr : "user";
 
@@ -1358,22 +1426,50 @@ for(const emp of (next.employees || [])){
       return;
     }
 
+    // If Supabase configured, create the user server-side via Netlify Function (multi-device)
+    if(supabase){
+      try{
+        const res = await fetch("/.netlify/functions/createUser", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            username: u,
+            password: p,
+            role: finalRole,
+            project_key: finalRole === "admin" ? "ALL" : pr
+          })
+        });
+        if(!res.ok){
+          const msg = await res.text();
+          throw new Error(msg || "Kullanıcı oluşturma başarısız.");
+        }
+
+        // Optional: keep a local list for UI convenience (password is not stored)
+        updateState(d => {
+          if(!Array.isArray(d.authUsers)) d.authUsers = [];
+          const ix = d.authUsers.findIndex(x => x && x.username === u);
+          const rec = { username: u, password: "", project: finalRole === "admin" ? "" : pr, role: finalRole };
+          if(ix >= 0) d.authUsers[ix] = rec;
+          else d.authUsers.push(rec);
+        });
+
+        pushToast("Kullanıcı Supabase'e kaydedildi.", "ok");
+        return;
+      }catch(e){
+        pushToast(e.message || "Kullanıcı oluşturulamadı.", "danger");
+        return;
+      }
+    }
+
+    // Legacy fallback (single-device local storage)
     updateState(d => {
       if(!Array.isArray(d.authUsers)) d.authUsers = [];
       const ix = d.authUsers.findIndex(x => x && x.username === u);
-
-      const rec = {
-        username: u,
-        password: p,
-        project: finalRole === "admin" ? "" : pr,
-        role: finalRole
-      };
-
+      const rec = { username: u, password: p, project: pr, role: finalRole };
       if(ix >= 0) d.authUsers[ix] = rec;
       else d.authUsers.push(rec);
     });
-
-    pushToast("Kullanıcı kaydedildi.", "ok");
+    pushToast("Kullanıcı kaydedildi (local).", "ok");
   }
   function adminDeleteAuthUser(username){
     const u = (username || "").trim();
@@ -1382,7 +1478,7 @@ for(const emp of (next.employees || [])){
     updateState(d => {
       d.authUsers = (d.authUsers || []).filter(x => x && x.username !== u);
     });
-    pushToast("Kullanıcı silindi.", "ok");
+    pushToast("Kullanıcı silindi.", "success");
   }
 
 
@@ -1637,7 +1733,6 @@ for(const emp of (next.employees || [])){
 </TabButton>
 
           <TabButton active={tab==="docs"} onClick={()=>setTab("docs")}>Dokümanlar</TabButton>
-          <TabButton active={tab==="personnelDocs"} onClick={()=>setTab("personnelDocs")}>Personel Evrak</TabButton>
 
           <TabButton active={tab==="actions"} onClick={()=>setTab("actions")}>Aksiyonlar</TabButton>
 
@@ -2007,13 +2102,6 @@ for(const emp of (next.employees || [])){
                 onUpsert={adminUpsertAuthUser}
                 onDelete={adminDeleteAuthUser}
               />
-
-              <PersonnelDocCategoriesAdmin
-                isAdmin={isAdmin}
-                categories={state.personnelDocCategories}
-                updateState={updateState}
-                pushToast={pushToast}
-              />
             
               <VehiclesAdminView
                 isAdmin={isAdmin}
@@ -2045,20 +2133,6 @@ for(const emp of (next.employees || [])){
     docTemplates={state.docTemplates}
     employeeDocs={state.employeeDocs}
     updateState={updateState}
-  />
-)}
-
-
-{tab === "personnelDocs" && (
-  <PersonnelDocsView
-    auth={auth}
-    isAdmin={isAdmin}
-    projects={state.projects}
-    employees={state.employees}
-    categories={state.personnelDocCategories}
-    personnelDocs={state.personnelDocs}
-    updateState={updateState}
-    pushToast={pushToast}
   />
 )}
 
@@ -3643,7 +3717,6 @@ function ProjectUserMapping({ authUsers, projects, onUpsert, onDelete }){
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [project, setProject] = useState(projects?.[0]?.name || "SOCAR");
-  const [role, setRole] = useState("user");
 
   useEffect(() => {
     if(projects && projects.length && !projects.some(p => p.name === project)){
@@ -3652,15 +3725,6 @@ function ProjectUserMapping({ authUsers, projects, onUpsert, onDelete }){
   }, [projects]);
 
   const rows = (authUsers || []).slice().sort((a,b)=> (a.username||"").localeCompare(b.username||""));
-
-  const canSave = () => {
-    const u = (username || "").trim();
-    const p = (password || "").trim();
-    const r = (role || "user").trim();
-    if(!u || !p) return false;
-    if(r !== "admin" && !(project || "").trim()) return false;
-    return true;
-  };
 
   return (
     <div className="card" style={{marginTop:12}}>
@@ -3674,46 +3738,21 @@ function ProjectUserMapping({ authUsers, projects, onUpsert, onDelete }){
           <label className="label">Kullanıcı Adı</label>
           <input className="input" value={username} onChange={e=>setUsername(e.target.value)} placeholder="socar_ahmet" />
         </div>
-
         <div>
           <label className="label">Şifre</label>
           <input className="input" value={password} onChange={e=>setPassword(e.target.value)} placeholder="••••••" />
         </div>
-
-        <div>
-          <label className="label">Rol</label>
-          <select className="input" value={role} onChange={e=>setRole(e.target.value)}>
-            {/* Admin istersen buradan da eklenebilir. */}
-            <option value="user">Kullanıcı</option>
-            <option value="team_leader">Ekip Lideri</option>
-            <option value="project_leader">Proje Lideri</option>
-            <option value="admin">Admin</option>
-          </select>
-        </div>
-
         <div>
           <label className="label">Proje</label>
-          <select className="input" value={project} onChange={e=>setProject(e.target.value)} disabled={role==="admin"}>
+          <select className="input" value={project} onChange={e=>setProject(e.target.value)}>
             {(projects||[]).map(p => <option key={p.name} value={p.name}>{p.name}</option>)}
           </select>
-          {role==="admin" && <div className="small" style={{opacity:.8, marginTop:6}}>Admin için proje gerekmez.</div>}
         </div>
-
         <div style={{display:"flex", alignItems:"flex-end", gap:8}}>
-          <button
-            className="btn ok"
-            type="button"
-            disabled={!canSave()}
-            onClick={()=>{
-              onUpsert(username, password, project, role);
-              setUsername("");
-              setPassword("");
-              setRole("user");
-            }}
-          >
+          <button className="btn ok" type="button" onClick={()=>{ onUpsert(username, password, project); setUsername(""); setPassword(""); }}>
             Kaydet
           </button>
-          <div className="small" style={{opacity:.8}}>Kullanıcı girişte rolüne göre yetki alır.</div>
+          <div className="small" style={{opacity:.8}}>Aynı proje verilerini görür.</div>
         </div>
       </div>
 
@@ -3724,19 +3763,17 @@ function ProjectUserMapping({ authUsers, projects, onUpsert, onDelete }){
             <thead>
               <tr>
                 <th>Kullanıcı</th>
-                <th>Rol</th>
                 <th>Proje</th>
                 <th style={{width:120}}>İşlem</th>
               </tr>
             </thead>
             <tbody>
               {rows.length === 0 ? (
-                <tr><td colSpan={4} className="small">Henüz kullanıcı yok.</td></tr>
+                <tr><td colSpan={3} className="small">Henüz kullanıcı yok.</td></tr>
               ) : rows.map(u => (
                 <tr key={u.username}>
                   <td><b>{u.username}</b></td>
-                  <td>{roleLabel(u.role || "user")}</td>
-                  <td>{u.role === "admin" ? "-" : (u.project || "-")}</td>
+                  <td>{u.project}</td>
                   <td>
                     <button className="btn danger" type="button" onClick={()=>onDelete(u.username)}>Sil</button>
                   </td>
@@ -3789,18 +3826,13 @@ function EmployeesView({ isAdmin, auth, employees, projects, updateState }) {
 
     let arr = [...expertList, ...manual];
 
-    // erişim: admin tüm projeler; proje/ekip lideri kendi projesinin tamamı; kullanıcı kendi projesi + aktif + onaylı
-    const isLeader = auth?.role === "project_leader" || auth?.role === "team_leader";
+    // kullanıcı sadece kendi projesi + aktif + onaylı
     if(!isAdmin){
-      // herkes sadece kendi projesini görebilir
-      arr = arr.filter(e => e.project === auth.project);
-      // normal kullanıcılar sadece aktif+onaylı görür; liderler tamamını görür
-      if(!isLeader){
-        arr = arr.filter(e =>
-          e.active !== false &&
-          e.approved === true
-        );
-      }
+      arr = arr.filter(e =>
+        e.project === auth.project &&
+        e.active !== false &&
+        e.approved === true
+      );
     }else{
       // admin için opsiyonel proje filtresi
       if(projectFilter) arr = arr.filter(e => e.project === projectFilter);
@@ -3831,20 +3863,13 @@ function EmployeesView({ isAdmin, auth, employees, projects, updateState }) {
   }, [filtered]);
 
   function addEmployee(name, role, project){
-    const isLeader = auth?.role === "project_leader" || auth?.role === "team_leader";
-    const canManage = isAdmin || isLeader;
-    if(!canManage) return;
-
-    // Liderler sadece kendi projelerine kayıt açabilir
-    const targetProject = isAdmin ? project : auth?.project;
-
     updateState(d => {
       d.employees ||= [];
 
       const empId = uid("emp");
       const cleanName = (name||"").trim();
       const cleanRole = (role||"").trim();
-      const cleanProject = targetProject;
+      const cleanProject = project;
 
       // 1) Manuel çalışan kaydı (admin eklediği) -> default onaylı
       const emp = {
@@ -3900,17 +3925,9 @@ function EmployeesView({ isAdmin, auth, employees, projects, updateState }) {
   }
 
   function toggleActive(empId){
-    const isLeader = auth?.role === "project_leader" || auth?.role === "team_leader";
-    const canManage = isAdmin || isLeader;
-    if(!canManage) return;
-
     updateState(d => {
       const e = (d.employees || []).find(x => x.id === empId);
       if(!e) return;
-
-      const isLeader = auth?.role === "project_leader" || auth?.role === "team_leader";
-      if(isLeader && e.project !== auth?.project) return;
-
       e.active = !e.active;
     });
   }
@@ -4106,9 +4123,6 @@ function DocsView({
   const [projectName, setProjectName] = useState(isAdmin ? (projects?.[0]?.name || "") : (auth?.project || ""));
   const [employeeId, setEmployeeId] = useState("");
 
-  const isLeader = auth?.role === "project_leader" || auth?.role === "team_leader";
-  const canManage = isAdmin || isLeader;
-
   function adminAddDocTemplate(nameArg){
     if(!isAdmin) return;
     const name = String(nameArg || "").trim();
@@ -4169,10 +4183,6 @@ function DocsView({
   const selectedEmp = useMemo(() => projectEmployees.find(e => e.id === employeeId) || null, [projectEmployees, employeeId]);
 
   function setDocSigned(empId, docKey, signed){
-    if(!canManage) return;
-
-    const emp = (Array.isArray(employees) ? employees : []).find(e => e.id === empId);
-    if(isLeader && emp && emp.project !== auth?.project) return;
     updateState(d => {
       d.employeeDocs ||= {};
       d.employeeDocs[empId] ||= {};
@@ -4183,10 +4193,6 @@ function DocsView({
   }
 
   function setDocDate(empId, docKey, dateStr){
-    if(!canManage) return;
-
-    const emp = (Array.isArray(employees) ? employees : []).find(e => e.id === empId);
-    if(isLeader && emp && emp.project !== auth?.project) return;
     updateState(d => {
       d.employeeDocs ||= {};
       d.employeeDocs[empId] ||= {};
@@ -4270,7 +4276,6 @@ function DocsView({
                       <td>
                         <input
                           type="checkbox"
-                          disabled={!canManage}
                           checked={!!rec.signed}
                           onChange={e => setDocSigned(selectedEmp.id, dt.key, e.target.checked)}
                         />
@@ -4280,7 +4285,6 @@ function DocsView({
                         <input
                           className="input"
                           type="date"
-                          disabled={!canManage}
                           value={rec.signedAt || ""}
                           onChange={e => setDocDate(selectedEmp.id, dt.key, e.target.value)}
                         />
@@ -4323,331 +4327,6 @@ function monthOptions(){
 
 
 /* ===================== ACTIONS (Corrective / Action List) ===================== */
-
-
-/* ===================== PERSONEL EVRAK (SÜRELİ) ===================== */
-
-function PersonnelDocCategoriesAdmin({ isAdmin, categories, updateState, pushToast }){
-  if(!isAdmin) return null;
-
-  const [name, setName] = useState("");
-
-  const addCat = () => {
-    const n = (name||"").trim();
-    if(!n) return;
-    updateState(d => {
-      d.personnelDocCategories ||= [];
-      d.personnelDocCategories.push({ id: uid("pdoccat"), name: n });
-    });
-    setName("");
-    pushToast("Evrak kategorisi eklendi.", "ok");
-  };
-
-  const delCat = (id) => {
-    updateState(d => {
-      d.personnelDocCategories = (d.personnelDocCategories||[]).filter(c => c.id !== id);
-      // mevcut evrak kayıtlarında kategori silinirse, sadece kategori adı kaybolur ama kayıt kalır
-    });
-    pushToast("Kategori silindi.", "warn");
-  };
-
-  const renameCat = (id, newName) => {
-    updateState(d => {
-      const c = (d.personnelDocCategories||[]).find(x => x.id === id);
-      if(c) c.name = newName;
-    });
-  };
-
-  return (
-    <div className="card" style={{marginTop:12}}>
-      <div className="cardTitleRow">
-        <h3>Personel Evrak Kategorileri</h3>
-        <Badge>Admin</Badge>
-      </div>
-
-      <div className="grid" style={{gridTemplateColumns:"1fr auto", gap:10, marginTop:10}}>
-        <input className="input" value={name} onChange={e=>setName(e.target.value)} placeholder="Yeni kategori adı (örn: İSG Eğitim Sertifikası)" />
-        <button className="btn primary" onClick={addCat}>Ekle</button>
-      </div>
-
-      <div style={{marginTop:12}}>
-        {(categories||[]).length === 0 ? (
-          <div className="small muted">Henüz kategori yok. Yukarıdan ekleyebilirsin.</div>
-        ) : (
-          <div className="list">
-            {(categories||[]).map(c => (
-              <div key={c.id} className="listRow" style={{display:"grid", gridTemplateColumns:"1fr auto", gap:10, alignItems:"center"}}>
-                <input
-                  className="input"
-                  value={c.name}
-                  onChange={e=>renameCat(c.id, e.target.value)}
-                />
-                <button className="btn danger" onClick={()=>delCat(c.id)}>Sil</button>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-
-function PersonnelDocsView({
-  auth,
-  isAdmin,
-  projects,
-  employees,
-  categories,
-  personnelDocs,
-  updateState,
-  pushToast
-}){
-  const role = auth?.role;
-  const isLeader = role === "project_leader" || role === "team_leader";
-  const canEdit = isAdmin || isLeader;
-
-  const scopedEmployees = useMemo(() => {
-    const list = employees || [];
-    if(isAdmin) return list;
-    // lider + kullanıcı: sadece kendi projesi
-    return list.filter(e => e.project === auth?.project);
-  }, [employees, isAdmin, auth?.project]);
-
-  const [employeeId, setEmployeeId] = useState(scopedEmployees?.[0]?.id || "");
-  const selectedEmployee = useMemo(() => scopedEmployees.find(e => e.id === employeeId), [scopedEmployees, employeeId]);
-
-  // form
-  const [categoryId, setCategoryId] = useState(categories?.[0]?.id || "");
-  const [startDate, setStartDate] = useState("");
-  const [durationDays, setDurationDays] = useState(365);
-  const [note, setNote] = useState("");
-
-  useEffect(() => {
-    if(!employeeId && scopedEmployees?.[0]?.id) setEmployeeId(scopedEmployees[0].id);
-  }, [scopedEmployees, employeeId]);
-
-  useEffect(() => {
-    if(!categoryId && categories?.[0]?.id) setCategoryId(categories[0].id);
-  }, [categories, categoryId]);
-
-  const rows = useMemo(() => {
-    const list = (personnelDocs?.[employeeId] || []).slice();
-    // sort by endDate asc
-    list.sort((a,b) => (a.endDate||"").localeCompare(b.endDate||""));
-    return list;
-  }, [personnelDocs, employeeId]);
-
-  const catName = (id) => (categories||[]).find(c => c.id === id)?.name || "—";
-
-  const safeEditGuard = (emp) => {
-    if(isAdmin) return true;
-    // liderler sadece kendi projelerine işlem yapabilir
-    return emp?.project && emp.project === auth?.project;
-  };
-
-  const addDoc = () => {
-    if(!canEdit) return pushToast("Bu işlem için yetkin yok.", "danger");
-    if(!selectedEmployee) return;
-    if(!safeEditGuard(selectedEmployee)) return pushToast("Sadece kendi projen için işlem yapabilirsin.", "danger");
-    if(!(categoryId||"").trim()) return pushToast("Evrak türü seçmelisin.", "warn");
-    if(!(startDate||"").trim()) return pushToast("Başlangıç tarihi seçmelisin.", "warn");
-    if(!durationDays) return pushToast("Süre seçmelisin.", "warn");
-
-    const endDate = addDaysISO(startDate, durationDays);
-
-    updateState(d => {
-      d.personnelDocs ||= {};
-      d.personnelDocs[selectedEmployee.id] ||= [];
-      d.personnelDocs[selectedEmployee.id].push({
-        id: uid("pdoc"),
-        categoryId,
-        startDate,
-        durationDays: Number(durationDays),
-        endDate,
-        note: (note||"").trim(),
-        createdAt: new Date().toISOString(),
-        createdBy: auth?.username || "system",
-        updatedAt: null,
-        updatedBy: null
-      });
-    });
-
-    setStartDate("");
-    setDurationDays(365);
-    setNote("");
-    pushToast("Evrak eklendi.", "ok");
-  };
-
-  const updateDoc = (docId, patch) => {
-    if(!canEdit) return;
-    if(!selectedEmployee) return;
-    if(!safeEditGuard(selectedEmployee)) return;
-
-    updateState(d => {
-      const arr = d.personnelDocs?.[selectedEmployee.id] || [];
-      const it = arr.find(x => x.id === docId);
-      if(!it) return;
-      Object.assign(it, patch);
-      // endDate otomatik
-      it.endDate = addDaysISO(it.startDate, it.durationDays);
-      it.updatedAt = new Date().toISOString();
-      it.updatedBy = auth?.username || "system";
-    });
-  };
-
-  const deleteDoc = (docId) => {
-    if(!canEdit) return;
-    if(!selectedEmployee) return;
-    if(!safeEditGuard(selectedEmployee)) return;
-
-    updateState(d => {
-      const arr = d.personnelDocs?.[selectedEmployee.id] || [];
-      d.personnelDocs[selectedEmployee.id] = arr.filter(x => x.id !== docId);
-    });
-    pushToast("Evrak silindi.", "warn");
-  };
-
-  const todayISO = new Date().toISOString().slice(0,10);
-
-  const statusOf = (endDate) => {
-    const left = daysBetweenISO(todayISO, endDate);
-    if(left === null) return { label:"—", level:"default", left:null };
-    if(left < 0) return { label:"Süresi Geçti", level:"danger", left };
-    if(left <= 7) return { label:"Yaklaşıyor", level:"warn", left };
-    return { label:"Aktif", level:"ok", left };
-  };
-
-  return (
-    <>
-      <div className="card">
-        <div className="cardTitleRow">
-          <h3>Personel Evrak Takip</h3>
-          <Badge>{canEdit ? "Yönetim" : "Görüntüleme"}</Badge>
-        </div>
-
-        <div className="grid" style={{gridTemplateColumns:"repeat(auto-fit, minmax(220px, 1fr))", gap:10, marginTop:10}}>
-          <div>
-            <div className="label">Çalışan</div>
-            <select className="input" value={employeeId} onChange={e=>setEmployeeId(e.target.value)}>
-              {scopedEmployees.map(e => (
-                <option key={e.id} value={e.id}>{e.name} • {e.project}</option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <div className="label">Evrak Türü</div>
-            <select className="input" value={categoryId} onChange={e=>setCategoryId(e.target.value)} disabled={!canEdit}>
-              {(categories||[]).map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-            </select>
-          </div>
-
-          <div>
-            <div className="label">Başlangıç Tarihi</div>
-            <input className="input" type="date" value={startDate} onChange={e=>setStartDate(e.target.value)} disabled={!canEdit}/>
-          </div>
-
-          <div>
-            <div className="label">Süre</div>
-            <select className="input" value={durationDays} onChange={e=>setDurationDays(Number(e.target.value))} disabled={!canEdit}>
-              {PERSONNEL_DOC_DURATION_OPTIONS.map(d => <option key={d} value={d}>{d} gün</option>)}
-            </select>
-          </div>
-        </div>
-
-        <div style={{marginTop:10}}>
-          <div className="label">Not</div>
-          <input className="input" value={note} onChange={e=>setNote(e.target.value)} placeholder="Opsiyonel not" disabled={!canEdit}/>
-        </div>
-
-        <div style={{marginTop:10, display:"flex", gap:10, justifyContent:"flex-end"}}>
-          <button className="btn primary" onClick={addDoc} disabled={!canEdit || !selectedEmployee || !(categories||[]).length}>Evrak Ekle</button>
-        </div>
-
-        {(!(categories||[]).length) && (
-          <div className="small" style={{marginTop:10}}>
-            Evrak türü listesi boş. Admin → Personel Evrak Kategorileri bölümünden ekleyin.
-          </div>
-        )}
-      </div>
-
-      <div className="card" style={{marginTop:12}}>
-        <div className="cardTitleRow">
-          <h3>Evraklar</h3>
-          <Badge>{selectedEmployee ? selectedEmployee.name : "-"}</Badge>
-        </div>
-
-        {(rows||[]).length === 0 ? (
-          <div className="small muted" style={{marginTop:10}}>Bu çalışan için evrak kaydı yok.</div>
-        ) : (
-          <div className="tableWrap" style={{marginTop:10, overflowX:"auto"}}>
-            <table className="table">
-              <thead>
-                <tr>
-                  <th>Evrak</th>
-                  <th>Başlangıç</th>
-                  <th>Süre</th>
-                  <th>Bitiş</th>
-                  <th>Kalan</th>
-                  <th>Durum</th>
-                  {canEdit && <th>İşlem</th>}
-                </tr>
-              </thead>
-              <tbody>
-                {rows.map(r => {
-                  const st = statusOf(r.endDate);
-                  return (
-                    <tr key={r.id}>
-                      <td style={{minWidth:220}}>
-                        {canEdit ? (
-                          <select className="input sm" value={r.categoryId} onChange={e=>updateDoc(r.id, { categoryId: e.target.value })}>
-                            {(categories||[]).map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                          </select>
-                        ) : (
-                          catName(r.categoryId)
-                        )}
-                      </td>
-
-                      <td>
-                        {canEdit ? (
-                          <input className="input sm" type="date" value={r.startDate || ""} onChange={e=>updateDoc(r.id, { startDate: e.target.value })}/>
-                        ) : (
-                          (r.startDate || "—")
-                        )}
-                      </td>
-
-                      <td>
-                        {canEdit ? (
-                          <select className="input sm" value={r.durationDays || 365} onChange={e=>updateDoc(r.id, { durationDays: Number(e.target.value) })}>
-                            {PERSONNEL_DOC_DURATION_OPTIONS.map(d => <option key={d} value={d}>{d} gün</option>)}
-                          </select>
-                        ) : (
-                          `${r.durationDays || "—"} gün`
-                        )}
-                      </td>
-
-                      <td>{r.endDate || "—"}</td>
-                      <td>{st.left === null ? "—" : `${st.left} gün`}</td>
-                      <td>
-                        <Badge kind={st.level}>{st.label}</Badge>
-                      </td>
-
-                      {canEdit && (
-                        <td>
-                          <button className="btn danger sm" onClick={()=>deleteDoc(r.id)}>Sil</button>
-                        </td>
-                      )}
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
-    </>
-  );
-}
 
 function ActionsView({ auth, projects, employees, actions, updateState }){
   const isAdmin = auth?.role === "admin";
