@@ -1941,7 +1941,16 @@ for(const emp of (next.employees || [])){
                 onUpsert={adminUpsertAuthUser}
                 onDelete={adminDeleteAuthUser}
               />
-            </>
+            
+              <VehiclesAdminView
+                isAdmin={isAdmin}
+                auth={auth}
+                categories={state.categories}
+                projects={state.projects}
+                updateState={updateState}
+                pushToast={pushToast}
+              />
+</>
           )}
 {tab === "employees" && (
   <EmployeesView
@@ -4553,6 +4562,216 @@ function userMarkDone(id){
 /* ===================== MOUNT ===================== */
 
 // Simple ErrorBoundary to avoid blank screen on runtime errors
+
+function VehiclesAdminView({ isAdmin, auth, categories, projects, updateState, pushToast }) {
+  if(!isAdmin) return null;
+
+  const vehiclesCat = useMemo(() => {
+    return (categories || []).find(c => c && c.key === "vehicles");
+  }, [categories]);
+
+  const [projectId, setProjectId] = useState(() => (projects && projects[0] ? projects[0].id : ""));
+  const [vehicleName, setVehicleName] = useState("");
+  const [q, setQ] = useState("");
+
+  // Keep selected project valid when projects change
+  useEffect(() => {
+    if(projectId && (projects || []).some(p => p.id === projectId)) return;
+    setProjectId((projects && projects[0] ? projects[0].id : ""));
+  }, [projects]);
+
+  const selectedProject = useMemo(() => (projects || []).find(p => p.id === projectId) || null, [projects, projectId]);
+
+  const list = useMemo(() => {
+    const p = selectedProject;
+    if(!p) return [];
+    const arr = (p.itemsByCategory && p.itemsByCategory["vehicles"]) ? p.itemsByCategory["vehicles"] : [];
+    const ql = (q || "").trim().toLowerCase();
+    return (arr || []).filter(it => {
+      if(!ql) return true;
+      return String(it?.name || "").toLowerCase().includes(ql);
+    });
+  }, [selectedProject, q]);
+
+  function addVehicle(){
+    const name = (vehicleName || "").trim();
+    if(!name){
+      pushToast && pushToast("Araç adı/plaka zorunlu.", "warn");
+      return;
+    }
+    const pid = projectId;
+    if(!pid){
+      pushToast && pushToast("Proje seçmelisin.", "warn");
+      return;
+    }
+
+    updateState(d => {
+      const p = (d.projects || []).find(x => x.id === pid);
+      if(!p) return;
+      if(!p.itemsByCategory) p.itemsByCategory = {};
+      if(!Array.isArray(p.itemsByCategory.vehicles)) p.itemsByCategory.vehicles = [];
+      p.itemsByCategory.vehicles.push({
+        id: uid("item"),
+        name,
+        approved: true,                 // admin eklerken direkt onaylı
+        requestedBy: auth?.username || "admin",
+        createdAt: new Date().toISOString(),
+        months: {}
+      });
+    });
+
+    setVehicleName("");
+    pushToast && pushToast("Araç eklendi.", "ok");
+  }
+
+  function approveVehicle(itemId){
+    updateState(d => {
+      const p = (d.projects || []).find(x => x.id === projectId);
+      if(!p) return;
+      const arr = p.itemsByCategory?.vehicles || [];
+      const it = arr.find(x => x.id === itemId);
+      if(!it) return;
+      it.approved = true;
+      it.approvedAt = new Date().toISOString();
+      it.approvedBy = auth?.username || "admin";
+    });
+    pushToast && pushToast("Araç onaylandı.", "ok");
+  }
+
+  function deleteVehicle(itemId){
+    if(!confirm("Bu aracı silmek istiyor musun?")) return;
+    updateState(d => {
+      const p = (d.projects || []).find(x => x.id === projectId);
+      if(!p) return;
+      const arr = p.itemsByCategory?.vehicles || [];
+      p.itemsByCategory.vehicles = arr.filter(x => x.id !== itemId);
+    });
+    pushToast && pushToast("Araç silindi.", "ok");
+  }
+
+  function renameVehicle(itemId, nextName){
+    const name = (nextName || "").trim();
+    if(!name) return;
+    updateState(d => {
+      const p = (d.projects || []).find(x => x.id === projectId);
+      if(!p) return;
+      const it = (p.itemsByCategory?.vehicles || []).find(x => x.id === itemId);
+      if(!it) return;
+      it.name = name;
+    });
+    pushToast && pushToast("Araç güncellendi.", "ok");
+  }
+
+  return (
+    <div className="card" style={{marginTop:12}}>
+      <div className="cardHeader">
+        <div>
+          <div className="h2">Araç Yönetimi</div>
+          <div className="muted">Admin: Araç ekle / onayla / sil. Kullanıcıların talep ettiği onaysız araçlar burada da görünür.</div>
+        </div>
+      </div>
+
+      <div className="grid" style={{gridTemplateColumns:"repeat(auto-fit,minmax(220px,1fr))", gap:10}}>
+        <div className="field">
+          <label>Proje</label>
+          <select value={projectId} onChange={e=>setProjectId(e.target.value)}>
+            {(projects || []).map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+          </select>
+        </div>
+
+        <div className="field">
+          <label>Araç ara</label>
+          <input value={q} onChange={e=>setQ(e.target.value)} placeholder="Plaka / ad..." />
+        </div>
+
+        <div className="field">
+          <label>Yeni araç (plaka/ad)</label>
+          <div style={{display:"flex", gap:8}}>
+            <input value={vehicleName} onChange={e=>setVehicleName(e.target.value)} placeholder="34 ABC 123 • Ford Transit" />
+            <button className="btn primary" onClick={addVehicle}>Ekle</button>
+          </div>
+        </div>
+      </div>
+
+      <div style={{marginTop:12}}>
+        {!vehiclesCat && (
+          <div className="muted" style={{marginBottom:8}}>
+            Not: "vehicles" kategorisi bulunamadı. Admin → Kategori Tanımları kısmından "Araçlar" kategorisini oluşturmalısın.
+          </div>
+        )}
+
+        {(!selectedProject) ? (
+          <div className="muted">Proje seç.</div>
+        ) : (
+          <div className="tableWrap">
+            <table className="table">
+              <thead>
+                <tr>
+                  <th style={{width:"40%"}}>Araç</th>
+                  <th>Durum</th>
+                  <th>İsteyen</th>
+                  <th style={{width:210}}>İşlem</th>
+                </tr>
+              </thead>
+              <tbody>
+                {list.length === 0 && (
+                  <tr><td colSpan={4} className="muted">Kayıt yok.</td></tr>
+                )}
+                {list.map(it => (
+                  <tr key={it.id}>
+                    <td>
+                      <EditableText
+                        value={it.name}
+                        onSave={(val)=>renameVehicle(it.id, val)}
+                      />
+                    </td>
+                    <td>
+                      {it.approved ? <span className="pill ok">Onaylı</span> : <span className="pill warn">Onay bekliyor</span>}
+                    </td>
+                    <td className="muted">{it.requestedBy || "-"}</td>
+                    <td>
+                      <div style={{display:"flex", gap:8, flexWrap:"wrap"}}>
+                        {!it.approved && <button className="btn" onClick={()=>approveVehicle(it.id)}>Onayla</button>}
+                        <button className="btn danger" onClick={()=>deleteVehicle(it.id)}>Sil</button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// Küçük inline edit bileşeni (Admin listelerinde pratik düzenleme için)
+function EditableText({ value, onSave }) {
+  const [editing, setEditing] = useState(false);
+  const [v, setV] = useState(value || "");
+
+  useEffect(() => setV(value || ""), [value]);
+
+  if(!editing){
+    return (
+      <div style={{display:"flex", alignItems:"center", gap:8}}>
+        <div style={{fontWeight:600}}>{value || "-"}</div>
+        <button className="btn" onClick={()=>setEditing(true)}>Düzenle</button>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{display:"flex", alignItems:"center", gap:8}}>
+      <input value={v} onChange={e=>setV(e.target.value)} />
+      <button className="btn primary" onClick={()=>{ onSave && onSave(v); setEditing(false); }}>Kaydet</button>
+      <button className="btn" onClick={()=>{ setV(value || ""); setEditing(false); }}>İptal</button>
+    </div>
+  );
+}
+
+
 class ErrorBoundary extends React.Component{
   constructor(props){ super(props); this.state={error:null}; }
   static getDerivedStateFromError(error){ return {error}; }
