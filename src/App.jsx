@@ -69,6 +69,19 @@ const CREDENTIALS = {
   tupras_batman: { password: "batman123", role: "user", project: "Tüpraş Batman" }
 };
 
+
+/* ROLLER (Admin panelinden kullanıcı ekleme için) */
+const ROLE_OPTIONS = [
+  { value: "user", label: "Kullanıcı" },
+  { value: "team_leader", label: "Ekip Lideri" },
+  { value: "project_leader", label: "Proje Lideri" },
+  { value: "admin", label: "Admin" }
+];
+function roleLabel(role){
+  return ROLE_OPTIONS.find(r => r.value === role)?.label || String(role || "-");
+}
+
+
 /* ===================== MONTHLY CHECKLIST (FIXED) ===================== */
 const MONTHLY_CHECK_ITEMS = [
   "İlkyardım çantası kontrolü",
@@ -653,7 +666,7 @@ for(const emp of (next.employees || [])){
     const p = (lp || "").trim();
 
     const dyn = (state.authUsers || []).find(x => x && x.username === u);
-    const rec = CREDENTIALS[u] || (dyn ? { password: dyn.password, role: "user", project: dyn.project } : null);
+    const rec = CREDENTIALS[u] || (dyn ? { password: dyn.password, role: (dyn.role || "user"), project: (dyn.project || dyn.projectName || dyn.projectId) } : null);
     if(!rec || rec.password !== p){
       pushToast("Hatalı kullanıcı adı veya şifre.", "danger");
       return;
@@ -1293,22 +1306,38 @@ for(const emp of (next.employees || [])){
   }
 
 
-  function adminUpsertAuthUser(username, password, projectName){
+  function adminUpsertAuthUser(username, password, projectName, role){
     const u = (username || "").trim();
     const p = (password || "").trim();
     const pr = (projectName || "").trim();
-    if(!u || !p || !pr){
-      pushToast("Kullanıcı adı / şifre / proje zorunlu.", "warning");
+    const rr = (role || "").trim() || "user";
+
+    // rol doğrulama
+    const allowed = new Set(ROLE_OPTIONS.map(r => r.value));
+    const finalRole = allowed.has(rr) ? rr : "user";
+
+    // Admin haricinde proje zorunlu
+    if(!u || !p || (finalRole !== "admin" && !pr)){
+      pushToast("Kullanıcı adı / şifre / proje zorunlu.", "warn");
       return;
     }
+
     updateState(d => {
       if(!Array.isArray(d.authUsers)) d.authUsers = [];
       const ix = d.authUsers.findIndex(x => x && x.username === u);
-      const rec = { username: u, password: p, project: pr };
+
+      const rec = {
+        username: u,
+        password: p,
+        project: finalRole === "admin" ? "" : pr,
+        role: finalRole
+      };
+
       if(ix >= 0) d.authUsers[ix] = rec;
       else d.authUsers.push(rec);
     });
-    pushToast("Kullanıcı kaydedildi.", "success");
+
+    pushToast("Kullanıcı kaydedildi.", "ok");
   }
   function adminDeleteAuthUser(username){
     const u = (username || "").trim();
@@ -1317,7 +1346,7 @@ for(const emp of (next.employees || [])){
     updateState(d => {
       d.authUsers = (d.authUsers || []).filter(x => x && x.username !== u);
     });
-    pushToast("Kullanıcı silindi.", "success");
+    pushToast("Kullanıcı silindi.", "ok");
   }
 
 
@@ -1559,8 +1588,8 @@ for(const emp of (next.employees || [])){
         <div className="brand">
           <div className="logo"><LogoMark/></div>
           <div className="brandTitle">
-            <b>Scaffoldign Control Services</b>
-            <span>{monthKey} • Management Project</span>
+            <b>Veri Takip</b>
+            <span>{monthKey} • Onaylı veriler rapora girer</span>
           </div>
         </div>
 
@@ -2951,7 +2980,7 @@ function ExpertsEntryCompactView({ isAdmin, monthKey, monthDays, project, catego
             <input className="input sm" value={search} onChange={e=>setSearch(e.target.value)} placeholder="Uzman ara..." />
           </div>
           <div className="small" style={{flex:"1 1 320px"}}>
-            Uzman Aylık Verilerini Buradan Giriniz)
+            Yemek artık <b>sayı</b> olarak girilir. (Gün seçimi kaldırıldı — istersen tekrar ekleriz.)
           </div>
         </div>
 
@@ -3556,6 +3585,7 @@ function ProjectUserMapping({ authUsers, projects, onUpsert, onDelete }){
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [project, setProject] = useState(projects?.[0]?.name || "SOCAR");
+  const [role, setRole] = useState("user");
 
   useEffect(() => {
     if(projects && projects.length && !projects.some(p => p.name === project)){
@@ -3564,6 +3594,15 @@ function ProjectUserMapping({ authUsers, projects, onUpsert, onDelete }){
   }, [projects]);
 
   const rows = (authUsers || []).slice().sort((a,b)=> (a.username||"").localeCompare(b.username||""));
+
+  const canSave = () => {
+    const u = (username || "").trim();
+    const p = (password || "").trim();
+    const r = (role || "user").trim();
+    if(!u || !p) return false;
+    if(r !== "admin" && !(project || "").trim()) return false;
+    return true;
+  };
 
   return (
     <div className="card" style={{marginTop:12}}>
@@ -3577,21 +3616,46 @@ function ProjectUserMapping({ authUsers, projects, onUpsert, onDelete }){
           <label className="label">Kullanıcı Adı</label>
           <input className="input" value={username} onChange={e=>setUsername(e.target.value)} placeholder="socar_ahmet" />
         </div>
+
         <div>
           <label className="label">Şifre</label>
           <input className="input" value={password} onChange={e=>setPassword(e.target.value)} placeholder="••••••" />
         </div>
+
         <div>
-          <label className="label">Proje</label>
-          <select className="input" value={project} onChange={e=>setProject(e.target.value)}>
-            {(projects||[]).map(p => <option key={p.name} value={p.name}>{p.name}</option>)}
+          <label className="label">Rol</label>
+          <select className="input" value={role} onChange={e=>setRole(e.target.value)}>
+            {/* Admin istersen buradan da eklenebilir. */}
+            <option value="user">Kullanıcı</option>
+            <option value="team_leader">Ekip Lideri</option>
+            <option value="project_leader">Proje Lideri</option>
+            <option value="admin">Admin</option>
           </select>
         </div>
+
+        <div>
+          <label className="label">Proje</label>
+          <select className="input" value={project} onChange={e=>setProject(e.target.value)} disabled={role==="admin"}>
+            {(projects||[]).map(p => <option key={p.name} value={p.name}>{p.name}</option>)}
+          </select>
+          {role==="admin" && <div className="small" style={{opacity:.8, marginTop:6}}>Admin için proje gerekmez.</div>}
+        </div>
+
         <div style={{display:"flex", alignItems:"flex-end", gap:8}}>
-          <button className="btn ok" type="button" onClick={()=>{ onUpsert(username, password, project); setUsername(""); setPassword(""); }}>
+          <button
+            className="btn ok"
+            type="button"
+            disabled={!canSave()}
+            onClick={()=>{
+              onUpsert(username, password, project, role);
+              setUsername("");
+              setPassword("");
+              setRole("user");
+            }}
+          >
             Kaydet
           </button>
-          <div className="small" style={{opacity:.8}}>Aynı proje verilerini görür.</div>
+          <div className="small" style={{opacity:.8}}>Kullanıcı girişte rolüne göre yetki alır.</div>
         </div>
       </div>
 
@@ -3602,17 +3666,19 @@ function ProjectUserMapping({ authUsers, projects, onUpsert, onDelete }){
             <thead>
               <tr>
                 <th>Kullanıcı</th>
+                <th>Rol</th>
                 <th>Proje</th>
                 <th style={{width:120}}>İşlem</th>
               </tr>
             </thead>
             <tbody>
               {rows.length === 0 ? (
-                <tr><td colSpan={3} className="small">Henüz kullanıcı yok.</td></tr>
+                <tr><td colSpan={4} className="small">Henüz kullanıcı yok.</td></tr>
               ) : rows.map(u => (
                 <tr key={u.username}>
                   <td><b>{u.username}</b></td>
-                  <td>{u.project}</td>
+                  <td>{roleLabel(u.role || "user")}</td>
+                  <td>{u.role === "admin" ? "-" : (u.project || "-")}</td>
                   <td>
                     <button className="btn danger" type="button" onClick={()=>onDelete(u.username)}>Sil</button>
                   </td>
