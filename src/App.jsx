@@ -230,6 +230,40 @@ function defaultDocTemplates(){
   }));
 }
 
+
+
+/* ===================== PERSONEL EVRAK KATEGORİLERİ ===================== */
+
+function defaultPersonnelDocCategories(){
+  const names = [
+    "İSG Eğitim Sertifikası",
+    "Sağlık Muayenesi",
+    "Adli Sicil Kaydı"
+  ];
+  return names.map(n => ({ id: uid("pdoccat"), name: n }));
+}
+
+// Personel evrakları için bitiş süresi seçenekleri (gün)
+const PERSONNEL_DOC_DURATION_OPTIONS = [30, 60, 90, 120, 180, 365];
+
+function addDaysISO(startISO, days){
+  if(!startISO || !days) return "";
+  const d = new Date(startISO);
+  if(Number.isNaN(d.getTime())) return "";
+  d.setDate(d.getDate() + Number(days));
+  // ISO date only
+  return d.toISOString().slice(0,10);
+}
+
+function daysBetweenISO(aISO, bISO){
+  if(!aISO || !bISO) return null;
+  const a = new Date(aISO);
+  const b = new Date(bISO);
+  if(Number.isNaN(a.getTime()) || Number.isNaN(b.getTime())) return null;
+  const ms = b.getTime() - a.getTime();
+  return Math.ceil(ms / (1000*60*60*24));
+}
+
 /* ===================== STATE MODEL =====================
 state = {
   categories: [category...],
@@ -265,6 +299,8 @@ function seedState(){
     employees: [], // 👷 ÇALIŞANLAR
     docTemplates: defaultDocTemplates(), // 📄 İmzalı evrak şablonları
     employeeDocs: {}, // { [employeeId]: { [docKey]: { signed, signedAt } } }
+    personnelDocCategories: defaultPersonnelDocCategories(), // 🗂️ Personel evrak kategorileri
+    personnelDocs: {}, // { [employeeId]: [ {id, categoryId, startDate, durationDays, endDate, note, createdAt, createdBy, updatedAt, updatedBy} ] }
     actions: [], // ✅ Aksiyon / Düzeltici Faaliyet
     announcements: [], // 📣 Duyurular (admin yayınlar)
     authUsers: [], // 🔐 Admin tanımlı proje kullanıcıları
@@ -1601,6 +1637,7 @@ for(const emp of (next.employees || [])){
 </TabButton>
 
           <TabButton active={tab==="docs"} onClick={()=>setTab("docs")}>Dokümanlar</TabButton>
+          <TabButton active={tab==="personnelDocs"} onClick={()=>setTab("personnelDocs")}>Personel Evrak</TabButton>
 
           <TabButton active={tab==="actions"} onClick={()=>setTab("actions")}>Aksiyonlar</TabButton>
 
@@ -1970,6 +2007,13 @@ for(const emp of (next.employees || [])){
                 onUpsert={adminUpsertAuthUser}
                 onDelete={adminDeleteAuthUser}
               />
+
+              <PersonnelDocCategoriesAdmin
+                isAdmin={isAdmin}
+                categories={state.personnelDocCategories}
+                updateState={updateState}
+                pushToast={pushToast}
+              />
             
               <VehiclesAdminView
                 isAdmin={isAdmin}
@@ -2001,6 +2045,20 @@ for(const emp of (next.employees || [])){
     docTemplates={state.docTemplates}
     employeeDocs={state.employeeDocs}
     updateState={updateState}
+  />
+)}
+
+
+{tab === "personnelDocs" && (
+  <PersonnelDocsView
+    auth={auth}
+    isAdmin={isAdmin}
+    projects={state.projects}
+    employees={state.employees}
+    categories={state.personnelDocCategories}
+    personnelDocs={state.personnelDocs}
+    updateState={updateState}
+    pushToast={pushToast}
   />
 )}
 
@@ -4265,6 +4323,331 @@ function monthOptions(){
 
 
 /* ===================== ACTIONS (Corrective / Action List) ===================== */
+
+
+/* ===================== PERSONEL EVRAK (SÜRELİ) ===================== */
+
+function PersonnelDocCategoriesAdmin({ isAdmin, categories, updateState, pushToast }){
+  if(!isAdmin) return null;
+
+  const [name, setName] = useState("");
+
+  const addCat = () => {
+    const n = (name||"").trim();
+    if(!n) return;
+    updateState(d => {
+      d.personnelDocCategories ||= [];
+      d.personnelDocCategories.push({ id: uid("pdoccat"), name: n });
+    });
+    setName("");
+    pushToast("Evrak kategorisi eklendi.", "ok");
+  };
+
+  const delCat = (id) => {
+    updateState(d => {
+      d.personnelDocCategories = (d.personnelDocCategories||[]).filter(c => c.id !== id);
+      // mevcut evrak kayıtlarında kategori silinirse, sadece kategori adı kaybolur ama kayıt kalır
+    });
+    pushToast("Kategori silindi.", "warn");
+  };
+
+  const renameCat = (id, newName) => {
+    updateState(d => {
+      const c = (d.personnelDocCategories||[]).find(x => x.id === id);
+      if(c) c.name = newName;
+    });
+  };
+
+  return (
+    <div className="card" style={{marginTop:12}}>
+      <div className="cardTitleRow">
+        <h3>Personel Evrak Kategorileri</h3>
+        <Badge>Admin</Badge>
+      </div>
+
+      <div className="grid" style={{gridTemplateColumns:"1fr auto", gap:10, marginTop:10}}>
+        <input className="input" value={name} onChange={e=>setName(e.target.value)} placeholder="Yeni kategori adı (örn: İSG Eğitim Sertifikası)" />
+        <button className="btn primary" onClick={addCat}>Ekle</button>
+      </div>
+
+      <div style={{marginTop:12}}>
+        {(categories||[]).length === 0 ? (
+          <div className="small muted">Henüz kategori yok. Yukarıdan ekleyebilirsin.</div>
+        ) : (
+          <div className="list">
+            {(categories||[]).map(c => (
+              <div key={c.id} className="listRow" style={{display:"grid", gridTemplateColumns:"1fr auto", gap:10, alignItems:"center"}}>
+                <input
+                  className="input"
+                  value={c.name}
+                  onChange={e=>renameCat(c.id, e.target.value)}
+                />
+                <button className="btn danger" onClick={()=>delCat(c.id)}>Sil</button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function PersonnelDocsView({
+  auth,
+  isAdmin,
+  projects,
+  employees,
+  categories,
+  personnelDocs,
+  updateState,
+  pushToast
+}){
+  const role = auth?.role;
+  const isLeader = role === "project_leader" || role === "team_leader";
+  const canEdit = isAdmin || isLeader;
+
+  const scopedEmployees = useMemo(() => {
+    const list = employees || [];
+    if(isAdmin) return list;
+    // lider + kullanıcı: sadece kendi projesi
+    return list.filter(e => e.project === auth?.project);
+  }, [employees, isAdmin, auth?.project]);
+
+  const [employeeId, setEmployeeId] = useState(scopedEmployees?.[0]?.id || "");
+  const selectedEmployee = useMemo(() => scopedEmployees.find(e => e.id === employeeId), [scopedEmployees, employeeId]);
+
+  // form
+  const [categoryId, setCategoryId] = useState(categories?.[0]?.id || "");
+  const [startDate, setStartDate] = useState("");
+  const [durationDays, setDurationDays] = useState(365);
+  const [note, setNote] = useState("");
+
+  useEffect(() => {
+    if(!employeeId && scopedEmployees?.[0]?.id) setEmployeeId(scopedEmployees[0].id);
+  }, [scopedEmployees, employeeId]);
+
+  useEffect(() => {
+    if(!categoryId && categories?.[0]?.id) setCategoryId(categories[0].id);
+  }, [categories, categoryId]);
+
+  const rows = useMemo(() => {
+    const list = (personnelDocs?.[employeeId] || []).slice();
+    // sort by endDate asc
+    list.sort((a,b) => (a.endDate||"").localeCompare(b.endDate||""));
+    return list;
+  }, [personnelDocs, employeeId]);
+
+  const catName = (id) => (categories||[]).find(c => c.id === id)?.name || "—";
+
+  const safeEditGuard = (emp) => {
+    if(isAdmin) return true;
+    // liderler sadece kendi projelerine işlem yapabilir
+    return emp?.project && emp.project === auth?.project;
+  };
+
+  const addDoc = () => {
+    if(!canEdit) return pushToast("Bu işlem için yetkin yok.", "danger");
+    if(!selectedEmployee) return;
+    if(!safeEditGuard(selectedEmployee)) return pushToast("Sadece kendi projen için işlem yapabilirsin.", "danger");
+    if(!(categoryId||"").trim()) return pushToast("Evrak türü seçmelisin.", "warn");
+    if(!(startDate||"").trim()) return pushToast("Başlangıç tarihi seçmelisin.", "warn");
+    if(!durationDays) return pushToast("Süre seçmelisin.", "warn");
+
+    const endDate = addDaysISO(startDate, durationDays);
+
+    updateState(d => {
+      d.personnelDocs ||= {};
+      d.personnelDocs[selectedEmployee.id] ||= [];
+      d.personnelDocs[selectedEmployee.id].push({
+        id: uid("pdoc"),
+        categoryId,
+        startDate,
+        durationDays: Number(durationDays),
+        endDate,
+        note: (note||"").trim(),
+        createdAt: new Date().toISOString(),
+        createdBy: auth?.username || "system",
+        updatedAt: null,
+        updatedBy: null
+      });
+    });
+
+    setStartDate("");
+    setDurationDays(365);
+    setNote("");
+    pushToast("Evrak eklendi.", "ok");
+  };
+
+  const updateDoc = (docId, patch) => {
+    if(!canEdit) return;
+    if(!selectedEmployee) return;
+    if(!safeEditGuard(selectedEmployee)) return;
+
+    updateState(d => {
+      const arr = d.personnelDocs?.[selectedEmployee.id] || [];
+      const it = arr.find(x => x.id === docId);
+      if(!it) return;
+      Object.assign(it, patch);
+      // endDate otomatik
+      it.endDate = addDaysISO(it.startDate, it.durationDays);
+      it.updatedAt = new Date().toISOString();
+      it.updatedBy = auth?.username || "system";
+    });
+  };
+
+  const deleteDoc = (docId) => {
+    if(!canEdit) return;
+    if(!selectedEmployee) return;
+    if(!safeEditGuard(selectedEmployee)) return;
+
+    updateState(d => {
+      const arr = d.personnelDocs?.[selectedEmployee.id] || [];
+      d.personnelDocs[selectedEmployee.id] = arr.filter(x => x.id !== docId);
+    });
+    pushToast("Evrak silindi.", "warn");
+  };
+
+  const todayISO = new Date().toISOString().slice(0,10);
+
+  const statusOf = (endDate) => {
+    const left = daysBetweenISO(todayISO, endDate);
+    if(left === null) return { label:"—", level:"default", left:null };
+    if(left < 0) return { label:"Süresi Geçti", level:"danger", left };
+    if(left <= 7) return { label:"Yaklaşıyor", level:"warn", left };
+    return { label:"Aktif", level:"ok", left };
+  };
+
+  return (
+    <>
+      <div className="card">
+        <div className="cardTitleRow">
+          <h3>Personel Evrak Takip</h3>
+          <Badge>{canEdit ? "Yönetim" : "Görüntüleme"}</Badge>
+        </div>
+
+        <div className="grid" style={{gridTemplateColumns:"repeat(auto-fit, minmax(220px, 1fr))", gap:10, marginTop:10}}>
+          <div>
+            <div className="label">Çalışan</div>
+            <select className="input" value={employeeId} onChange={e=>setEmployeeId(e.target.value)}>
+              {scopedEmployees.map(e => (
+                <option key={e.id} value={e.id}>{e.name} • {e.project}</option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <div className="label">Evrak Türü</div>
+            <select className="input" value={categoryId} onChange={e=>setCategoryId(e.target.value)} disabled={!canEdit}>
+              {(categories||[]).map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+            </select>
+          </div>
+
+          <div>
+            <div className="label">Başlangıç Tarihi</div>
+            <input className="input" type="date" value={startDate} onChange={e=>setStartDate(e.target.value)} disabled={!canEdit}/>
+          </div>
+
+          <div>
+            <div className="label">Süre</div>
+            <select className="input" value={durationDays} onChange={e=>setDurationDays(Number(e.target.value))} disabled={!canEdit}>
+              {PERSONNEL_DOC_DURATION_OPTIONS.map(d => <option key={d} value={d}>{d} gün</option>)}
+            </select>
+          </div>
+        </div>
+
+        <div style={{marginTop:10}}>
+          <div className="label">Not</div>
+          <input className="input" value={note} onChange={e=>setNote(e.target.value)} placeholder="Opsiyonel not" disabled={!canEdit}/>
+        </div>
+
+        <div style={{marginTop:10, display:"flex", gap:10, justifyContent:"flex-end"}}>
+          <button className="btn primary" onClick={addDoc} disabled={!canEdit || !selectedEmployee || !(categories||[]).length}>Evrak Ekle</button>
+        </div>
+
+        {(!(categories||[]).length) && (
+          <div className="small" style={{marginTop:10}}>
+            Evrak türü listesi boş. Admin → Personel Evrak Kategorileri bölümünden ekleyin.
+          </div>
+        )}
+      </div>
+
+      <div className="card" style={{marginTop:12}}>
+        <div className="cardTitleRow">
+          <h3>Evraklar</h3>
+          <Badge>{selectedEmployee ? selectedEmployee.name : "-"}</Badge>
+        </div>
+
+        {(rows||[]).length === 0 ? (
+          <div className="small muted" style={{marginTop:10}}>Bu çalışan için evrak kaydı yok.</div>
+        ) : (
+          <div className="tableWrap" style={{marginTop:10, overflowX:"auto"}}>
+            <table className="table">
+              <thead>
+                <tr>
+                  <th>Evrak</th>
+                  <th>Başlangıç</th>
+                  <th>Süre</th>
+                  <th>Bitiş</th>
+                  <th>Kalan</th>
+                  <th>Durum</th>
+                  {canEdit && <th>İşlem</th>}
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map(r => {
+                  const st = statusOf(r.endDate);
+                  return (
+                    <tr key={r.id}>
+                      <td style={{minWidth:220}}>
+                        {canEdit ? (
+                          <select className="input sm" value={r.categoryId} onChange={e=>updateDoc(r.id, { categoryId: e.target.value })}>
+                            {(categories||[]).map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                          </select>
+                        ) : (
+                          catName(r.categoryId)
+                        )}
+                      </td>
+
+                      <td>
+                        {canEdit ? (
+                          <input className="input sm" type="date" value={r.startDate || ""} onChange={e=>updateDoc(r.id, { startDate: e.target.value })}/>
+                        ) : (
+                          (r.startDate || "—")
+                        )}
+                      </td>
+
+                      <td>
+                        {canEdit ? (
+                          <select className="input sm" value={r.durationDays || 365} onChange={e=>updateDoc(r.id, { durationDays: Number(e.target.value) })}>
+                            {PERSONNEL_DOC_DURATION_OPTIONS.map(d => <option key={d} value={d}>{d} gün</option>)}
+                          </select>
+                        ) : (
+                          `${r.durationDays || "—"} gün`
+                        )}
+                      </td>
+
+                      <td>{r.endDate || "—"}</td>
+                      <td>{st.left === null ? "—" : `${st.left} gün`}</td>
+                      <td>
+                        <Badge kind={st.level}>{st.label}</Badge>
+                      </td>
+
+                      {canEdit && (
+                        <td>
+                          <button className="btn danger sm" onClick={()=>deleteDoc(r.id)}>Sil</button>
+                        </td>
+                      )}
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    </>
+  );
+}
 
 function ActionsView({ auth, projects, employees, actions, updateState }){
   const isAdmin = auth?.role === "admin";
