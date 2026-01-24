@@ -3917,7 +3917,14 @@ return (
 
       <div className="row" style={{flexWrap:"wrap"}}>
         <input className="input" placeholder="Ad Soyad" value={name} onChange={e=>setName(e.target.value)} style={{minWidth:220, flex:"1 1 240px"}} />
-        <input className="input" placeholder="Görev (Uzman, Şef…)" value={role} onChange={e=>setRole(e.target.value)} style={{minWidth:220, flex:"1 1 240px"}} />
+        <select className="input" value={role} onChange={e=>setRole(e.target.value)} style={{minWidth:220, flex:"1 1 240px"}}>
+          <option value="">Görev</option>
+          <option value="Ekip Lideri">Ekip Lideri</option>
+          <option value="Ekip Lider Yardımcısı">Ekip Lider Yardımcısı</option>
+          <option value="Proje Lideri">Proje Lideri</option>
+          <option value="Proje Lider Yardımcısı">Proje Lider Yardımcısı</option>
+          <option value="İskele Kontrol Uzmanı">İskele Kontrol Uzmanı</option>
+        </select>
         <select className="input" value={project} onChange={e=>setProject(e.target.value)} style={{minWidth:220, flex:"0 0 220px"}}>
           <option value="">Proje</option>
           {projects.map(p => (
