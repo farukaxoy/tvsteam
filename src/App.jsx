@@ -457,8 +457,8 @@ function AppInner(){
   /* login */
   const [lu, setLu] = useState("");
   const [lp, setLp] = useState("");
-  const \[showPw, setShowPw\] = useState\(false\);
-const [newPw, setNewPw] = useState("");
+    const [showPw, setShowPw] = useState(false);
+  const [newPw, setNewPw] = useState("");
   const [authBusy, setAuthBusy] = useState(false);
 
   const isRecovery = useMemo(() => {
