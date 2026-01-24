@@ -416,6 +416,119 @@ function LogoMark(){
 
 /* ===================== MAIN APP ===================== */
 
+
+function ResetPasswordInline(){
+  const [email, setEmail] = useState("");
+  const [pw, setPw] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const isRecovery = useMemo(() => {
+    const h = window.location.hash || "";
+    const q = window.location.search || "";
+    return (
+      h.includes("type=recovery") ||
+      q.includes("type=recovery") ||
+      h.includes("access_token=") ||
+      q.includes("access_token=")
+    );
+  }, []);
+
+  if(!isRecovery) return null;
+
+  async function updatePw(){
+    if(!pw || pw.length < 6){
+      alert("Şifre en az 6 karakter olmalı.");
+      return;
+    }
+    if(!supabase){
+      alert("Supabase bağlantısı yok. Env değişkenlerini kontrol et.");
+      return;
+    }
+    setLoading(true);
+    const { error } = await supabase.auth.updateUser({ password: pw });
+    setLoading(false);
+
+    if(error){
+      alert(error.message || "Şifre güncellenemedi.");
+      return;
+    }
+
+    alert("Şifre güncellendi. Artık yeni şifreyle giriş yapabilirsin.");
+    window.history.replaceState({}, document.title, "/");
+    window.location.reload();
+  }
+
+  async function sendReset(){
+    const e = (email || "").trim().toLowerCase();
+    if(!e){
+      alert("Email gir.");
+      return;
+    }
+    if(!supabase){
+      alert("Supabase bağlantısı yok. Env değişkenlerini kontrol et.");
+      return;
+    }
+    setLoading(true);
+    const { error } = await supabase.auth.resetPasswordForEmail(e, {
+      redirectTo: "https://tvsteam.pages.dev"
+    });
+    setLoading(false);
+
+    if(error){
+      alert(error.message || "Reset maili gönderilemedi.");
+      return;
+    }
+    alert("Şifre sıfırlama maili gönderildi. Gelen kutunu kontrol et.");
+  }
+
+  return (
+    <div className="loginPage">
+      <div className="loginWrap">
+        <div className="loginRight" style={{maxWidth:520, margin:"0 auto"}}>
+          <div className="loginCard">
+            <div className="loginTitle">Şifre Sıfırlama</div>
+            <div className="loginSub">Yeni şifre belirle</div>
+
+            <div className="loginForm">
+              <div className="loginField">
+                <label>Yeni Şifre</label>
+                <input
+                  className="loginInput"
+                  type="password"
+                  placeholder="Yeni şifre"
+                  value={pw}
+                  onChange={e=>setPw(e.target.value)}
+                />
+              </div>
+
+              <button className="loginBtn" onClick={updatePw} disabled={loading}>
+                {loading ? "Güncelleniyor..." : "Şifreyi Güncelle"}
+              </button>
+
+              <div style={{opacity:.65, margin:"10px 0"}}>veya</div>
+
+              <div className="loginField">
+                <label>Reset Maili Gönder</label>
+                <input
+                  className="loginInput"
+                  placeholder="admin@mail.com"
+                  value={email}
+                  onChange={e=>setEmail(e.target.value)}
+                />
+              </div>
+
+              <button className="loginBtn" onClick={sendReset} disabled={loading}>
+                {loading ? "Gönderiliyor..." : "Reset Maili Gönder"}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
 function Toasts({ items, onClose }){
   if(!items || items.length === 0) return null;
   return (
