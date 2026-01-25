@@ -24,6 +24,32 @@ function injectStyle(cssText, id){
   if(tag.textContent !== cssText) tag.textContent = cssText;
 }
 
+
+// --- date helpers (YYYY-MM-DD) ---
+function isoDate(d){
+  if(!d) return "";
+  const dt = (d instanceof Date) ? d : new Date(d);
+  if(Number.isNaN(dt.getTime())) return "";
+  const y = dt.getFullYear();
+  const m = String(dt.getMonth()+1).padStart(2,"0");
+  const day = String(dt.getDate()).padStart(2,"0");
+  return `${y}-${m}-${day}`;
+}
+function addDays(iso, days){
+  const dt = new Date(iso);
+  if(Number.isNaN(dt.getTime())) return "";
+  dt.setDate(dt.getDate() + Number(days||0));
+  return isoDate(dt);
+}
+function diffDays(fromIso, toIso){
+  const a = new Date(fromIso);
+  const b = new Date(toIso);
+  if(Number.isNaN(a.getTime()) || Number.isNaN(b.getTime())) return null;
+  const ms = b.getTime() - a.getTime();
+  return Math.ceil(ms / (1000*60*60*24));
+}
+
+
 const LOGIN_CSS = `
 :root{
   --lp-bgA:#f4f7ff;
@@ -477,6 +503,26 @@ function defaultDocTemplates(){
   }));
 }
 
+function defaultDocRegisterTypes(){
+  // Personel Evrak Takip için varsayılan evrak türleri (admin panelinden değiştirilebilir)
+  // validityDays: geçerlilik süresi (gün), warnDays: kaç gün kala uyarı verilsin
+  const base = [
+    { name: "İSG Eğitim Sertifikası", validityDays: 365, warnDays: 30 },
+    { name: "Sağlık Raporu", validityDays: 365, warnDays: 30 },
+    { name: "Yüksekte Çalışma Eğitimi", validityDays: 730, warnDays: 60 },
+    { name: "Ehliyet / SRC (varsa)", validityDays: 1825, warnDays: 90 }
+  ];
+  return base.map(x => ({
+    id: uid("dt"),
+    name: x.name,
+    validityDays: x.validityDays,
+    warnDays: x.warnDays,
+    active: true
+  }));
+}
+
+
+
 /* ===================== STATE MODEL =====================
 state = {
   categories: [category...],
@@ -512,6 +558,8 @@ function seedState(){
     employees: [], // 👷 ÇALIŞANLAR
     docTemplates: defaultDocTemplates(), // 📄 İmzalı evrak şablonları
     employeeDocs: {}, // { [employeeId]: { [docKey]: { signed, signedAt } } }
+    docRegisterTypes: defaultDocRegisterTypes(), // 🗂️ Evrak Takip türleri (geçerlilik)
+    employeeDocRegister: {}, // { [employeeId]: { [typeId]: { issueDate, expiresAt } } }
     actions: [], // ✅ Aksiyon / Düzeltici Faaliyet
     announcements: [], // 📣 Duyurular (admin yayınlar)
     authUsers: [], // 🔐 Admin tanımlı proje kullanıcıları
@@ -562,6 +610,93 @@ function Badge({kind="default", children}){
 function Pill({kind="default", children}){
   const cls = kind === "ok" ? "pill ok" : kind === "warn" ? "pill warn" : kind === "danger" ? "pill danger" : "pill";
   return <span className={cls}>{children}</span>;
+}
+
+
+function EvrakTypeAdmin({ docRegisterTypes, onAdd, onUpdate, onDelete }){
+  const [name, setName] = useState("");
+  const [validityDays, setValidityDays] = useState("365");
+  const [warnDays, setWarnDays] = useState("30");
+
+  const safe = Array.isArray(docRegisterTypes) ? docRegisterTypes : [];
+
+  return (
+    <>
+      <div className="row" style={{flexWrap:"wrap", marginTop:12}}>
+        <input className="input" value={name} onChange={e=>setName(e.target.value)} placeholder="Evrak adı (örn: Sağlık Raporu)" style={{minWidth:280}} />
+        <input className="input" value={validityDays} onChange={e=>setValidityDays(e.target.value)} placeholder="Geçerlilik (gün)" style={{width:160}} />
+        <input className="input" value={warnDays} onChange={e=>setWarnDays(e.target.value)} placeholder="Uyarı (gün kala)" style={{width:170}} />
+        <button
+          className="btn primary"
+          type="button"
+          onClick={()=>{
+            const n = String(name||"").trim();
+            const v = Number(validityDays||0);
+            const w = Number(warnDays||0);
+            if(!n || !v) return;
+            onAdd(n, v, w);
+            setName(""); setValidityDays("365"); setWarnDays("30");
+          }}
+          disabled={!String(name||"").trim() || !Number(validityDays||0)}
+        >
+          Evrak Türü Ekle
+        </button>
+      </div>
+
+      <div className="tableWrap" style={{marginTop:12}}>
+        <table>
+          <thead>
+            <tr>
+              <th>Evrak</th>
+              <th style={{width:150}}>Geçerlilik (gün)</th>
+              <th style={{width:150}}>Uyarı (gün)</th>
+              <th style={{width:110}}>Aktif</th>
+              <th style={{width:120}}>İşlem</th>
+            </tr>
+          </thead>
+          <tbody>
+            {safe.map(t => (
+              <tr key={t.id}>
+                <td><b>{t.name}</b></td>
+                <td>
+                  <input
+                    className="input"
+                    style={{width:"100%"}}
+                    value={String(t.validityDays ?? "")}
+                    onChange={e=>onUpdate(t.id, { validityDays: Number(e.target.value||0) })}
+                  />
+                </td>
+                <td>
+                  <input
+                    className="input"
+                    style={{width:"100%"}}
+                    value={String(t.warnDays ?? "")}
+                    onChange={e=>onUpdate(t.id, { warnDays: Number(e.target.value||0) })}
+                  />
+                </td>
+                <td>
+                  <label style={{display:"inline-flex", alignItems:"center", gap:8}}>
+                    <input
+                      type="checkbox"
+                      checked={t.active !== false}
+                      onChange={e=>onUpdate(t.id, { active: e.target.checked })}
+                    />
+                    <span className="small">{t.active !== false ? "Açık" : "Kapalı"}</span>
+                  </label>
+                </td>
+                <td>
+                  <button className="btn danger" type="button" onClick={()=>onDelete(t.id)}>Sil</button>
+                </td>
+              </tr>
+            ))}
+            {safe.length===0 && (
+              <tr><td colSpan="5">Henüz evrak türü yok.</td></tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+    </>
+  );
 }
 
 function AdminMessageComposer({ projects, users, onSend }){
@@ -847,6 +982,23 @@ useEffect(() => {
       }
     }
     next.employeeDocs ||= {};
+
+    // evrak takip (validity)
+    const defaultReg = defaultDocRegisterTypes();
+    if(!Array.isArray(next.docRegisterTypes) || next.docRegisterTypes.length === 0){
+      next.docRegisterTypes = defaultReg;
+    }else{
+      // keep existing; add missing defaults by name
+      const names = new Set(next.docRegisterTypes.map(x => (x?.name||"").trim().toLowerCase()).filter(Boolean));
+      for(const t of defaultReg){
+        const n = (t.name||"").trim().toLowerCase();
+        if(!names.has(n)){
+          next.docRegisterTypes.push(t);
+          names.add(n);
+        }
+      }
+    }
+    next.employeeDocRegister ||= {};
 
     next.actions ||= [];
     next.announcements ||= [];
@@ -1598,7 +1750,62 @@ for(const emp of (next.employees || [])){
     });
 
     toast({ title:"Doküman silindi", body:doc.name, level:"warn" });
+  
+
+  /* ===== ADMIN: EVRAK TAKİP TÜRLERİ (Geçerlilik) ===== */
+  function adminAddDocRegisterType(nameArg, validityDaysArg, warnDaysArg){
+    if(!isAdmin) return;
+    const name = String(nameArg || "").trim();
+    const validityDays = Number(validityDaysArg || 0);
+    const warnDays = Number(warnDaysArg || 0);
+
+    if(!name || !validityDays){
+      pushToast("Evrak adı ve geçerlilik (gün) zorunlu.", "warn");
+      return;
+    }
+
+    updateState(d => {
+      if(!Array.isArray(d.docRegisterTypes)) d.docRegisterTypes = [];
+      d.docRegisterTypes.push({
+        id: uid("dt"),
+        name,
+        validityDays,
+        warnDays: Number.isFinite(warnDays) ? warnDays : 0,
+        active: true
+      });
+    });
+
+    pushToast("Evrak türü eklendi.", "ok");
   }
+
+  function adminUpdateDocRegisterType(typeId, patch){
+    if(!isAdmin) return;
+    updateState(d => {
+      if(!Array.isArray(d.docRegisterTypes)) d.docRegisterTypes = [];
+      const ix = d.docRegisterTypes.findIndex(x => x.id === typeId);
+      if(ix < 0) return;
+      d.docRegisterTypes[ix] = { ...d.docRegisterTypes[ix], ...(patch || {}) };
+    });
+  }
+
+  function adminDeleteDocRegisterType(typeId){
+    if(!isAdmin) return;
+    const t = (state.docRegisterTypes || []).find(x => x.id === typeId);
+    if(!t) return;
+    if(!confirm(`Evrak türü silinsin mi? (${t.name})`)) return;
+
+    updateState(d => {
+      d.docRegisterTypes = (d.docRegisterTypes || []).filter(x => x.id !== typeId);
+      const reg = d.employeeDocRegister || {};
+      for(const empId of Object.keys(reg)){
+        if(reg[empId] && reg[empId][typeId]) delete reg[empId][typeId];
+      }
+    });
+
+    pushToast("Evrak türü silindi.", "warn");
+  }
+
+}
 
   async function adminUpsertAuthUser(username, password, projectName, role){
     const u = (username || "").trim().toLowerCase();
@@ -1859,6 +2066,7 @@ for(const emp of (next.employees || [])){
           <button className={"navBtn " + (tab === "dashboard" ? "active" : "")} type="button" onClick={() => setTab("dashboard")}>Dashboard</button>
           <button className={"navBtn " + (tab === "entry" ? "active" : "")} type="button" onClick={() => setTab("entry")}>Veri Girişi</button>
           <button className={"navBtn " + (tab === "docs" ? "active" : "")} type="button" onClick={() => setTab("docs")}>Dokümanlar</button>
+          <button className={"navBtn " + (tab === "docTrack" ? "active" : "")} type="button" onClick={() => setTab("docTrack")}>Evrak Takip</button>
           <button className={"navBtn " + (tab === "actions" ? "active" : "")} type="button" onClick={() => setTab("actions")}>Aksiyonlar</button>
           <button className={"navBtn " + (tab === "announcements" ? "active" : "")} type="button" onClick={() => setTab("announcements")}>Duyurular</button>
           <button className={"navBtn " + (tab === "contact" ? "active" : "")} type="button" onClick={() => setTab("contact")}>İletişim</button>
@@ -2230,8 +2438,12 @@ for(const emp of (next.employees || [])){
                 categories={state.categories}
                 projects={state.projects}
                 docTemplates={state.docTemplates}
+                docRegisterTypes={state.docRegisterTypes}
                 adminAddDocTemplate={adminAddDocTemplate}
                 adminDeleteDocTemplate={adminDeleteDocTemplate}
+                adminAddDocRegisterType={adminAddDocRegisterType}
+                adminUpdateDocRegisterType={adminUpdateDocRegisterType}
+                adminDeleteDocRegisterType={adminDeleteDocRegisterType}
                 catName={catName}
                 setCatName={setCatName}
                 catItemLabel={catItemLabel}
@@ -2289,7 +2501,20 @@ for(const emp of (next.employees || [])){
               employeeDocs={state.employeeDocs}
               updateState={updateState}
             />
+          
+
+          {tab === "docTrack" && (
+            <DocTrackingView
+              isAdmin={isAdmin}
+              auth={auth}
+              employees={state.employees}
+              docRegisterTypes={state.docRegisterTypes}
+              employeeDocRegister={state.employeeDocRegister}
+              updateState={updateState}
+            />
           )}
+
+)}
 
           {tab === "actions" && (
             <ActionsView
@@ -3404,6 +3629,10 @@ function AdminView({
   categories,
   projects,
   docTemplates,
+  docRegisterTypes,
+  adminAddDocRegisterType,
+  adminUpdateDocRegisterType,
+  adminDeleteDocRegisterType,
   adminAddDocTemplate,
   adminDeleteDocTemplate,
   catName, setCatName,
@@ -3530,6 +3759,28 @@ function AdminView({
             </div>
           </div>
         )}
+
+
+        {isAdmin && (
+          <div className="card" style={{marginTop:12}}>
+            <div className="cardTitleRow">
+              <h3>🗂️ Evrak Takip • Evrak Türleri</h3>
+              <Badge kind="warn">Sadece Admin</Badge>
+            </div>
+
+            <div className="small" style={{marginTop:6}}>
+              Evrak adını ve geçerlilik süresini tanımla. Sistem bitiş tarihini hesaplar ve yaklaşınca uyarı üretir.
+            </div>
+
+            <EvrakTypeAdmin
+              docRegisterTypes={docRegisterTypes}
+              onAdd={adminAddDocRegisterType}
+              onUpdate={adminUpdateDocRegisterType}
+              onDelete={adminDeleteDocRegisterType}
+            />
+          </div>
+        )}
+
 
         <div className="row">
           <input className="input" value={catName} onChange={e=>setCatName(e.target.value)} placeholder="Yeni kategori adı (örn: Ekipman)" />
@@ -4491,6 +4742,197 @@ function monthOptions(){
 }
 
 /* ===================== ACTIONS (Corrective / Action List) ===================== */
+
+
+function DocTrackingView({ isAdmin, auth, employees, docRegisterTypes, employeeDocRegister, updateState }){
+  const today = isoDate(new Date());
+  const safeTypes = useMemo(() => (Array.isArray(docRegisterTypes) ? docRegisterTypes : []).filter(t => t && t.active !== false), [docRegisterTypes]);
+
+  const visibleEmployees = useMemo(() => {
+    const arr = Array.isArray(employees) ? employees : [];
+    if(isAdmin) return arr;
+    // kullanıcı kendi projesinin personelini görür (aktif/pasif dahil)
+    return arr.filter(e => e.project === auth.project);
+  }, [employees, isAdmin, auth]);
+
+  const [empId, setEmpId] = useState(() => (visibleEmployees[0]?.id || ""));
+  useEffect(() => {
+    if(!visibleEmployees.some(e => e.id === empId)){
+      setEmpId(visibleEmployees[0]?.id || "");
+    }
+  }, [visibleEmployees, empId]);
+
+  const emp = useMemo(() => visibleEmployees.find(e => e.id === empId) || null, [visibleEmployees, empId]);
+  const empInactive = emp ? (emp.active === false) : false;
+  const reg = (employeeDocRegister && empId && employeeDocRegister[empId]) ? employeeDocRegister[empId] : {};
+
+  const alerts = useMemo(() => {
+    const out = [];
+    for(const e of visibleEmployees){
+      const r = (employeeDocRegister && employeeDocRegister[e.id]) ? employeeDocRegister[e.id] : {};
+      for(const t of safeTypes){
+        const rec = r?.[t.id];
+        if(!rec?.expiresAt) continue;
+        const left = diffDays(today, rec.expiresAt);
+        if(left === null) continue;
+        if(left < 0){
+          out.push({ level:"danger", employee:e.name, project:e.project, doc:t.name, expiresAt:rec.expiresAt, left });
+        }else if(left <= Number(t.warnDays||0)){
+          out.push({ level:"warn", employee:e.name, project:e.project, doc:t.name, expiresAt:rec.expiresAt, left });
+        }
+      }
+    }
+    out.sort((a,b)=> (a.left - b.left));
+    return out.slice(0, 50);
+  }, [visibleEmployees, employeeDocRegister, safeTypes, today]);
+
+  function setIssue(typeId, issueDate, validityDays){
+    updateState(d => {
+      if(!d.employeeDocRegister) d.employeeDocRegister = {};
+      if(!d.employeeDocRegister[empId]) d.employeeDocRegister[empId] = {};
+      if(!issueDate){
+        if(d.employeeDocRegister[empId][typeId]) delete d.employeeDocRegister[empId][typeId];
+        return;
+      }
+      const expiresAt = addDays(issueDate, Number(validityDays||0));
+      d.employeeDocRegister[empId][typeId] = { issueDate, expiresAt };
+    });
+  }
+
+  return (
+    <>
+      <div className="card">
+        <div className="cardTitleRow">
+          <h2>🗂️ Personel Evrak Takip</h2>
+          <Badge>{today}</Badge>
+        </div>
+        <div className="small" style={{marginTop:6}}>
+          Evrak türleri admin panelinden tanımlanır. Tarih girince bitiş tarihi otomatik hesaplanır; yaklaşınca uyarı görünür.
+        </div>
+
+        <hr className="sep" />
+
+        <div className="row" style={{flexWrap:"wrap", alignItems:"flex-end"}}>
+          <div style={{flex:"1 1 320px"}}>
+            <span className="lbl">Personel</span>
+            <select className="input" value={empId || ""} onChange={e=>setEmpId(e.target.value)}>
+              {visibleEmployees.map(e => (
+                <option key={e.id} value={e.id}>
+                  {e.name} — {e.project}{e.active === false ? " (Pasif)" : ""}
+                </option>
+              ))}
+            </select>
+          </div>
+          {emp && (
+            <div style={{display:"flex", gap:10, alignItems:"center"}}>
+              <Pill kind={empInactive ? "danger" : "ok"}>{empInactive ? "Pasif" : "Aktif"}</Pill>
+              <span className="small">{emp.role || "Personel"}</span>
+            </div>
+          )}
+        </div>
+
+        {empInactive && (
+          <div className="small" style={{marginTop:10}}>
+            <Badge kind="danger">Pasif personel</Badge> olduğu için bu ekranda tarih girişi kapalı.
+          </div>
+        )}
+
+        <div className="tableWrap" style={{marginTop:12}}>
+          <table>
+            <thead>
+              <tr>
+                <th>Evrak</th>
+                <th style={{width:160}}>Veriliş</th>
+                <th style={{width:160}}>Bitiş</th>
+                <th style={{width:140}}>Durum</th>
+              </tr>
+            </thead>
+            <tbody>
+              {safeTypes.map(t => {
+                const rec = reg?.[t.id] || {};
+                const expiresAt = rec.expiresAt || (rec.issueDate ? addDays(rec.issueDate, Number(t.validityDays||0)) : "");
+                const left = expiresAt ? diffDays(today, expiresAt) : null;
+
+                let badgeKind = "default";
+                let statusText = "—";
+                if(expiresAt && left !== null){
+                  if(left < 0){ badgeKind = "danger"; statusText = `Süresi Doldu (${Math.abs(left)}g)`; }
+                  else if(left <= Number(t.warnDays||0)){ badgeKind = "warn"; statusText = `Yaklaşıyor (${left}g)`; }
+                  else { badgeKind = "ok"; statusText = `Geçerli (${left}g)`; }
+                }
+
+                return (
+                  <tr key={t.id}>
+                    <td>
+                      <b>{t.name}</b>
+                      <div className="small">Geçerlilik: {t.validityDays} gün • Uyarı: {t.warnDays} gün</div>
+                    </td>
+                    <td>
+                      <input
+                        className="input"
+                        type="date"
+                        value={rec.issueDate || ""}
+                        onChange={e=>setIssue(t.id, e.target.value, t.validityDays)}
+                        disabled={empInactive}
+                      />
+                    </td>
+                    <td>
+                      <input className="input" type="date" value={expiresAt || ""} readOnly disabled />
+                    </td>
+                    <td>
+                      <Badge kind={badgeKind}>{statusText}</Badge>
+                    </td>
+                  </tr>
+                );
+              })}
+              {safeTypes.length===0 && (
+                <tr><td colSpan="4">Henüz evrak türü tanımlı değil. (Admin &gt; Evrak Takip • Evrak Türleri)</td></tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div className="card">
+        <div className="cardTitleRow">
+          <h3>Uyarılar</h3>
+          <Badge kind={alerts.some(a=>a.level==="danger") ? "danger" : alerts.some(a=>a.level==="warn") ? "warn" : "ok"}>
+            {alerts.length} kayıt
+          </Badge>
+        </div>
+
+        <div className="tableWrap" style={{marginTop:10}}>
+          <table>
+            <thead>
+              <tr>
+                <th>Personel</th>
+                <th>Proje</th>
+                <th>Evrak</th>
+                <th style={{width:140}}>Bitiş</th>
+                <th style={{width:140}}>Kalan</th>
+              </tr>
+            </thead>
+            <tbody>
+              {alerts.map((a, i) => (
+                <tr key={i}>
+                  <td><b>{a.employee}</b></td>
+                  <td>{a.project || "—"}</td>
+                  <td>{a.doc}</td>
+                  <td>{a.expiresAt}</td>
+                  <td><Badge kind={a.level === "danger" ? "danger" : "warn"}>{a.left < 0 ? `${Math.abs(a.left)}g geçti` : `${a.left}g`}</Badge></td>
+                </tr>
+              ))}
+              {alerts.length===0 && (
+                <tr><td colSpan="5">Şu an yaklaşan / süresi dolmuş evrak yok.</td></tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </>
+  );
+}
+
 
 function ActionsView({ auth, projects, employees, actions, updateState }){
   const isAdmin = auth?.role === "admin";
