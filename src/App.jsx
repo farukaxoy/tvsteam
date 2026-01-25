@@ -2161,7 +2161,7 @@ for(const emp of (next.employees || [])){
 
 /* ===================== VIEWS ===================== */
 
-function DashboardView({ monthKey, category, rows, projects, employees, actions, categories, isAdmin, }){
+function DashboardView({ monthKey, category, rows, projects, employees, actions, categories, isAdmin }){
   const totals = useMemo(() => {
     const t = { itemsApproved:0, monthApproved:0, sums:{}, mealsSum:0 };
     for(const f of (category?.fields || [])){
