@@ -9,7 +9,246 @@ import "./style.css";
 */
 
 // 🔧 PATCH: eski referanslar crash etmesin diye boş tanımlar
-const LOGIN_CSS = "";
+const LOGIN_CSS = `
+:root{
+  --lp-bg1:#0b1020;
+  --lp-bg2:#0f1a3a;
+  --lp-accent:#4f8cff;
+  --lp-accent2:#7c5cff;
+  --lp-card:rgba(255,255,255,.08);
+  --lp-border:rgba(255,255,255,.16);
+  --lp-text:rgba(255,255,255,.92);
+  --lp-muted:rgba(255,255,255,.70);
+}
+
+/* Full page */
+.loginPage{
+  min-height:100vh;
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+  background:
+    radial-gradient(1200px 800px at 10% 10%, rgba(79,140,255,.35), transparent 55%),
+    radial-gradient(1000px 700px at 90% 20%, rgba(124,92,255,.28), transparent 60%),
+    radial-gradient(900px 900px at 60% 90%, rgba(18,214,223,.18), transparent 55%),
+    linear-gradient(180deg, var(--lp-bg1), var(--lp-bg2));
+  color:var(--lp-text);
+  padding:28px 16px;
+}
+
+.loginWrap{
+  width:min(1120px, 100%);
+  margin:0 auto;
+  display:grid;
+  grid-template-columns: 1.2fr .9fr;
+  gap:18px;
+  align-items:stretch;
+}
+
+@media (max-width: 900px){
+  .loginWrap{ grid-template-columns:1fr; }
+}
+
+.loginLeft{
+  position:relative;
+  padding:34px 30px;
+  border-radius:22px;
+  overflow:hidden;
+  border:1px solid var(--lp-border);
+  background: linear-gradient(135deg, rgba(255,255,255,.10), rgba(255,255,255,.04));
+  box-shadow: 0 18px 70px rgba(0,0,0,.35);
+}
+
+.loginLeft::before{
+  content:"";
+  position:absolute; inset:-2px;
+  background:
+    radial-gradient(650px 380px at 20% 20%, rgba(79,140,255,.45), transparent 60%),
+    radial-gradient(520px 420px at 80% 65%, rgba(124,92,255,.35), transparent 60%);
+  filter: blur(0px);
+  opacity:.9;
+  pointer-events:none;
+}
+
+.loginBrand{
+  position:relative;
+  display:flex;
+  align-items:center;
+  gap:14px;
+}
+
+.loginLogo{
+  width:48px; height:48px;
+  border-radius:14px;
+  display:grid; place-items:center;
+  font-weight:900;
+  letter-spacing:.5px;
+  background: linear-gradient(135deg, rgba(79,140,255,.95), rgba(124,92,255,.95));
+  box-shadow: 0 10px 28px rgba(79,140,255,.25);
+}
+
+.loginTitle{
+  font-size:22px;
+  font-weight:900;
+  margin:0;
+  line-height:1.1;
+}
+
+.loginSub{
+  margin-top:10px;
+  color:var(--lp-muted);
+  font-size:14px;
+  max-width:52ch;
+}
+
+.loginBullets{
+  position:relative;
+  margin-top:22px;
+  display:grid;
+  gap:12px;
+}
+
+.loginBullet{
+  display:flex;
+  gap:10px;
+  align-items:flex-start;
+  padding:12px 14px;
+  border-radius:16px;
+  border:1px solid rgba(255,255,255,.14);
+  background: rgba(0,0,0,.12);
+}
+
+.loginBullet b{ display:block; font-size:14px; }
+.loginBullet span{ display:block; margin-top:2px; color:var(--lp-muted); font-size:13px; }
+
+.loginBadgeRow{
+  position:relative;
+  display:flex;
+  gap:10px;
+  flex-wrap:wrap;
+  margin-top:18px;
+}
+
+.loginPill{
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  padding:10px 12px;
+  border-radius:999px;
+  border:1px solid rgba(255,255,255,.16);
+  background: rgba(0,0,0,.14);
+  font-size:13px;
+  color:rgba(255,255,255,.86);
+}
+
+.loginRight{
+  padding:22px;
+  border-radius:22px;
+  border:1px solid var(--lp-border);
+  background: linear-gradient(135deg, rgba(255,255,255,.10), rgba(255,255,255,.05));
+  box-shadow: 0 18px 70px rgba(0,0,0,.35);
+  display:flex;
+  align-items:center;
+}
+
+.loginCard{
+  width:100%;
+  padding:22px 20px;
+  border-radius:18px;
+  border:1px solid rgba(255,255,255,.16);
+  background: rgba(10,14,28,.55);
+}
+
+.loginCardHead{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:10px;
+  margin-bottom:14px;
+}
+
+.loginCardTitle{
+  font-size:18px;
+  font-weight:900;
+}
+
+.loginHint{
+  font-size:12px;
+  color:rgba(255,255,255,.70);
+  padding:6px 10px;
+  border-radius:999px;
+  border:1px solid rgba(255,255,255,.16);
+  background: rgba(0,0,0,.14);
+}
+
+.loginForm{ margin-top:10px; display:grid; gap:12px; }
+
+.loginField label{
+  display:block;
+  font-size:12px;
+  color:rgba(255,255,255,.76);
+  margin-bottom:6px;
+}
+
+.loginInput{
+  width:100%;
+  padding:12px 12px;
+  border-radius:14px;
+  border:1px solid rgba(255,255,255,.18);
+  background: rgba(255,255,255,.06);
+  color:rgba(255,255,255,.92);
+  outline:none;
+}
+
+.loginInput:focus{
+  border-color: rgba(79,140,255,.55);
+  box-shadow: 0 0 0 4px rgba(79,140,255,.16);
+}
+
+.loginPwRow{
+  display:flex;
+  gap:10px;
+  align-items:center;
+}
+
+.loginPwToggle{
+  border:1px solid rgba(255,255,255,.18);
+  background: rgba(255,255,255,.06);
+  color:rgba(255,255,255,.86);
+  border-radius:14px;
+  padding:10px 12px;
+  cursor:pointer;
+}
+
+.loginBtn{
+  width:100%;
+  margin-top:8px;
+  padding:12px 14px;
+  border:none;
+  border-radius:14px;
+  cursor:pointer;
+  font-weight:900;
+  color:white;
+  background: linear-gradient(135deg, var(--lp-accent), var(--lp-accent2));
+  box-shadow: 0 12px 30px rgba(79,140,255,.22);
+}
+
+.loginBtn:active{ transform: translateY(1px); }
+
+.loginFooter{
+  margin-top:12px;
+  font-size:12px;
+  color:rgba(255,255,255,.70);
+  text-align:center;
+}
+
+.loginPage .footer{
+  margin-top:18px;
+  text-align:center;
+  color:rgba(255,255,255,.55);
+}
+`;
+
 const THEME_CSS = "";
 
 // ===================== AUTH MODE =====================
@@ -444,17 +683,6 @@ function AppInner(){
   const [lu, setLu] = useState("");
   const [lp, setLp] = useState("");
     const [showPw, setShowPw] = useState(false);
-
-  const isRecovery = false;
-  const [newPw, setNewPw] = useState("");
-  const [authBusy, setAuthBusy] = useState(false);
-
-  async function sendResetEmail(){
-    pushToast("Şifre sıfırlama devre dışı (sabit kullanıcı sistemi).", "warn");
-  }
-  async function updatePassword(){
-    pushToast("Şifre güncelleme devre dışı (sabit kullanıcı sistemi).", "warn");
-  }
 
   const [theme, setTheme] = useState(() => localStorage.getItem("APP_THEME") || "light");
   const [toasts, setToasts] = useState([]);
@@ -1495,253 +1723,332 @@ for(const emp of (next.employees || [])){
       <div className="loginPage">
         <div className="loginWrap">
           <div className="loginLeft">
-            <div className="loginArtCard">
-              <svg className="loginArt" viewBox="0 0 520 520" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-                <defs>
-                  <linearGradient id="g1" x1="0" y1="0" x2="1" y2="1">
-                    <stop offset="0" stopColor="rgba(255,255,255,.95)"/>
-                    <stop offset="1" stopColor="rgba(255,255,255,.2)"/>
-                  </linearGradient>
-                </defs>
-                <circle cx="140" cy="160" r="110" fill="rgba(13,110,253,.14)"/>
-                <circle cx="420" cy="120" r="80" fill="rgba(25,135,84,.14)"/>
-                <circle cx="420" cy="420" r="120" fill="rgba(255,193,7,.16)"/>
-                <rect x="70" y="250" width="380" height="180" rx="26" fill="rgba(255,255,255,.55)" stroke="rgba(0,0,0,.06)"/>
-                <rect x="100" y="280" width="220" height="18" rx="9" fill="rgba(0,0,0,.12)"/>
-                <rect x="100" y="315" width="290" height="18" rx="9" fill="rgba(0,0,0,.10)"/>
-                <rect x="100" y="350" width="250" height="18" rx="9" fill="rgba(0,0,0,.08)"/>
-                <rect x="330" y="275" width="90" height="90" rx="16" fill="rgba(255,159,67,.22)" stroke="rgba(255,159,67,.35)"/>
-                <path d="M200 200c35 0 64-29 64-64s-29-64-64-64-64 29-64 64 29 64 64 64Z" fill="url(#g1)" stroke="rgba(0,0,0,.08)"/>
-                <path d="M145 135c18-22 42-33 72-33 30 0 55 12 74 36" stroke="rgba(0,0,0,.12)" strokeWidth="10" strokeLinecap="round"/>
-                <path d="M110 470c18-82 62-125 132-125s114 43 132 125" stroke="rgba(0,0,0,.08)" strokeWidth="18" strokeLinecap="round"/>
-              </svg>
+            <div className="loginBrand">
+              <div className="loginLogo">VTP</div>
+              <div>
+                <div className="loginTitle">Veri Takip Platformu</div>
+                <div className="loginSub">
+                  Kurumsal raporlama, onay akışları ve proje bazlı veri yönetimi için güvenli giriş yapın.
+                </div>
+              </div>
+            </div>
+
+            <div className="loginBullets">
+              <div className="loginBullet">
+                <div style={{fontSize:18, lineHeight:1}}>🧭</div>
+                <div>
+                  <b>Proje bazlı kontrol</b>
+                  <span>Kullanıcılar yalnızca yetkili olduğu projeleri görür.</span>
+                </div>
+              </div>
+              <div className="loginBullet">
+                <div style={{fontSize:18, lineHeight:1}}>✅</div>
+                <div>
+                  <b>Onay mekanizması</b>
+                  <span>Veriler, admin onayı olmadan raporlara yansımaz.</span>
+                </div>
+              </div>
+              <div className="loginBullet">
+                <div style={{fontSize:18, lineHeight:1}}>📊</div>
+                <div>
+                  <b>Dashboard + KPI</b>
+                  <span>Ay/yıl filtreleriyle hızlı görüntüleme ve çıktı.</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="loginBadgeRow">
+              <div className="loginPill">🔒 Güvenli oturum</div>
+              <div className="loginPill">⚡ Hızlı kullanım</div>
+              <div className="loginPill">🏢 Kurumsal görünüm</div>
             </div>
           </div>
 
           <div className="loginRight">
             <div className="loginCard">
-              <div className="loginTitle">Aylık Takip Formu</div>
-              <div className="loginSub">Scaffolding Control Services</div>
+              <div className="loginCardHead">
+                <div className="loginCardTitle">Giriş</div>
+                <div className="loginHint">Admin / Proje Kullanıcısı</div>
+              </div>
 
               <div className="loginForm">
-                {isRecovery ? (
-                  <>
-                    <div className="loginField">
-                      <label>Yeni Şifre</label>
-                      <input
-                        className="loginInput"
-                        type="password"
-                        placeholder="Yeni şifre"
-                        value={newPw}
-                        onChange={e=>setNewPw(e.target.value)}
-                      />
-                    </div>
+                <div className="loginField">
+                  <label>Kullanıcı Adı</label>
+                  <input
+                    className="loginInput"
+                    value={lu}
+                    onChange={(e) => setLu(e.target.value)}
+                    placeholder="örn: admin / socar / tupras_izmir"
+                    autoComplete="username"
+                  />
+                </div>
 
-                    <button className="loginBtn" onClick={updatePassword} disabled={authBusy}>
-                      {authBusy ? "Güncelleniyor..." : "Şifreyi Güncelle"}
+                <div className="loginField">
+                  <label>Şifre</label>
+                  <div className="loginPwRow">
+                    <input
+                      className="loginInput"
+                      type={showPw ? "text" : "password"}
+                      value={lp}
+                      onChange={(e) => setLp(e.target.value)}
+                      placeholder="Şifrenizi girin"
+                      autoComplete="current-password"
+                    />
+                    <button
+                      type="button"
+                      className="loginPwToggle"
+                      onClick={() => setShowPw((v) => !v)}
+                      title={showPw ? "Şifreyi gizle" : "Şifreyi göster"}
+                      aria-label={showPw ? "Şifreyi gizle" : "Şifreyi göster"}
+                    >
+                      {showPw ? (
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                          <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                          <path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                        </svg>
+                      ) : (
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                          <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                          <path d="M4 4 20 20" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                        </svg>
+                      )}
                     </button>
-                  </>
-                ) : (
-                  <>
-                    <div className="loginField">
-                      <label>E-Mail</label>
-                      <input
-                        className="loginInput"
-                        placeholder="kullanıcı adı (örn: socar)"
-                        value={lu}
-                        onChange={e=>setLu(e.target.value)}
-                        autoComplete="username"
-                      />
-                    </div>
+                  </div>
+                </div>
 
-                    <div className="loginField">
-                      <label>Password</label>
-                      <div className="pwRow">
-                        <input
-                          className="loginInput"
-                          type={showPw ? "text" : "password"}
-                          placeholder="şifre"
-                          value={lp}
-                          onChange={e=>setLp(e.target.value)}
-                          autoComplete="current-password"
-                          onKeyDown={(e)=>{ if(e.key==="Enter") doLogin(); }}
-                        />
-                        <button
-                          className="iconBtn"
-                          type="button"
-                          onClick={()=>setShowPw(v=>!v)}
-                          aria-label={showPw ? "Şifreyi gizle" : "Şifreyi göster"}
-                          title={showPw ? "Şifreyi gizle" : "Şifreyi göster"}
-                        >
-                          {showPw ? (
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-                              <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                              <path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                            </svg>
-                          ) : (
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-                              <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                              <path d="M4 4 20 20" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-                            </svg>
-                          )}
-                        </button>
-                      </div>
-                    </div>
+                <button className="loginBtn" onClick={doLogin}>Giriş Yap</button>
 
-                    <button className="loginBtn" onClick={doLogin}>Giriş</button>
-                  </>
-                )}
-
-                <div className="loginMiniRow">
-                  <button className="linkBtn" type="button" onClick={() => setTheme(t => t === "dark" ? "light" : "dark")}>
-                    Tema: {theme === "dark" ? "Dark" : "Light"}
-                  </button>
-                  
+                <div className="loginFooter">
+                  Sorun mu yaşıyorsun? Admin ile iletişime geç.
+                </div>
+              </div>
+            </div>
           </div>
         </div>
-      )}
 
-      <div className={`grid ${tab==="dashboard" ? "gridSingle" : ""}`}>
+        <div className="footer">© {new Date().getFullYear()} Faruk Aksoy • Veri Takip Platformu</div>
+      </div>
+  
+    );
+  }
+
+  return (
+    <div>
+      <div className={`grid ${tab === "dashboard" ? "gridSingle" : ""}`}>
         {/* LEFT PANEL */}
         {tab !== "dashboard" && (
-        <div className="card">
-          <div className="cardTitleRow">
-            <h3>Filtreler</h3>
-            <Badge kind="ok">{monthDays} gün</Badge>
-          </div>
-          <div className="small" style={{marginTop:6}}>
-            Kategori seç (Uzman/Araç/diğer). Veri girişi ve dashboard o kategoriye göre çalışır.
-          </div>
+          <div className="card">
+            <div className="cardTitleRow">
+              <h3>Filtreler</h3>
+              <Badge kind="ok">{monthDays} gün</Badge>
+            </div>
 
-          <hr className="sep" />
+            <div className="small" style={{ marginTop: 6 }}>
+              Kategori seç (Uzman/Araç/diğer). Veri girişi ve dashboard o kategoriye göre çalışır.
+            </div>
 
-          <div className="row">
-            <select className="input sm" value={activeYear} onChange={e=>setActiveYear(safeNum(e.target.value))}>
-              {yearOptions().map(yy => <option key={yy} value={yy}>{yy}</option>)}
-            </select>
-            <select className="input sm" value={activeMonth} onChange={e=>setActiveMonth(e.target.value)}>
-              {monthOptions().map(mm => <option key={mm.key} value={mm.key}>{mm.label}</option>)}
-            </select>
-          </div>
+            <hr className="sep" />
 
-          <div style={{height:10}} />
-          {isAdmin && tab==="entry" && (
-            <>
-              <select className="input" value={entryProjectId || ""} onChange={e=>setEntryProjectId(e.target.value)}>
-                {(state.projects || []).map(p => (
-                  <option key={p.id} value={p.id}>{p.name}</option>
+            <div className="row">
+              <select
+                className="input sm"
+                value={activeYear}
+                onChange={(e) => setActiveYear(safeNum(e.target.value))}
+              >
+                {yearOptions().map((yy) => (
+                  <option key={yy} value={yy}>{yy}</option>
                 ))}
               </select>
-              <div style={{height:10}} />
-            </>
-          )}
 
-          <select className="input sm" value={categoryKey} onChange={e=>setCategoryKey(e.target.value)}>
-            {state.categories.map(c => <option key={c.key} value={c.key}>{c.name}</option>)}
-          </select>
+              <select
+                className="input sm"
+                value={activeMonth}
+                onChange={(e) => setActiveMonth(e.target.value)}
+              >
+                {monthOptions().map((mm) => (
+                  <option key={mm.key} value={mm.key}>{mm.label}</option>
+                ))}
+              </select>
+            </div>
 
-          <div style={{height:10}} />
+            <div style={{ height: 10 }} />
 
-          <input className="input sm" value={search} onChange={e=>setSearch(e.target.value)} placeholder={`${activeCategory?.itemLabel || "Kayıt"} ara...`} />
+            {isAdmin && tab === "entry" && (
+              <>
+                <select
+                  className="input"
+                  value={entryProjectId || ""}
+                  onChange={(e) => setEntryProjectId(e.target.value)}
+                >
+                  {(state.projects || []).map((p) => (
+                    <option key={p.id} value={p.id}>{p.name}</option>
+                  ))}
+                </select>
+                <div style={{ height: 10 }} />
+              </>
+            )}
 
-          {!isAdmin && activeCategory?.key !== "monthly_controls" && (
-            <><hr className="sep" />
+            <select
+              className="input sm"
+              value={categoryKey}
+              onChange={(e) => setCategoryKey(e.target.value)}
+            >
+              {state.categories.map((c) => (
+                <option key={c.key} value={c.key}>{c.name}</option>
+              ))}
+            </select>
 
-              <div className="cardTitleRow">
-                <h3>{activeCategory?.itemLabel || "Kayıt"} Talebi</h3>
-                <Badge kind="warn">Admin onayı</Badge>
-              </div>
+            <div style={{ height: 10 }} />
 
-              <div style={{marginTop:10}} className="row">
-                <input className="input" value={newItemName} onChange={e=>setNewItemName(e.target.value)} placeholder={`${activeCategory?.itemLabel || "Kayıt"} adı (ör: Uğur Kuzu / 34 ABC 123)`} />
-                <button className="btn primary" onClick={() => requestItem(visibleProjects[0]?.id)}>Gönder</button>
-              </div>
+            <input
+              className="input sm"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder={`${activeCategory?.itemLabel || "Kayıt"} ara...`}
+            />
 
-              {myPendingItems.length > 0 && (
-                <>
-                  <hr className="sep" />
-                  <div className="cardTitleRow">
-                    <h3>Bekleyen Taleplerim</h3>
-                    <Badge kind="warn">{myPendingItems.length}</Badge>
-                  </div>
-                  <div className="list">
-                    {myPendingItems.map(it => (
-                      <div key={it.id} className="item">
-                        <div className="itemLeft">
-                          <b>{it.name}</b>
-                          <span className="small">{formatDT(it.createdAt)}</span>
+            {!isAdmin && activeCategory?.key !== "monthly_controls" && (
+              <>
+                <hr className="sep" />
+                <div className="cardTitleRow">
+                  <h3>{activeCategory?.itemLabel || "Kayıt"} Talebi</h3>
+                  <Badge kind="warn">Admin onayı</Badge>
+                </div>
+
+                <div style={{ marginTop: 10 }} className="row">
+                  <input
+                    className="input"
+                    value={newItemName}
+                    onChange={(e) => setNewItemName(e.target.value)}
+                    placeholder={`${activeCategory?.itemLabel || "Kayıt"} adı (ör: Uğur Kuzu / 34 ABC 123)`}
+                  />
+                  <button className="btn primary" onClick={() => requestItem(visibleProjects[0]?.id)}>
+                    Gönder
+                  </button>
+                </div>
+
+                {myPendingItems.length > 0 && (
+                  <>
+                    <hr className="sep" />
+                    <div className="cardTitleRow">
+                      <h3>Bekleyen Taleplerim</h3>
+                      <Badge kind="warn">{myPendingItems.length}</Badge>
+                    </div>
+                    <div className="list">
+                      {myPendingItems.map((it) => (
+                        <div key={it.id} className="item">
+                          <div className="itemLeft">
+                            <b>{it.name}</b>
+                            <span className="small">{formatDT(it.createdAt)}</span>
+                          </div>
+                          <Badge kind="warn">Onay Bekliyor</Badge>
                         </div>
-                        <Badge kind="warn">Onay Bekliyor</Badge>
-                      </div>
-                    ))}
-                  </div>
-                </>
-              )}
-            </>
-          )}
-
-          {isAdmin && (
-            <>
-              <hr className="sep" />
-              <div className="cardTitleRow">
-                <h3>Bekleyenler</h3>
-                <Badge kind={(pendingItemRequests.length + pendingMonthApprovals.length) ? "warn" : "ok"}>
-                  {pendingItemRequests.length + pendingMonthApprovals.length}
-                </Badge>
-              </div>
-              <div className="small" style={{marginTop:6}}>
-                Onaylar sekmesinden yönet.
-              </div>
-            </>
-          )}
-        </div>
-
+                      ))}
+                    </div>
+                  </>
                 )}
+              </>
+            )}
+
+            {isAdmin && (
+              <>
+                <hr className="sep" />
+                <div className="cardTitleRow">
+                  <h3>Bekleyenler</h3>
+                  <Badge kind={(pendingItemRequests.length + pendingMonthApprovals.length) ? "warn" : "ok"}>
+                    {pendingItemRequests.length + pendingMonthApprovals.length}
+                  </Badge>
+                </div>
+                <div className="small" style={{ marginTop: 6 }}>
+                  Onaylar sekmesinden yönet.
+                </div>
+              </>
+            )}
+          </div>
+        )}
 
         {/* RIGHT CONTENT */}
-        <div style={{display:"flex", flexDirection:"column", gap:14}}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
           {tab === "dashboard" && (
             <>
               <div className="card">
                 <div className="cardTitleRow">
                   <h3>Dashboard Hızlı Filtreler</h3>
-                  </div>
-
-                <div className="row" style={{marginTop:10, flexWrap:"wrap"}}>
-                  {isAdmin && (
-                    <select className="input sm" value={dashProjectId} onChange={e=>setDashProjectId(e.target.value)} style={{minWidth:130}}>
-                      <option value="ALL">Tüm Projeler</option>
-                      {(state.projects || []).map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-                    </select>
-                  )}
-                  <select className="input sm" value={activeYear} onChange={e=>setActiveYear(safeNum(e.target.value))} style={{minWidth:110}}>
-                    {yearOptions().map(yy => <option key={yy} value={yy}>{yy}</option>)}
-                  </select>
-                  <select className="input sm" value={activeMonth} onChange={e=>setActiveMonth(e.target.value)} style={{minWidth:130}}>
-                    {monthOptions().map(mm => <option key={mm.key} value={mm.key}>{mm.label}</option>)}
-                  </select>
-                  <select className="input sm" value={categoryKey} onChange={e=>setCategoryKey(e.target.value)} style={{minWidth:130}}>
-                    {state.categories.map(c => <option key={c.key} value={c.key}>{c.name}</option>)}
-                  </select>
-                  <input className="input sm" value={search} onChange={e=>setSearch(e.target.value)} placeholder={`${activeCategory?.itemLabel || "Kayıt"} ara...`} style={{minWidth:240, flex:1}} />
                 </div>
 
-                <div className="small" style={{marginTop:10}}>
+                <div className="row" style={{ marginTop: 10, flexWrap: "wrap" }}>
+                  {isAdmin && (
+                    <select
+                      className="input sm"
+                      value={dashProjectId}
+                      onChange={(e) => setDashProjectId(e.target.value)}
+                      style={{ minWidth: 130 }}
+                    >
+                      <option value="ALL">Tüm Projeler</option>
+                      {(state.projects || []).map((p) => (
+                        <option key={p.id} value={p.id}>{p.name}</option>
+                      ))}
+                    </select>
+                  )}
+
+                  <select
+                    className="input sm"
+                    value={activeYear}
+                    onChange={(e) => setActiveYear(safeNum(e.target.value))}
+                    style={{ minWidth: 110 }}
+                  >
+                    {yearOptions().map((yy) => (
+                      <option key={yy} value={yy}>{yy}</option>
+                    ))}
+                  </select>
+
+                  <select
+                    className="input sm"
+                    value={activeMonth}
+                    onChange={(e) => setActiveMonth(e.target.value)}
+                    style={{ minWidth: 130 }}
+                  >
+                    {monthOptions().map((mm) => (
+                      <option key={mm.key} value={mm.key}>{mm.label}</option>
+                    ))}
+                  </select>
+
+                  <select
+                    className="input sm"
+                    value={categoryKey}
+                    onChange={(e) => setCategoryKey(e.target.value)}
+                    style={{ minWidth: 130 }}
+                  >
+                    {state.categories.map((c) => (
+                      <option key={c.key} value={c.key}>{c.name}</option>
+                    ))}
+                  </select>
+
+                  <input
+                    className="input sm"
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    placeholder={`${activeCategory?.itemLabel || "Kayıt"} ara...`}
+                    style={{ minWidth: 240, flex: 1 }}
+                  />
+                </div>
+
+                <div className="small" style={{ marginTop: 10 }}>
                   Bu filtreler, dashboard görünümünü ve hesaplamaları etkiler.
                 </div>
               </div>
 
               <DashboardView
-              categories={state.categories}
-              monthKey={monthKey}
-              category={activeCategory}
-              rows={dashboardRows}
-              projects={dashboardProjects}
-              employees={state.employees}
-              actions={state.actions}
-              isAdmin={isAdmin}
-            />
-                      </>
+                categories={state.categories}
+                monthKey={monthKey}
+                category={activeCategory}
+                rows={dashboardRows}
+                projects={dashboardProjects}
+                employees={state.employees}
+                actions={state.actions}
+                isAdmin={isAdmin}
+              />
+            </>
           )}
 
           {tab === "entry" && (
@@ -1854,7 +2161,9 @@ for(const emp of (next.employees || [])){
                 />
               )}
             </>
-          )}{isAdmin && tab === "approvals" && (
+          )}
+
+          {isAdmin && tab === "approvals" && (
             <ApprovalsView
               monthKey={monthKey}
               pendingItems={pendingItemRequests}
@@ -1894,13 +2203,14 @@ for(const emp of (next.employees || [])){
                 adminDeleteField={adminDeleteField}
                 adminDeleteCategory={adminDeleteCategory}
               />
+
               <ProjectUserMapping
                 authUsers={state.authUsers}
                 projects={state.projects}
                 onUpsert={adminUpsertAuthUser}
                 onDelete={adminDeleteAuthUser}
               />
-            
+
               <VehiclesAdminView
                 isAdmin={isAdmin}
                 auth={auth}
@@ -1909,42 +2219,42 @@ for(const emp of (next.employees || [])){
                 updateState={updateState}
                 pushToast={pushToast}
               />
-</>
+            </>
           )}
-{tab === "employees" && (
-  <EmployeesView
-    isAdmin={isAdmin}
-    auth={auth}
-    employees={state.employees}
-    projects={state.projects}
-    updateState={updateState}
-  />
-)}
 
-          
-{tab === "docs" && (
-  <DocsView
-    isAdmin={isAdmin}
-    auth={auth}
-    projects={state.projects}
-    employees={state.employees}
-    docTemplates={state.docTemplates}
-    employeeDocs={state.employeeDocs}
-    updateState={updateState}
-  />
-)}
+          {tab === "employees" && (
+            <EmployeesView
+              isAdmin={isAdmin}
+              auth={auth}
+              employees={state.employees}
+              projects={state.projects}
+              updateState={updateState}
+            />
+          )}
 
-{tab === "actions" && (
-  <ActionsView
-    auth={auth}
-    projects={dashboardProjects}
-    employees={state.employees}
-    actions={state.actions}
-    updateState={updateState}
-  />
-)}
+          {tab === "docs" && (
+            <DocsView
+              isAdmin={isAdmin}
+              auth={auth}
+              projects={state.projects}
+              employees={state.employees}
+              docTemplates={state.docTemplates}
+              employeeDocs={state.employeeDocs}
+              updateState={updateState}
+            />
+          )}
 
-{tab === "announcements" && (
+          {tab === "actions" && (
+            <ActionsView
+              auth={auth}
+              projects={dashboardProjects}
+              employees={state.employees}
+              actions={state.actions}
+              updateState={updateState}
+            />
+          )}
+
+          {tab === "announcements" && (
             <AnnouncementsView
               isAdmin={isAdmin}
               auth={auth}
@@ -1954,7 +2264,7 @@ for(const emp of (next.employees || [])){
             />
           )}
 
-{tab === "contact" && (
+          {tab === "contact" && (
             <ContactView
               isAdmin={isAdmin}
               auth={auth}
@@ -1964,7 +2274,9 @@ for(const emp of (next.employees || [])){
               sendContact={sendContact}
               adminSendMessage={adminSendMessage}
               projects={PROJECT_NAMES}
-              users={Object.keys(CREDENTIALS).filter(u=>u!=="admin").map(u=>({ username:u, project:CREDENTIALS[u].project }))}
+              users={Object.keys(CREDENTIALS)
+                .filter((u) => u !== "admin")
+                .map((u) => ({ username: u, project: CREDENTIALS[u].project }))}
             />
           )}
         </div>
@@ -1973,6 +2285,7 @@ for(const emp of (next.employees || [])){
       <div className="footer">© {new Date().getFullYear()} Faruk Aksoy • Veri Takip Platformu</div>
     </div>
   );
+
 }
 
 /* ===================== VIEWS ===================== */
