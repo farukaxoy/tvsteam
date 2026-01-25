@@ -1,5 +1,4 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { createClient } from "@supabase/supabase-js";
 import "./style.css";
 
 /*
@@ -13,15 +12,9 @@ import "./style.css";
 const LOGIN_CSS = "";
 const THEME_CSS = "";
 
-// ===================== SUPABASE CLIENT =====================
-// Env vars must be set in Netlify: VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY
-
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
-const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
-const supabase = (SUPABASE_URL && SUPABASE_ANON_KEY) ? createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
-
-console.log("SB URL", import.meta.env.VITE_SUPABASE_URL);
-console.log("SB ANON", (import.meta.env.VITE_SUPABASE_ANON_KEY || "").slice(0, 12));
+// ===================== AUTH MODE =====================
+// Local fixed-credentials mode (no Supabase Auth)
+const supabase = null;
 
 /* ===================== UYGULAMA ===================== */
 /* NOT: Buradan aşağısı senin mevcut 5098 satırlık kodundur.
@@ -49,8 +42,6 @@ console.log("SB ANON", (import.meta.env.VITE_SUPABASE_ANON_KEY || "").slice(0, 1
    ---------------------------------------------------------
    NOT: Bu demo LocalStorage kullanır. Gerçek güvenlik için backend gerekir.
 ========================================================= */
-
-
 
 /* ===================== SETTINGS ===================== */
 
@@ -100,7 +91,6 @@ const MONTHLY_CHECK_ITEMS = [
   "Noter Onaylı İSG defteri",
   "Gözlem ve Ramakkala Kontrol"
 ];
-
 
 const MONTHLY_CAT_KEY = "monthly_controls";
 
@@ -202,8 +192,6 @@ function defaultCategories(){
 
   ];
 }
-
-
 
 /* ===================== DEFAULT DOCUMENT TEMPLATES =====================
    docTemplate = { key, name, required:true }
@@ -403,7 +391,6 @@ function IconBell({active=false}){
   );
 }
 
-
 function LogoMark(){
   return (
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -412,7 +399,6 @@ function LogoMark(){
     </svg>
   );
 }
-
 
 /* ===================== MAIN APP ===================== */
 
@@ -458,77 +444,18 @@ function AppInner(){
   const [lu, setLu] = useState("");
   const [lp, setLp] = useState("");
     const [showPw, setShowPw] = useState(false);
+
+  const isRecovery = false;
   const [newPw, setNewPw] = useState("");
   const [authBusy, setAuthBusy] = useState(false);
 
-  const isRecovery = useMemo(() => {
-    const h = window.location.hash || "";
-    const q = window.location.search || "";
-    return (
-      h.includes("type=recovery") ||
-      q.includes("type=recovery") ||
-      h.includes("access_token=") ||
-      q.includes("access_token=")
-    );
-
-  useEffect(() => {
-    if (!isRecovery) return;
-
-    const href = window.location.href || "";
-    if (!href.includes("code=")) return;
-
-    supabase.auth.exchangeCodeForSession(href).then(({ error }) => {
-      if (error) console.log("exchangeCodeForSession error:", error);
-      else console.log("exchangeCodeForSession OK");
-    });
-  }, [isRecovery]);
-  }, []);
-
   async function sendResetEmail(){
-    if(!supabase){
-      pushToast("Supabase bağlantısı yok. Env değişkenlerini kontrol et.", "danger");
-      return;
-    }
-    const u = (lu || "").trim().toLowerCase();
-    if(!u){
-      pushToast("Önce kullanıcı adını yaz.", "warn");
-      return;
-    }
-    const email = u.includes("@") ? u : `${u}@tvsteam.local`;
-    setAuthBusy(true);
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: "https://tvsteam.pages.dev"
-    });
-    setAuthBusy(false);
-    if(error){
-      pushToast(`Reset maili gönderilemedi: ${error.message || ""}`, "danger");
-      return;
-    }
-    pushToast("Şifre sıfırlama maili gönderildi. Mail kutunu kontrol et.", "ok");
+    pushToast("Şifre sıfırlama devre dışı (sabit kullanıcı sistemi).", "warn");
+  }
+  async function updatePassword(){
+    pushToast("Şifre güncelleme devre dışı (sabit kullanıcı sistemi).", "warn");
   }
 
-  async function updatePassword(){
-    if(!supabase){
-      pushToast("Supabase bağlantısı yok. Env değişkenlerini kontrol et.", "danger");
-      return;
-    }
-    const p = (newPw || "").trim();
-    if(p.length < 6){
-      pushToast("Şifre en az 6 karakter olmalı.", "warn");
-      return;
-    }
-    setAuthBusy(true);
-    const { error } = await supabase.auth.updateUser({ password: p });
-    setAuthBusy(false);
-    if(error){
-      pushToast(`Şifre güncellenemedi: ${error.message || ""}`, "danger");
-      return;
-    }
-    pushToast("Şifre güncellendi. Yeni şifreyle giriş yapabilirsin.", "ok");
-    setNewPw("");
-    // URL temizle
-    window.history.replaceState({}, document.title, "/");
-  }
   const [theme, setTheme] = useState(() => localStorage.getItem("APP_THEME") || "light");
   const [toasts, setToasts] = useState([]);
 
@@ -540,47 +467,6 @@ function AppInner(){
   };
 
   const closeToast = (id) => setToasts(prev => prev.filter(x => x.id !== id));
-
-
-  // Restore Supabase session (keeps login across refresh / devices when same credentials used)
-  useEffect(() => {
-    if(!supabase) return;
-    let cancelled = false;
-
-    (async () => {
-      const { data } = await supabase.auth.getSession();
-      const sess = data?.session;
-      if(!sess?.user?.id) return;
-
-      const userId = sess.user.id;
-      const { data: prof } = await supabase
-        .from("profiles")
-        .select("username, role, project_key")
-        .eq("user_id", userId)
-        .single();
-
-      if(cancelled || !prof) return;
-
-      const role = prof.role || "user";
-      const projectName = (prof.project_key && prof.project_key !== "ALL") ? prof.project_key : "";
-      const pr = projectName ? (state.projects || []).find(pp => pp.name === projectName) : null;
-
-      if(!auth){
-        setAuth({
-          username: prof.username || "",
-          role,
-          project: projectName,
-          projectId: pr ? pr.id : null,
-          projectName,
-          userId
-        });
-      }
-    })();
-
-    return () => { cancelled = true; };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
 
   /* left panel actions */
   const [search, setSearch] = useState("");
@@ -625,7 +511,6 @@ useEffect(() => {
   }
 }, [state.categories]);
 
-
 // Theme + toast styles (injected once)
 useEffect(() => {
   if(document.getElementById("theme-modern-css")) return;
@@ -640,7 +525,6 @@ useEffect(() => {
   document.documentElement.setAttribute("data-theme", theme);
   localStorage.setItem("APP_THEME", theme);
 }, [theme]);
-
 
 useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
@@ -716,8 +600,6 @@ useEffect(() => {
     next.contacts ||= [];
     next.notifications ||= [];
 
-
-
     
 // ensure employeeDocs has all templates
 const tmplKeys = (next.docTemplates || []).map(t => t.key);
@@ -781,7 +663,7 @@ for(const emp of (next.employees || [])){
   }
 
   /* ===== AUTH ===== */
-  async function doLogin(){
+    async function doLogin(){
     const u = (lu || "").trim().toLowerCase();
     const p = (lp || "").trim();
 
@@ -790,74 +672,31 @@ for(const emp of (next.employees || [])){
       return;
     }
 
-    // Prefer Supabase (multi-device login). Fallback to local CREDENTIALS if Supabase is not configured.
-    if(supabase){
-      const email = `${u}@tvsteam.local`;
+    const users = Array.isArray(state.authUsers) ? state.authUsers : [];
+    const rec = users.find(x => x && String(x.username || "").trim().toLowerCase() === u);
 
-      const { data, error } = await supabase.auth.signInWithPassword({ email, password: p });
-      if(error){
-        pushToast(`Giriş başarısız: ${error.message || ""}`, "danger");
-        return;
-      }
-
-      const userId = data?.user?.id;
-      if(!userId){
-        pushToast("Giriş başarısız (userId yok).", "danger");
-        return;
-      }
-
-      const { data: prof, error: pErr } = await supabase
-        .from("profiles")
-        .select("username, role, project_key")
-        .eq("user_id", userId)
-        .single();
-
-      if(pErr || !prof){
-        pushToast("Profil bulunamadı. Admin role/proje atamalı (profiles).", "danger");
-        await supabase.auth.signOut();
-        return;
-      }
-
-      const role = prof.role || "user";
-      const projectName = (prof.project_key && prof.project_key !== "ALL") ? prof.project_key : null;
-      const pr = projectName ? (state.projects || []).find(pp => pp.name === projectName) : null;
-
-      const projectId = pr ? pr.id : null;
-
-      setAuth({
-        username: prof.username || u,
-        role,
-        project: projectName || "",
-        projectId,
-        projectName: projectName || "",
-        userId
-      });
-
-      setTab(role === "admin" ? "dashboard" : "entry");
-      setLu(""); setLp(""); setShowPw(false);
-      pushToast("Giriş başarılı.", "ok");
+    if(!rec || String(rec.password || "") !== p){
+      pushToast("Kullanıcı adı veya şifre hatalı.", "danger");
       return;
     }
 
-    // Fallback (single-device): legacy local users
-    const dyn = (state.authUsers || []).find(x => x && x.username === u);
-    const rec = CREDENTIALS[u] || (dyn ? { password: dyn.password, role: (dyn.role || "user"), project: (dyn.project || dyn.projectName || dyn.projectId) } : null);
-    if(!rec || rec.password !== p){
-      pushToast("Hatalı kullanıcı adı veya şifre.", "danger");
-      return;
-    }
+    // admin ise tüm projeleri görebilir; değilse kendi projesi ile giriş yapar
+    const role = rec.role || "user";
+    const projectName = (role === "admin") ? "" : (rec.project || "");
 
-    let projectId = null;
-    let projectName = null;
-    if(rec.role !== "admin"){
-      const raw = rec.projectId || rec.project || rec.projectName || "";
-      const pr0 = (state.projects || []).find(pp => pp.id === raw || pp.name === raw || pp.key === raw);
-      projectId = pr0 ? pr0.id : null;
-      projectName = pr0 ? pr0.name : (typeof raw === "string" ? raw : null);
-    }
-    setAuth({ username: u, ...rec, projectId, projectName });
-    setTab(rec.role === "admin" ? "dashboard" : "entry");
-    setLu(""); setLp(""); setShowPw(false);
+    const pr = projectName ? (state.projects || []).find(pp => pp.name === projectName) : null;
+
+    setAuth({
+      username: rec.username || u,
+      role,
+      project: projectName,
+      projectId: pr ? pr.id : null,
+      projectName,
+      userId: null
+    });
+
+    setLp("");
+    pushToast("Giriş başarılı.", "ok");
   }
 
   async function doLogout(){
@@ -1003,7 +842,6 @@ for(const emp of (next.employees || [])){
   }
 }
 
-
   function approveItem(projectId, catKey, itemId) {
   const cat = state.categories.find((c) => c.key === catKey);
 
@@ -1027,7 +865,6 @@ for(const emp of (next.employees || [])){
     });
   }
 }
-
 
   function rejectItem(projectId, catKey, itemId){
     if(!confirm("Talep reddedilsin mi? (silinir)")) return;
@@ -1438,7 +1275,6 @@ for(const emp of (next.employees || [])){
     pushToast(`Kategori silindi: ${cat.name}`, "danger");
   }
 
-
   
   /* ===== ADMIN USER MAPPING (PROJECT ACCESS) ===== */
   /* ===== ADMIN: DOKÜMAN ŞABLONLARI (Sadece Admin) ===== */
@@ -1484,7 +1320,6 @@ for(const emp of (next.employees || [])){
     toast({ title:"Doküman silindi", body:doc.name, level:"warn" });
   }
 
-
   async function adminUpsertAuthUser(username, password, projectName, role){
     const u = (username || "").trim().toLowerCase();
     const p = (password || "").trim();
@@ -1498,41 +1333,6 @@ for(const emp of (next.employees || [])){
     if(!u || !p || (finalRole !== "admin" && !pr)){
       pushToast("Kullanıcı adı / şifre / proje zorunlu.", "warn");
       return;
-    }
-
-    // If Supabase configured, create the user server-side via Netlify Function (multi-device)
-    if(supabase){
-      try{
-        const res = await fetch("/.netlify/functions/createUser", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            username: u,
-            password: p,
-            role: finalRole,
-            project_key: finalRole === "admin" ? "ALL" : pr
-          })
-        });
-        if(!res.ok){
-          const msg = await res.text();
-          throw new Error(msg || "Kullanıcı oluşturma başarısız.");
-        }
-
-        // Optional: keep a local list for UI convenience (password is not stored)
-        updateState(d => {
-          if(!Array.isArray(d.authUsers)) d.authUsers = [];
-          const ix = d.authUsers.findIndex(x => x && x.username === u);
-          const rec = { username: u, password: "", project: finalRole === "admin" ? "" : pr, role: finalRole };
-          if(ix >= 0) d.authUsers[ix] = rec;
-          else d.authUsers.push(rec);
-        });
-
-        pushToast("Kullanıcı Supabase'e kaydedildi.", "ok");
-        return;
-      }catch(e){
-        pushToast(e.message || "Kullanıcı oluşturulamadı.", "danger");
-        return;
-      }
     }
 
     // Legacy fallback (single-device local storage)
@@ -1554,7 +1354,6 @@ for(const emp of (next.employees || [])){
     });
     pushToast("Kullanıcı silindi.", "success");
   }
-
 
 /* ===== DASHBOARD (APPROVED ONLY) ===== */
   const dashboardProjects = useMemo(() => {
@@ -1797,109 +1596,7 @@ for(const emp of (next.employees || [])){
                   <button className="linkBtn" type="button" onClick={() => setTheme(t => t === "dark" ? "light" : "dark")}>
                     Tema: {theme === "dark" ? "Dark" : "Light"}
                   </button>
-                  {!isRecovery && (
-                    <button className="linkBtn" type="button" onClick={sendResetEmail} disabled={authBusy}>
-                      {authBusy ? "Gönderiliyor..." : "Şifremi unuttum"}
-                    </button>
-                  )}
-
-</div>
-</div>
-            </div>
-          </div>
-        </div>
-        <Toasts items={toasts} onClose={closeToast} />
-      </div>
-    );
-  }
-
-  /* ===================== MAIN LAYOUT ===================== */
-
-  return (
-    <div className="container">
-      <div className="topbar">
-        <div className="brand">
-          <div className="logo"><LogoMark/></div>
-          <div className="brandTitle">
-            <b>Veri Takip</b>
-            <span>{monthKey} • Onaylı veriler rapora girer</span>
-          </div>
-        </div>
-
-        <div className="tabs" style={{flexWrap:"wrap"}}>
-          <TabButton active={tab==="dashboard"} onClick={()=>setTab("dashboard")}>Dashboard</TabButton>
-          <TabButton active={tab==="entry"} onClick={()=>{ setTab("entry"); setCategoryKey("experts"); setSearch(""); }}>Veri Girişi</TabButton>
-<TabButton active={tab==="employees"} onClick={()=>setTab("employees")}>
-  Çalışanlar
-</TabButton>
-
-          <TabButton active={tab==="docs"} onClick={()=>setTab("docs")}>Dokümanlar</TabButton>
-
-          <TabButton active={tab==="actions"} onClick={()=>setTab("actions")}>Aksiyonlar</TabButton>
-
-          {isAdmin && <TabButton active={tab==="approvals"} onClick={()=>setTab("approvals")}>Onaylar</TabButton>}
-          {isAdmin && <TabButton active={tab==="admin"} onClick={()=>setTab("admin")}>Admin</TabButton>}
-          <TabButton active={tab==="announcements"} onClick={()=>setTab("announcements")}>Duyurular</TabButton>
-          <TabButton active={tab==="contact"} onClick={()=>setTab("contact")}>İletişim</TabButton>
-        </div>
-
-        <div className="userBox">
-          <div className="avatar" title={auth.username}>
-            {(auth.username || "U").slice(0,1).toUpperCase()}
-          </div>
-
-          <Pill kind={isAdmin ? "ok" : "warn"}>
-            <b>{isAdmin ? "ADMIN" : "KULLANICI"}</b> • {auth.username}
-          </Pill>
-
-          <Pill>
-            Proje: <b>{isAdmin ? "Tümü" : auth.project}</b>
-          </Pill>
-
-          {/* Notifications */}
-          <button
-            className="btn"
-            onClick={() => setNotifOpen(v => !v)}
-            title="Bildirimler"
-            style={{display:"inline-flex", alignItems:"center", gap:8}}
-          >
-            <IconBell active={unreadCount>0}/>
-            {unreadCount > 0 ? <Badge kind="warn">{unreadCount}</Badge> : <span className="small">Bildirim</span>}
-          </button>
-
-          <button className="btn danger" onClick={doLogout}>Çıkış</button>
-        </div>
-      </div>
-
-      {/* Notifications panel (simple dropdown) */}
-      {notifOpen && (
-        <div className="card" style={{marginTop:12}}>
-          <div className="cardTitleRow">
-            <h3>Bildirimler</h3>
-            <div style={{display:"flex", gap:8, alignItems:"center", flexWrap:"wrap", justifyContent:"flex-end"}}>
-              <Badge>{isAdmin ? "Admin" : "Kullanıcı"}</Badge>
-              <button className="btn" onClick={markAllRead}>Tümünü okundu yap</button>
-              <button className="btn" onClick={()=>setNotifOpen(false)}>Kapat</button>
-            </div>
-          </div>
-
-          <div className="list">
-            {myNotifications.length === 0 ? (
-              <div className="small">Bildirim yok.</div>
-            ) : (
-              myNotifications.slice(0, 20).map(n => (
-                <div key={n.id} className="item" style={{alignItems:"flex-start", opacity: n.read ? .70 : 1}}>
-                  <div className="itemLeft">
-                    <b>{n.title}</b>
-                    <span className="small">{formatDT(n.createdAt)}</span>
-                    <div style={{marginTop:6, whiteSpace:"pre-wrap"}}>{n.body}</div>
-                  </div>
-                  <Badge kind={n.level === "ok" ? "ok" : n.level === "warn" ? "warn" : n.level === "danger" ? "danger" : "default"}>
-                    {n.read ? "Okundu" : "Yeni"}
-                  </Badge>
-                </div>
-              ))
-            )}
+                  
           </div>
         </div>
       )}
@@ -2237,7 +1934,6 @@ for(const emp of (next.employees || [])){
   />
 )}
 
-
 {tab === "actions" && (
   <ActionsView
     auth={auth}
@@ -2388,7 +2084,6 @@ function DashboardView({ monthKey, category, rows, projects, employees, actions,
         {(category?.special?.meals || (category?.fields||[]).some(f=>f.key==="mealCount") || totals.mealsSum>0) ? <KPI label="Yemek" value={totals.mealsSum}/> : null}
       </div>
 
-
       {/* Grafikler */}
       <div style={{marginTop:14}}>
         <div className="cardTitleRow">
@@ -2439,7 +2134,6 @@ function DashboardView({ monthKey, category, rows, projects, employees, actions,
         ))}
       </div>
 
-
       <hr className="sep" />
 
       <div className="tableWrap">
@@ -2471,7 +2165,6 @@ function DashboardView({ monthKey, category, rows, projects, employees, actions,
           </tbody>
         </table>
       </div>
-
 
       {/* Kişi bazlı (Uzmanlar) */}
       {category?.key === "experts" && (
@@ -2557,7 +2250,6 @@ function KPI({label, value}){
     </div>
   );
 }
-
 
 function BarChart({ title, data }){
   const max = Math.max(1, ...(data || []).map(d => safeNum(d.value)));
@@ -2767,7 +2459,6 @@ function escapeHtml(s){
     .replaceAll("'", "&#039;");
 }
 
-
 function MonthlyControlsView({
   isAdmin,
   monthKey,
@@ -2795,7 +2486,6 @@ function MonthlyControlsView({
     // uniq
     return Array.from(new Set([...namesA, ...namesB]));
   }, [experts, employees, project]);
-
 
   if(!project){
     return <div className="card"><div className="small">Proje seçili değil.</div></div>;
@@ -3008,7 +2698,6 @@ function ApprovalsView({
   );
 }
 
-
 function EntryView({
   isAdmin,
   monthKey,
@@ -3174,7 +2863,6 @@ function EntryView({
     </>
   );
 }
-
 
 function ExpertsEntryCompactView({ isAdmin, monthKey, monthDays, project, category, items, setMonthlyField, toggleMeal, submitMonth }){
   const [search, setSearch] = React.useState("");
@@ -3356,7 +3044,6 @@ function AdminView({
   // Doküman Tanımları ekleme inputu için local state
   const [newDocName, setNewDocName] = useState("");
 
-
   const summaryRows = useMemo(() => {
     const out = [];
     for(const p of safeProjects){
@@ -3400,7 +3087,6 @@ function AdminView({
       setDeleteCatKey(safeCategories[0].key);
     }
   }, [categories]);
-
 
   return (
     <>
@@ -3608,7 +3294,6 @@ function AdminView({
   );
 }
 
-
 function AnnouncementsView({ isAdmin, auth, announcements, projects, addAnnouncement }){
   const [scopeType, setScopeType] = React.useState("all");
   const [scopeValue, setScopeValue] = React.useState("");
@@ -3723,7 +3408,6 @@ function AnnouncementsView({ isAdmin, auth, announcements, projects, addAnnounce
     </>
   );
 }
-
 
 function ContactView({ 
   isAdmin, 
@@ -4065,7 +3749,6 @@ function EmployeesView({ isAdmin, auth, employees, projects, updateState }) {
     });
   }
 
-
   return (
     <div className="card">
       <div className="cardTitleRow">
@@ -4209,7 +3892,6 @@ return (
   );
 }
 
-
 /* ===================== DOCS VIEW ===================== */
 
 function DocsView({
@@ -4255,7 +3937,6 @@ function DocsView({
       }
     });
   }
-
 
   useEffect(() => {
     if(!isAdmin){
@@ -4425,7 +4106,6 @@ function monthOptions(){
     {key:"12", label:"Aralık"}
   ];
 }
-
 
 /* ===================== ACTIONS (Corrective / Action List) ===================== */
 
@@ -5039,7 +4719,6 @@ function EditableText({ value, onSave }) {
     </div>
   );
 }
-
 
 class ErrorBoundary extends React.Component{
   constructor(props){ super(props); this.state={error:null}; }
