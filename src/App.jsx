@@ -30,233 +30,123 @@ const LOGIN_CSS = `
   --lp-bg2:#ffffff;
   --lp-accent:#2f6fed;
   --lp-accent2:#5b8cff;
-  --lp-card:rgba(255,255,255,.92);
+  --lp-card:#ffffff;
   --lp-border:rgba(15,23,42,.10);
   --lp-text:rgba(15,23,42,.92);
   --lp-muted:rgba(15,23,42,.60);
 }
 
-/* Full page */
+/* Page */
 .loginPage{
   min-height:100vh;
   display:flex;
-  flex-direction:column;
+  align-items:center;
   justify-content:center;
-  background: radial-gradient(1000px 600px at 20% 10%, rgba(47,111,237,.12), transparent 55%), radial-gradient(900px 500px at 80% 20%, rgba(91,140,255,.10), transparent 55%), linear-gradient(180deg, var(--lp-bg1), var(--lp-bg2));
-  color:var(--lp-text);
-  padding:28px 16px;
-}
-
-.loginWrap{
-  width:min(1120px, 100%);
-  margin:0 auto;
-  display:grid;
-  grid-template-columns: 1.2fr .9fr;
-  gap:18px;
-  align-items:stretch;
-}
-
-@media (max-width: 900px){
-  .loginWrap{ grid-template-columns:1fr; }
-}
-
-.loginLeft{
-  position:relative;
-  padding:34px 30px;
-  border-radius:22px;
-  overflow:hidden;
-  border:1px solid var(--lp-border);
-  background: linear-gradient(135deg, rgba(255,255,255,.10), rgba(255,255,255,.04));
-  box-shadow: 0 20px 60px rgba(15,23,42,.10);
-}
-
-.loginLeft::before{
-  content:"";
-  position:absolute; inset:-2px;
+  padding:24px 14px;
   background:
-    radial-gradient(650px 380px at 20% 20%, rgba(79,140,255,.45), transparent 60%),
-    radial-gradient(520px 420px at 80% 65%, rgba(124,92,255,.35), transparent 60%);
-  filter: blur(0px);
-  opacity:.9;
-  pointer-events:none;
+    radial-gradient(900px 500px at 15% 10%, rgba(47,111,237,.12), transparent 55%),
+    radial-gradient(900px 500px at 85% 20%, rgba(91,140,255,.10), transparent 55%),
+    linear-gradient(180deg, var(--lp-bg1), var(--lp-bg2));
+  color:var(--lp-text);
 }
 
-.loginBrand{
-  position:relative;
-  display:flex;
-  align-items:center;
-  gap:14px;
-}
-
-.loginLogo{
-  width:48px; height:48px;
-  border-radius:14px;
-  display:grid; place-items:center;
-  font-weight:900;
-  letter-spacing:.5px;
-  background: linear-gradient(135deg, rgba(79,140,255,.95), rgba(124,92,255,.95));
-  box-shadow: 0 10px 28px rgba(79,140,255,.25);
-}
-
-.loginTitle{
-  font-size:22px;
-  font-weight:900;
-  margin:0;
-  line-height:1.1;
-}
-
-.loginSub{
-  margin-top:10px;
-  color:var(--lp-muted);
-  font-size:14px;
-  max-width:52ch;
-}
-
-.loginBullets{
-  position:relative;
-  margin-top:22px;
-  display:grid;
-  gap:12px;
-}
-
-.loginBullet{
-  display:flex;
-  gap:10px;
-  align-items:flex-start;
-  padding:12px 14px;
-  border-radius:16px;
-  border:1px solid rgba(255,255,255,.14);
-  background: rgba(0,0,0,.12);
-}
-
-.loginBullet b{ display:block; font-size:14px; }
-.loginBullet span{ display:block; margin-top:2px; color:var(--lp-muted); font-size:13px; }
-
-.loginBadgeRow{
-  position:relative;
-  display:flex;
-  gap:10px;
-  flex-wrap:wrap;
-  margin-top:18px;
-}
-
-.loginPill{
-  display:inline-flex;
-  align-items:center;
-  gap:8px;
-  padding:10px 12px;
-  border-radius:999px;
-  border:1px solid rgba(255,255,255,.16);
-  background: rgba(0,0,0,.14);
-  font-size:13px;
-  color:rgba(255,255,255,.86);
-}
-
-.loginRight{
-  padding:22px;
-  border-radius:22px;
+/* Simple card (classic like first version) */
+.loginCardSimple{
+  width:min(460px, 100%);
+  background:rgba(255,255,255,.94);
   border:1px solid var(--lp-border);
-  background: linear-gradient(135deg, rgba(255,255,255,.10), rgba(255,255,255,.05));
-  box-shadow: 0 18px 70px rgba(0,0,0,.35);
-  display:flex;
-  align-items:center;
-}
-
-.loginCard{
-  width:100%;
-  padding:22px 20px;
   border-radius:18px;
-  border:1px solid rgba(255,255,255,.16);
-  background: rgba(10,14,28,.55);
+  box-shadow: 0 20px 60px rgba(15,23,42,.10);
+  padding:22px 20px;
 }
 
-.loginCardHead{
+.loginBrandRow{
   display:flex;
-  justify-content:space-between;
   align-items:center;
-  gap:10px;
+  gap:12px;
   margin-bottom:14px;
 }
 
-.loginCardTitle{
-  font-size:18px;
-  font-weight:900;
+.loginLogo{
+  width:44px;
+  height:44px;
+  border-radius:14px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-weight:800;
+  letter-spacing:.5px;
+  color:#fff;
+  background: linear-gradient(135deg, var(--lp-accent), var(--lp-accent2));
 }
 
-.loginHint{
-  font-size:12px;
-  color:rgba(255,255,255,.70);
-  padding:6px 10px;
-  border-radius:999px;
-  border:1px solid rgba(255,255,255,.16);
-  background: rgba(0,0,0,.14);
+.loginTitle{
+  font-size:16px;
+  font-weight:800;
+  line-height:1.2;
 }
 
-.loginForm{ margin-top:10px; display:grid; gap:12px; }
+.loginForm{
+  display:flex;
+  flex-direction:column;
+  gap:12px;
+}
 
 .loginField label{
   display:block;
   font-size:12px;
-  color:rgba(255,255,255,.76);
+  color:var(--lp-muted);
   margin-bottom:6px;
 }
 
 .loginInput{
   width:100%;
-  padding:12px 12px;
-  border-radius:14px;
-  border:1px solid rgba(255,255,255,.18);
-  background: rgba(255,255,255,.06);
-  color:rgba(255,255,255,.92);
+  padding:11px 12px;
+  border-radius:12px;
+  border:1px solid var(--lp-border);
   outline:none;
+  background:#fff;
 }
 
 .loginInput:focus{
-  border-color: rgba(79,140,255,.55);
-  box-shadow: 0 0 0 4px rgba(79,140,255,.16);
+  border-color: rgba(47,111,237,.45);
+  box-shadow: 0 0 0 4px rgba(47,111,237,.12);
 }
 
 .loginPwRow{
   display:flex;
-  gap:10px;
+  gap:8px;
   align-items:center;
 }
 
 .loginPwToggle{
-  border:1px solid rgba(255,255,255,.18);
-  background: rgba(255,255,255,.06);
-  color:rgba(255,255,255,.86);
-  border-radius:14px;
-  padding:10px 12px;
+  border:1px solid var(--lp-border);
+  background:#fff;
+  border-radius:12px;
+  padding:10px 10px;
   cursor:pointer;
 }
 
 .loginBtn{
+  margin-top:6px;
   width:100%;
-  margin-top:8px;
-  padding:12px 14px;
-  border:none;
-  border-radius:14px;
+  padding:12px 12px;
+  border:0;
+  border-radius:12px;
   cursor:pointer;
-  font-weight:900;
-  color:white;
+  font-weight:800;
+  color:#fff;
   background: linear-gradient(135deg, var(--lp-accent), var(--lp-accent2));
-  box-shadow: 0 12px 30px rgba(79,140,255,.22);
+  box-shadow: 0 12px 28px rgba(47,111,237,.20);
 }
 
+.loginBtn:hover{ filter:brightness(0.98); }
 .loginBtn:active{ transform: translateY(1px); }
 
-.loginFooter{
-  margin-top:12px;
+.loginHint{
+  margin-top:10px;
   font-size:12px;
-  color:rgba(255,255,255,.70);
-  text-align:center;
-}
-
-.loginPage .footer{
-  margin-top:18px;
-  text-align:center;
-  color:rgba(255,255,255,.55);
+  color:var(--lp-muted);
 }
 `;
 
@@ -908,7 +798,8 @@ for(const emp of (next.employees || [])){
 
   /* ===== AUTH ===== */
     async function doLogin(){
-    const u = (lu || "").trim().toLowerCase();
+    const uRaw = (lu || "").trim();
+    const u = uRaw.toLowerCase();
     const p = (lp || "").trim();
 
     if(!u || !p){
@@ -916,22 +807,42 @@ for(const emp of (next.employees || [])){
       return;
     }
 
-    const users = Array.isArray(state.authUsers) ? state.authUsers : [];
-    const rec = users.find(x => x && String(x.username || "").trim().toLowerCase() === u);
+    // 1) Admin panelinden eklenen kullanıcılar (state.authUsers)
+    const panelUsers = Array.isArray(state.authUsers) ? state.authUsers.filter(Boolean) : [];
+
+    // 2) Kod içindeki sabit hesaplar (CREDENTIALS) — panel kullanıcıları yoksa / yedek olarak
+    const fallbackUsers = Object.entries(CREDENTIALS || {}).map(([username, info]) => ({
+      username,
+      password: info?.password || "",
+      role: info?.role || "user",
+      project: info?.project || ""
+    }));
+
+    // Panel kullanıcıları varsa öncelik onlarda. Yine de birleşik arama yapalım (panel > fallback).
+    const byUsername = new Map();
+    for(const rec of fallbackUsers){
+      const key = String(rec.username || "").trim().toLowerCase();
+      if(key) byUsername.set(key, rec);
+    }
+    for(const rec of panelUsers){
+      const key = String(rec.username || "").trim().toLowerCase();
+      if(key) byUsername.set(key, rec); // panel kullanıcıları override
+    }
+
+    const rec = byUsername.get(u);
 
     if(!rec || String(rec.password || "") !== p){
       pushToast("Kullanıcı adı veya şifre hatalı.", "danger");
       return;
     }
 
-    // admin ise tüm projeleri görebilir; değilse kendi projesi ile giriş yapar
+    // Admin tüm projeleri görür; diğer roller kendi projesiyle giriş yapar.
     const role = rec.role || "user";
     const projectName = (role === "admin") ? "" : (rec.project || "");
-
     const pr = projectName ? (state.projects || []).find(pp => pp.name === projectName) : null;
 
     setAuth({
-      username: rec.username || u,
+      username: rec.username || uRaw,
       role,
       project: projectName,
       projectId: pr ? pr.id : null,
@@ -1737,90 +1648,60 @@ for(const emp of (next.employees || [])){
   if(!auth){
     return (
       <div className="loginPage">
-        <div className="loginWrap">
-          <div className="loginLeft">
-            <div className="loginBrand">
-              <div className="loginLogo">VTP</div>
-              <div>
-                <div className="loginTitle">Veri Takip Platformu</div>
-                <div className="loginSub">
-                  Güvenli ve hızlı giriş.
-                </div>
+        <div className="loginCardSimple">
+          <div className="loginBrandRow">
+            <div className="loginLogo">VTP</div>
+            <div className="loginTitle">Veri Takip Platformu</div>
+          </div>
+
+          <div className="loginForm">
+            <div className="loginField">
+              <label>Kullanıcı Adı</label>
+              <input
+                className="loginInput"
+                value={lu}
+                onChange={(e) => setLu(e.target.value)}
+                placeholder="örn: admin / socar / tupras_izmir"
+                autoComplete="username"
+              />
+            </div>
+
+            <div className="loginField">
+              <label>Şifre</label>
+              <div className="loginPwRow">
+                <input
+                  className="loginInput"
+                  type={showPw ? "text" : "password"}
+                  value={lp}
+                  onChange={(e) => setLp(e.target.value)}
+                  placeholder="Şifrenizi girin"
+                  autoComplete="current-password"
+                  onKeyDown={(e) => {
+                    if(e.key === "Enter") doLogin();
+                  }}
+                />
+                <button
+                  type="button"
+                  className="loginPwToggle"
+                  onClick={() => setShowPw((v) => !v)}
+                  title={showPw ? "Şifreyi gizle" : "Şifreyi göster"}
+                  aria-label={showPw ? "Şifreyi gizle" : "Şifreyi göster"}
+                >
+                  {showPw ? "🙈" : "👁️"}
+                </button>
               </div>
             </div>
 
-            <div className="loginBullets">
-          <div className="loginBullet"><span className="dot" /> Proje bazlı erişim</div>
-          <div className="loginBullet"><span className="dot" /> Hızlı raporlama</div>
-          <div className="loginBullet"><span className="dot" /> Güvenli oturum</div>
+            <button className="loginBtn" onClick={doLogin}>Giriş Yap</button>
+
+            <div className="loginHint">Admin ve proje hesapları giriş yapabilir.</div>
+          </div>
         </div>
       </div>
-      <div className="loginRight">
-            <div className="loginCard">
-              <div className="loginCardHead">
-                <div className="loginCardTitle">Giriş</div>
-                <div className="loginHint">Admin / Proje Kullanıcısı</div>
-              </div>
-
-              <div className="loginForm">
-                <div className="loginField">
-                  <label>Kullanıcı Adı</label>
-                  <input
-                    className="loginInput"
-                    value={lu}
-                    onChange={(e) => setLu(e.target.value)}
-                    placeholder="örn: admin / socar / tupras_izmir"
-                    autoComplete="username"
-                  />
-                </div>
-
-                <div className="loginField">
-                  <label>Şifre</label>
-                  <div className="loginPwRow">
-                    <input
-                      className="loginInput"
-                      type={showPw ? "text" : "password"}
-                      value={lp}
-                      onChange={(e) => setLp(e.target.value)}
-                      placeholder="Şifrenizi girin"
-                      autoComplete="current-password"
-                    />
-                    <button
-                      type="button"
-                      className="loginPwToggle"
-                      onClick={() => setShowPw((v) => !v)}
-                      title={showPw ? "Şifreyi gizle" : "Şifreyi göster"}
-                      aria-label={showPw ? "Şifreyi gizle" : "Şifreyi göster"}
-                    >
-                      {showPw ? (
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-                          <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                          <path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                        </svg>
-                      ) : (
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-                          <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                          <path d="M4 4 20 20" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-                        </svg>
-                      )}
-                    </button>
-                  </div>
-                </div>
-
-                <button className="loginBtn" onClick={doLogin}>Giriş Yap</button>
-
-                <div className="loginFooter">
-                  Giriş sorunu varsa admin ile iletişime geç.
-                </div>
-              </div>
-            </div>
-          </div>
-      
-
-        <div className="footer">© {new Date().getFullYear()} Faruk Aksoy • Veri Takip Platformu</div>
-      </div>
-      </div>
     );
+  }
+
+
   }
 
   return (
@@ -2277,7 +2158,6 @@ for(const emp of (next.employees || [])){
     </div>
   );
 
-}
 
 /* ===================== VIEWS ===================== */
 
