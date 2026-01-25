@@ -25,6 +25,22 @@ function injectStyle(cssText, id){
 }
 
 
+// --- tiny toast helper (no dependency, prevents ReferenceError) ---
+// Usage: toast("msg"), toast.success("..."), toast.error("...") etc.
+function toast(message, opts){
+  try{
+    const msg = (typeof message === "string") ? message : JSON.stringify(message);
+    // lightweight: console + optional alert for errors
+    if(opts?.type === "error") console.error(msg);
+    else console.log(msg);
+  }catch(e){}
+}
+toast.success = (m)=>toast(m,{type:"success"});
+toast.error   = (m)=>toast(m,{type:"error"});
+toast.info    = (m)=>toast(m,{type:"info"});
+toast.warn    = (m)=>toast(m,{type:"warn"});
+
+
 // --- date helpers (YYYY-MM-DD) ---
 function isoDate(d){
   if(!d) return "";
@@ -1805,8 +1821,6 @@ for(const emp of (next.employees || [])){
     pushToast("Evrak türü silindi.", "warn");
   }
 
-}
-
   async function adminUpsertAuthUser(username, password, projectName, role){
     const u = (username || "").trim().toLowerCase();
     const p = (password || "").trim();
@@ -2006,12 +2020,12 @@ for(const emp of (next.employees || [])){
             </div>
 
             <div className="loginBody">
-              <label className="loginLabel">E‑Mail</label>
+              <label className="loginLabel">Kullanıcı Adı</label>
               <input
                 className="loginInputLine"
                 value={lu}
                 onChange={(e) => { setLu(e.target.value); if(loginError) setLoginError(""); }}
-                placeholder="kullanici@firma.com"
+                placeholder="Kullanıcı Adını Yazınız"
                 autoComplete="username"
               />
 
@@ -2554,10 +2568,10 @@ for(const emp of (next.employees || [])){
       </div>
 
       <div className="footer">© {new Date().getFullYear()} Faruk Aksoy • Veri Takip Platformu</div>
-      </div>
     </div>
   );
 
+}
 
 /* ===================== VIEWS ===================== */
 
