@@ -2507,6 +2507,7 @@ for(const emp of (next.employees || [])){
             <DocTrackingView
               isAdmin={isAdmin}
               auth={auth}
+              projects={state.projects}
               employees={state.employees}
               docRegisterTypes={state.docRegisterTypes}
               employeeDocRegister={state.employeeDocRegister}
@@ -4742,7 +4743,7 @@ function monthOptions(){
 /* ===================== ACTIONS (Corrective / Action List) ===================== */
 
 
-function DocTrackingView({ isAdmin, auth, employees, docRegisterTypes, employeeDocRegister, updateState }){
+function DocTrackingView({ isAdmin, auth, projects, employees, docRegisterTypes, employeeDocRegister, updateState }){
   const today = isoDate(new Date());
   const safeTypes = useMemo(() => (Array.isArray(docRegisterTypes) ? docRegisterTypes : []).filter(t => t && t.active !== false), [docRegisterTypes]);
 
@@ -4752,6 +4753,39 @@ function DocTrackingView({ isAdmin, auth, employees, docRegisterTypes, employeeD
     // kullanıcı kendi projesinin personelini görür (aktif/pasif dahil)
     return arr.filter(e => e.project === auth.project);
   }, [employees, isAdmin, auth]);
+
+
+  // proje bazlı görüntüleme (admin seçebilir, kullanıcı kendi projesine kilitli)
+  const allProjectNames = useMemo(() => {
+    const set = new Set();
+    (Array.isArray(projects) ? projects : []).forEach(p => p?.name && set.add(p.name));
+    // fallback: employees içinden de topla
+    (Array.isArray(employees) ? employees : []).forEach(e => e?.project && set.add(e.project));
+    return Array.from(set);
+  }, [projects, employees]);
+
+  const [projectFilter, setProjectFilter] = useState(() => {
+    if(!isAdmin) return auth?.project || (allProjectNames[0] || "");
+    return auth?.project || (allProjectNames[0] || "");
+  });
+
+  useEffect(() => {
+    // kullanıcı için proje kilitli
+    if(!isAdmin){
+      const p = auth?.project || "";
+      if(p && projectFilter !== p) setProjectFilter(p);
+      return;
+    }
+    // admin için seçili proje geçerli değilse ilkine çek
+    if(projectFilter && allProjectNames.includes(projectFilter)) return;
+    if(allProjectNames[0]) setProjectFilter(allProjectNames[0]);
+  }, [isAdmin, auth?.project, allProjectNames]);
+
+  const employeesInProject = useMemo(() => {
+    const arr = Array.isArray(visibleEmployees) ? visibleEmployees : [];
+    if(!projectFilter) return arr;
+    return arr.filter(e => e.project === projectFilter);
+  }, [visibleEmployees, projectFilter]);
 
   const [empId, setEmpId] = useState(() => (visibleEmployees[0]?.id || ""));
   useEffect(() => {
@@ -4766,7 +4800,7 @@ function DocTrackingView({ isAdmin, auth, employees, docRegisterTypes, employeeD
 
   const alerts = useMemo(() => {
     const out = [];
-    for(const e of visibleEmployees){
+    for(const e of employeesInProject){
       const r = (employeeDocRegister && employeeDocRegister[e.id]) ? employeeDocRegister[e.id] : {};
       for(const t of safeTypes){
         const rec = r?.[t.id];
@@ -4782,7 +4816,7 @@ function DocTrackingView({ isAdmin, auth, employees, docRegisterTypes, employeeD
     }
     out.sort((a,b)=> (a.left - b.left));
     return out.slice(0, 50);
-  }, [visibleEmployees, employeeDocRegister, safeTypes, today]);
+  }, [employeesInProject, employeeDocRegister, safeTypes, today]);
 
   function setIssue(typeId, issueDate, validityDays){
     updateState(d => {
@@ -4810,7 +4844,29 @@ function DocTrackingView({ isAdmin, auth, employees, docRegisterTypes, employeeD
 
         <hr className="sep" />
 
-        <div className="row" style={{flexWrap:"wrap", alignItems:"flex-end"}}>
+        
+        <div className="row" style={{flexWrap:"wrap", gap:12, alignItems:"flex-end", marginTop:10}}>
+          <div style={{flex:"1 1 260px"}}>
+            <span className="lbl">Proje</span>
+            <select
+              className="input"
+              value={projectFilter || ""}
+              onChange={e => setProjectFilter(e.target.value)}
+              disabled={!isAdmin}
+              title={!isAdmin ? "Kullanıcılar kendi projesine kilitlidir" : "Projeye göre uyarıları filtrele"}
+            >
+              {allProjectNames.map(pn => (
+                <option key={pn} value={pn}>{pn}</option>
+              ))}
+            </select>
+          </div>
+          <div style={{display:"flex", gap:10, alignItems:"center", flex:"0 0 auto"}}>
+            <Badge kind="default">Yaklaşan: {alerts.filter(a=>a.level==="warn").length}</Badge>
+            <Badge kind="danger">Süresi Dolan: {alerts.filter(a=>a.level==="danger").length}</Badge>
+          </div>
+        </div>
+
+<div className="row" style={{flexWrap:"wrap", alignItems:"flex-end"}}>
           <div style={{flex:"1 1 320px"}}>
             <span className="lbl">Personel</span>
             <select className="input" value={empId || ""} onChange={e=>setEmpId(e.target.value)}>
@@ -4893,7 +4949,7 @@ function DocTrackingView({ isAdmin, auth, employees, docRegisterTypes, employeeD
 
       <div className="card">
         <div className="cardTitleRow">
-          <h3>Uyarılar</h3>
+          <h3>Proje Bazlı Uyarılar</h3>
           <Badge kind={alerts.some(a=>a.level==="danger") ? "danger" : alerts.some(a=>a.level==="warn") ? "warn" : "ok"}>
             {alerts.length} kayıt
           </Badge>
@@ -4904,7 +4960,6 @@ function DocTrackingView({ isAdmin, auth, employees, docRegisterTypes, employeeD
             <thead>
               <tr>
                 <th>Personel</th>
-                <th>Proje</th>
                 <th>Evrak</th>
                 <th style={{width:140}}>Bitiş</th>
                 <th style={{width:140}}>Kalan</th>
@@ -4914,14 +4969,13 @@ function DocTrackingView({ isAdmin, auth, employees, docRegisterTypes, employeeD
               {alerts.map((a, i) => (
                 <tr key={i}>
                   <td><b>{a.employee}</b></td>
-                  <td>{a.project || "—"}</td>
                   <td>{a.doc}</td>
                   <td>{a.expiresAt}</td>
                   <td><Badge kind={a.level === "danger" ? "danger" : "warn"}>{a.left < 0 ? `${Math.abs(a.left)}g geçti` : `${a.left}g`}</Badge></td>
                 </tr>
               ))}
               {alerts.length===0 && (
-                <tr><td colSpan="5">Şu an yaklaşan / süresi dolmuş evrak yok.</td></tr>
+                <tr><td colSpan="4">Şu an yaklaşan / süresi dolmuş evrak yok.</td></tr>
               )}
             </tbody>
           </table>
