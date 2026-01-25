@@ -176,6 +176,77 @@ const LOGIN_CSS = `
 .loginBtnWide:active{ transform: translateY(0px); }
 `;
 
+
+const NAV_CSS = `
+/* Top navigation */
+.appShell{ min-height: 100vh; display:flex; flex-direction:column; }
+.topNav{
+  position: sticky; top: 0; z-index: 50;
+  display:flex; align-items:center; justify-content:space-between; gap:12px;
+  padding: 12px 16px;
+  border-bottom: 1px solid rgba(15,23,42,.08);
+  background: rgba(255,255,255,.72);
+  backdrop-filter: blur(10px);
+}
+.brandRow{ display:flex; align-items:center; gap:10px; min-width: 220px; }
+.brandDot{
+  width: 10px; height:10px; border-radius: 999px;
+  background: linear-gradient(135deg, rgba(59,130,246,.9), rgba(16,185,129,.85));
+  box-shadow: 0 6px 18px rgba(59,130,246,.20);
+}
+.brandTitle{ font-weight: 800; letter-spacing: .2px; color:#0f172a; }
+.brandSub{ font-size: 12px; color: rgba(15,23,42,.60); margin-top:2px; }
+
+.navTabs{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+.navBtn{
+  border: 1px solid rgba(15,23,42,.10);
+  background: rgba(255,255,255,.70);
+  color: rgba(15,23,42,.82);
+  padding: 8px 12px;
+  border-radius: 999px;
+  font-weight: 700;
+  cursor:pointer;
+  transition: transform .12s ease, box-shadow .12s ease, border-color .12s ease, background .12s ease;
+}
+.navBtn:hover{ transform: translateY(-1px); box-shadow: 0 10px 26px rgba(15,23,42,.10); border-color: rgba(15,23,42,.16); }
+.navBtn.active{
+  background: rgba(59,130,246,.10);
+  border-color: rgba(59,130,246,.35);
+  color: rgba(30,64,175,.95);
+}
+.navRight{ display:flex; align-items:center; gap:10px; min-width: 220px; justify-content:flex-end; }
+.userPill{
+  border: 1px solid rgba(15,23,42,.10);
+  background: rgba(255,255,255,.70);
+  border-radius: 999px;
+  padding: 8px 10px;
+  display:flex; align-items:center; gap:8px;
+  color: rgba(15,23,42,.80);
+  font-weight: 700;
+  max-width: 260px;
+}
+.userPill span{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.logoutBtn{
+  border: 1px solid rgba(239,68,68,.25);
+  background: rgba(239,68,68,.06);
+  color: rgba(185,28,28,.92);
+  padding: 8px 12px;
+  border-radius: 999px;
+  font-weight: 800;
+  cursor:pointer;
+}
+.logoutBtn:hover{ background: rgba(239,68,68,.10); }
+
+/* Keep main grid from touching top */
+.mainArea{ padding: 16px; }
+@media (max-width: 900px){
+  .brandRow{ min-width: unset; }
+  .navRight{ min-width: unset; }
+  .topNav{ align-items:flex-start; flex-direction:column; }
+  .navRight{ width:100%; justify-content:space-between; }
+}
+`;
+
 const THEME_CSS = "";
 
 // ===================== AUTH MODE =====================
@@ -659,6 +730,15 @@ useEffect(() => {
   const st = document.createElement("style");
   st.id = "login-modern-css";
   st.textContent = LOGIN_CSS;
+  document.head.appendChild(st);
+}, []);
+
+// Top nav styles (injected once)
+useEffect(() => {
+  if(document.getElementById("nav-modern-css")) return;
+  const st = document.createElement("style");
+  st.id = "nav-modern-css";
+  st.textContent = NAV_CSS;
   document.head.appendChild(st);
 }, []);
 
@@ -1743,7 +1823,42 @@ for(const emp of (next.employees || [])){
   }
 
   return (
-    <div>
+    <div className="appShell">
+      <div className="topNav">
+        <div className="brandRow">
+          <div className="brandDot" />
+          <div>
+            <div className="brandTitle">Aylık Takip Formu</div>
+            <div className="brandSub">Scaffolding Control Services</div>
+          </div>
+        </div>
+
+        <div className="navTabs">
+          <button className={"navBtn " + (tab === "dashboard" ? "active" : "")} type="button" onClick={() => setTab("dashboard")}>Dashboard</button>
+          <button className={"navBtn " + (tab === "entry" ? "active" : "")} type="button" onClick={() => setTab("entry")}>Veri Girişi</button>
+          <button className={"navBtn " + (tab === "docs" ? "active" : "")} type="button" onClick={() => setTab("docs")}>Dokümanlar</button>
+          <button className={"navBtn " + (tab === "actions" ? "active" : "")} type="button" onClick={() => setTab("actions")}>Aksiyonlar</button>
+          <button className={"navBtn " + (tab === "announcements" ? "active" : "")} type="button" onClick={() => setTab("announcements")}>Duyurular</button>
+          <button className={"navBtn " + (tab === "contact" ? "active" : "")} type="button" onClick={() => setTab("contact")}>İletişim</button>
+          {isAdmin && (
+            <>
+              <button className={"navBtn " + (tab === "approvals" ? "active" : "")} type="button" onClick={() => setTab("approvals")}>Onaylar</button>
+              <button className={"navBtn " + (tab === "employees" ? "active" : "")} type="button" onClick={() => setTab("employees")}>Personel</button>
+              <button className={"navBtn " + (tab === "admin" ? "active" : "")} type="button" onClick={() => setTab("admin")}>Admin</button>
+            </>
+          )}
+        </div>
+
+        <div className="navRight">
+          <div className="userPill" title={auth?.username || ""}>
+            <span>{auth?.username || "Kullanıcı"}</span>
+            <span className="small" style={{opacity:.7}}>{isAdmin ? "Admin" : (auth?.projectName || "Proje")}</span>
+          </div>
+          <button className="logoutBtn" type="button" onClick={() => { setAuth(null); setLu(""); setLp(""); setTab("dashboard"); setNotifOpen(false); }}>Çıkış</button>
+        </div>
+      </div>
+
+      <div className="mainArea">
       <div className={`grid ${tab === "dashboard" ? "gridSingle" : ""}`}>
         {/* LEFT PANEL */}
         {tab !== "dashboard" && (
@@ -2193,6 +2308,7 @@ for(const emp of (next.employees || [])){
       </div>
 
       <div className="footer">© {new Date().getFullYear()} Faruk Aksoy • Veri Takip Platformu</div>
+      </div>
     </div>
   );
 
