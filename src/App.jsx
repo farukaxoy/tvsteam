@@ -2501,7 +2501,7 @@ for(const emp of (next.employees || [])){
               employeeDocs={state.employeeDocs}
               updateState={updateState}
             />
-          
+          )}
 
           {tab === "docTrack" && (
             <DocTrackingView
@@ -2513,8 +2513,6 @@ for(const emp of (next.employees || [])){
               updateState={updateState}
             />
           )}
-
-)}
 
           {tab === "actions" && (
             <ActionsView
