@@ -1097,10 +1097,10 @@ for(const emp of (next.employees || [])){
       return;
     }
 
-    // 1) Admin panelinden eklenen kullanıcılar (state.authUsers)
+    // 1 Admin panelinden eklenen kullanıcılar (state.authUsers)
     const panelUsers = Array.isArray(state.authUsers) ? state.authUsers.filter(Boolean) : [];
 
-    // 2) Kod içindeki sabit hesaplar (CREDENTIALS) — panel kullanıcıları yoksa / yedek olarak
+    // 2 Kod içindeki sabit hesaplar (CREDENTIALS) — panel kullanıcıları yoksa / yedek olarak
     const fallbackUsers = Object.entries(CREDENTIALS || {}).map(([username, info]) => ({
       username,
       password: info?.password || "",
@@ -1341,8 +1341,8 @@ for(const emp of (next.employees || [])){
   /* ===== MONTHLY EDIT / SUBMIT / APPROVE ===== */
   function setMonthlyField(projectId, catKey, itemId, monthOrField, fieldOrValue, maybeValue){
     // Desteklenen çağrılar:
-    // 1) setMonthlyField(projectId, catKey, itemId, fieldKey, value)  -> aktif ay
-    // 2) setMonthlyField(projectId, catKey, itemId, monthKey, fieldKey, value) -> verilen ay
+    // 1 setMonthlyField(projectId, catKey, itemId, fieldKey, value)  -> aktif ay
+    // 2 setMonthlyField(projectId, catKey, itemId, monthKey, fieldKey, value) -> verilen ay
     const cat = (state.categories || []).find(c => c.key === catKey);
     const mk = (maybeValue === undefined) ? monthKey : monthOrField;
     const fieldKey = (maybeValue === undefined) ? monthOrField : fieldOrValue;
@@ -2567,6 +2567,7 @@ for(const emp of (next.employees || [])){
         </div>
       </div>
 
+      </div>
       <div className="footer">© {new Date().getFullYear()} Faruk Aksoy • Veri Takip Platformu</div>
     </div>
   );
@@ -4302,7 +4303,7 @@ function EmployeesView({ isAdmin, auth, employees, projects, updateState }) {
       const cleanRole = (role||"").trim();
       const cleanProject = project;
 
-      // 1) Manuel çalışan kaydı (admin eklediği) -> default onaylı
+      // 1 Manuel çalışan kaydı (admin eklediği) -> default onaylı
       const emp = {
         id: empId,
         name: cleanName,
@@ -4317,7 +4318,7 @@ function EmployeesView({ isAdmin, auth, employees, projects, updateState }) {
         expertItemId: null
       };
 
-      // 2) Veri girişi için: aynı kişiyi ilgili projenin "Uzmanlar (experts)" kategorisine de ekle
+      // 2 Veri girişi için: aynı kişiyi ilgili projenin "Uzmanlar (experts)" kategorisine de ekle
       // Böylece kullanıcılar/veri girişi ekranı kişiyi görür ve aylık veri girilebilir.
       const prj = (d.projects || []).find(p => p.name === cleanProject);
       if(prj){
