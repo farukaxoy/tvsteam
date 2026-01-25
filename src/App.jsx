@@ -9,16 +9,31 @@ import "./style.css";
 */
 
 // 🔧 PATCH: eski referanslar crash etmesin diye boş tanımlar
+
+// --- style injection helper (safe for SSR) ---
+function injectStyle(cssText, id){
+  if(typeof document === "undefined") return;
+  if(!cssText || !String(cssText).trim()) return;
+  const styleId = id || ("style_" + Math.random().toString(36).slice(2));
+  let tag = document.getElementById(styleId);
+  if(!tag){
+    tag = document.createElement("style");
+    tag.id = styleId;
+    document.head.appendChild(tag);
+  }
+  if(tag.textContent !== cssText) tag.textContent = cssText;
+}
+
 const LOGIN_CSS = `
 :root{
-  --lp-bg1:#0b1020;
-  --lp-bg2:#0f1a3a;
-  --lp-accent:#4f8cff;
-  --lp-accent2:#7c5cff;
-  --lp-card:rgba(255,255,255,.08);
-  --lp-border:rgba(255,255,255,.16);
-  --lp-text:rgba(255,255,255,.92);
-  --lp-muted:rgba(255,255,255,.70);
+  --lp-bg1:#f6f8fc;
+  --lp-bg2:#ffffff;
+  --lp-accent:#2f6fed;
+  --lp-accent2:#5b8cff;
+  --lp-card:rgba(255,255,255,.92);
+  --lp-border:rgba(15,23,42,.10);
+  --lp-text:rgba(15,23,42,.92);
+  --lp-muted:rgba(15,23,42,.60);
 }
 
 /* Full page */
@@ -27,11 +42,7 @@ const LOGIN_CSS = `
   display:flex;
   flex-direction:column;
   justify-content:center;
-  background:
-    radial-gradient(1200px 800px at 10% 10%, rgba(79,140,255,.35), transparent 55%),
-    radial-gradient(1000px 700px at 90% 20%, rgba(124,92,255,.28), transparent 60%),
-    radial-gradient(900px 900px at 60% 90%, rgba(18,214,223,.18), transparent 55%),
-    linear-gradient(180deg, var(--lp-bg1), var(--lp-bg2));
+  background: radial-gradient(1000px 600px at 20% 10%, rgba(47,111,237,.12), transparent 55%), radial-gradient(900px 500px at 80% 20%, rgba(91,140,255,.10), transparent 55%), linear-gradient(180deg, var(--lp-bg1), var(--lp-bg2));
   color:var(--lp-text);
   padding:28px 16px;
 }
@@ -56,7 +67,7 @@ const LOGIN_CSS = `
   overflow:hidden;
   border:1px solid var(--lp-border);
   background: linear-gradient(135deg, rgba(255,255,255,.10), rgba(255,255,255,.04));
-  box-shadow: 0 18px 70px rgba(0,0,0,.35);
+  box-shadow: 0 20px 60px rgba(15,23,42,.10);
 }
 
 .loginLeft::before{
@@ -660,6 +671,11 @@ function Toasts({ items, onClose }){
 }
 
 function AppInner(){
+// ensure login styles override style.css
+useEffect(() => {
+  injectStyle(LOGIN_CSS, "vtp_login_css");
+}, []);
+
   const { y: initY, m: initM } = nowYearMonth();
 
   const [auth, setAuth] = useState(null); // {username, role, project?}
@@ -1728,43 +1744,18 @@ for(const emp of (next.employees || [])){
               <div>
                 <div className="loginTitle">Veri Takip Platformu</div>
                 <div className="loginSub">
-                  Kurumsal raporlama, onay akışları ve proje bazlı veri yönetimi için güvenli giriş yapın.
+                  Güvenli ve hızlı giriş.
                 </div>
               </div>
             </div>
 
             <div className="loginBullets">
-              <div className="loginBullet">
-                <div style={{fontSize:18, lineHeight:1}}>🧭</div>
-                <div>
-                  <b>Proje bazlı kontrol</b>
-                  <span>Kullanıcılar yalnızca yetkili olduğu projeleri görür.</span>
-                </div>
-              </div>
-              <div className="loginBullet">
-                <div style={{fontSize:18, lineHeight:1}}>✅</div>
-                <div>
-                  <b>Onay mekanizması</b>
-                  <span>Veriler, admin onayı olmadan raporlara yansımaz.</span>
-                </div>
-              </div>
-              <div className="loginBullet">
-                <div style={{fontSize:18, lineHeight:1}}>📊</div>
-                <div>
-                  <b>Dashboard + KPI</b>
-                  <span>Ay/yıl filtreleriyle hızlı görüntüleme ve çıktı.</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="loginBadgeRow">
-              <div className="loginPill">🔒 Güvenli oturum</div>
-              <div className="loginPill">⚡ Hızlı kullanım</div>
-              <div className="loginPill">🏢 Kurumsal görünüm</div>
-            </div>
-          </div>
-
-          <div className="loginRight">
+          <div className="loginBullet"><span className="dot" /> Proje bazlı erişim</div>
+          <div className="loginBullet"><span className="dot" /> Hızlı raporlama</div>
+          <div className="loginBullet"><span className="dot" /> Güvenli oturum</div>
+        </div>
+      </div>
+      <div className="loginRight">
             <div className="loginCard">
               <div className="loginCardHead">
                 <div className="loginCardTitle">Giriş</div>
@@ -1819,16 +1810,16 @@ for(const emp of (next.employees || [])){
                 <button className="loginBtn" onClick={doLogin}>Giriş Yap</button>
 
                 <div className="loginFooter">
-                  Sorun mu yaşıyorsun? Admin ile iletişime geç.
+                  Giriş sorunu varsa admin ile iletişime geç.
                 </div>
               </div>
             </div>
           </div>
-        </div>
+      
 
         <div className="footer">© {new Date().getFullYear()} Faruk Aksoy • Veri Takip Platformu</div>
       </div>
-  
+      </div>
     );
   }
 
