@@ -4791,6 +4791,8 @@ function DocTrackingView({ isAdmin, auth, projects, employees, docRegisterTypes,
     return arr.filter(e => e.project === projectFilter);
   }, [visibleEmployees, projectFilter]);
 
+  const filteredEmployees = employeesInProject;
+
   const [empId, setEmpId] = useState(() => (filteredEmployees[0]?.id || ""));
   useEffect(() => {
     if(!filteredEmployees.some(e => e.id === empId)){
