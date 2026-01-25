@@ -4329,8 +4329,8 @@ function DocsView({
   }, [isAdmin, auth, projects]);
 
   const projectEmployees = useMemo(() => {
-    const list = (employees || []).filter(e => (projectName ? e.project === projectName : true));
-    return list.filter(e => e.active !== false);
+    // Doküman takibi: pasif personel de listelensin (etiketle gösterilir)
+    return (employees || []).filter(e => (projectName ? e.project === projectName : true));
   }, [employees, projectName]);
 
   useEffect(() => {
@@ -4404,7 +4404,9 @@ function DocsView({
 
           <select className="input" value={employeeId} onChange={e=>setEmployeeId(e.target.value)} disabled={projectEmployees.length===0}>
             {projectEmployees.map(e => (
-              <option key={e.id} value={e.id}>{e.name} {e.role ? `• ${e.role}` : ""}</option>
+              <option key={e.id} value={e.id}>
+                {e.name} {e.role ? `• ${e.role}` : ""}{e.active === false ? " (Pasif)" : ""}
+              </option>
             ))}
           </select>
         </div>
@@ -4415,6 +4417,7 @@ function DocsView({
           <div className="cardTitleRow">
             <h3>{selectedEmp.name}</h3>
             <Badge>{selectedEmp.project}</Badge>
+            {selectedEmp.active === false && <Badge kind="warn">Pasif</Badge>}
           </div>
 
           <hr className="sep" />
