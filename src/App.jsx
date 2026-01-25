@@ -1753,7 +1753,7 @@ for(const emp of (next.employees || [])){
   
 
   /* ===== ADMIN: EVRAK TAKİP TÜRLERİ (Geçerlilik) ===== */
-  function adminAddDocRegisterType(nameArg, validityDaysArg, warnDaysArg){
+  const adminAddDocRegisterType = (nameArg, validityDaysArg, warnDaysArg) => {
     if(!isAdmin) return;
     const name = String(nameArg || "").trim();
     const validityDays = Number(validityDaysArg || 0);
@@ -3622,8 +3622,9 @@ function ExpertsEntryCompactView({ isAdmin, monthKey, monthDays, project, catego
   );
 }
 
-function AdminView({
-  isAdmin,
+function AdminView(props){
+  const {
+isAdmin,
   monthKey,
   categories,
   projects,
@@ -3645,7 +3646,9 @@ function AdminView({
   adminAddField,
   adminDeleteField,
   adminDeleteCategory
-}){
+
+  } = props;
+
   const safeProjects = Array.isArray(projects) ? projects : [];
   const safeCategories = Array.isArray(categories) ? categories : [];
 
@@ -4785,13 +4788,16 @@ function DocTrackingView({ isAdmin, auth, projects, employees, docRegisterTypes,
     if(allProjectNames[0]) setProjectFilter(allProjectNames[0]);
   }, [isAdmin, auth?.project, allProjectNames]);
 
-  const employeesInProject = useMemo(() => {
-    const arr = Array.isArray(visibleEmployees) ? visibleEmployees : [];
-    if(!projectFilter) return arr;
-    return arr.filter(e => e.project === projectFilter);
-  }, [visibleEmployees, projectFilter]);
-
+  const normId = (v) => (v === null || v === undefined ? "" : String(v));
+  const getEmpProjectId = (emp) =>
+    normId(emp.projectId ?? emp.project_id ?? emp.project ?? emp.projectKey ?? emp.projectName ?? emp.project_code ?? "");
+  const curProjectId = normId(selectedProjectId ?? activeProjectId ?? (auth?.projectId ?? auth?.project_id ?? auth?.project));
+  const employeesInProject =
+    curProjectId
+      ? (employees || []).filter((e) => getEmpProjectId(e) === curProjectId)
+      : (employees || []);
   const filteredEmployees = employeesInProject;
+
 
   const [empId, setEmpId] = useState(() => (filteredEmployees[0]?.id || ""));
   useEffect(() => {
