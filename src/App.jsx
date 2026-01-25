@@ -26,128 +26,154 @@ function injectStyle(cssText, id){
 
 const LOGIN_CSS = `
 :root{
-  --lp-bg1:#f6f8fc;
-  --lp-bg2:#ffffff;
-  --lp-accent:#2f6fed;
-  --lp-accent2:#5b8cff;
-  --lp-card:#ffffff;
-  --lp-border:rgba(15,23,42,.10);
+  --lp-bgA:#f4f7ff;
+  --lp-bgB:#ffffff;
+  --lp-green:rgba(16,185,129,.35);
+  --lp-blue:rgba(59,130,246,.30);
   --lp-text:rgba(15,23,42,.92);
   --lp-muted:rgba(15,23,42,.60);
+  --lp-border:rgba(15,23,42,.10);
 }
 
-/* Page */
-.loginPage{
+/* Full page */
+.loginHero{
   min-height:100vh;
   display:flex;
   align-items:center;
   justify-content:center;
-  padding:24px 14px;
+  padding:32px 16px;
   background:
-    radial-gradient(900px 500px at 15% 10%, rgba(47,111,237,.12), transparent 55%),
-    radial-gradient(900px 500px at 85% 20%, rgba(91,140,255,.10), transparent 55%),
-    linear-gradient(180deg, var(--lp-bg1), var(--lp-bg2));
+    radial-gradient(900px 520px at 8% 90%, var(--lp-green), transparent 62%),
+    radial-gradient(900px 520px at 92% 10%, var(--lp-blue), transparent 60%),
+    linear-gradient(180deg, var(--lp-bgA), var(--lp-bgB));
   color:var(--lp-text);
 }
 
-/* Simple card (classic like first version) */
-.loginCardSimple{
-  width:min(460px, 100%);
-  background:rgba(255,255,255,.94);
-  border:1px solid var(--lp-border);
-  border-radius:18px;
-  box-shadow: 0 20px 60px rgba(15,23,42,.10);
-  padding:22px 20px;
-}
-
-.loginBrandRow{
-  display:flex;
+.loginShell{
+  width:min(1100px, 100%);
+  display:grid;
+  grid-template-columns: 1.05fr 0.95fr;
+  gap:28px;
   align-items:center;
-  gap:12px;
-  margin-bottom:14px;
 }
 
-.loginLogo{
-  width:44px;
-  height:44px;
-  border-radius:14px;
-  display:flex;
-  align-items:center;
-  justify-content:center;
+@media (max-width: 920px){
+  .loginShell{ grid-template-columns: 1fr; }
+  .loginArt{ display:none; }
+}
+
+.loginArt{
+  position:relative;
+  height:420px;
+  border-radius:26px;
+  overflow:hidden;
+  background:rgba(255,255,255,.35);
+  border:1px solid rgba(255,255,255,.35);
+  box-shadow: 0 20px 70px rgba(15,23,42,.10);
+}
+
+.loginArtBlob{
+  position:absolute;
+  inset:-80px;
+  background:
+    radial-gradient(240px 180px at 30% 30%, rgba(59,130,246,.35), transparent 60%),
+    radial-gradient(260px 200px at 70% 70%, rgba(16,185,129,.28), transparent 60%),
+    radial-gradient(220px 180px at 80% 20%, rgba(99,102,241,.18), transparent 58%);
+  filter: blur(10px);
+}
+
+.loginArtSvg{
+  position:absolute;
+  inset:0;
+  width:100%;
+  height:100%;
+  opacity:.95;
+}
+
+.loginCard{
+  background:rgba(255,255,255,.55);
+  border:1px solid rgba(255,255,255,.55);
+  border-radius:26px;
+  backdrop-filter: blur(12px);
+  box-shadow: 0 22px 70px rgba(15,23,42,.12);
+  padding:34px 34px 26px;
+}
+
+.loginHead{ margin-bottom:26px; }
+.loginKicker{
+  font-size:14px;
+  letter-spacing:.2px;
+  color:var(--lp-muted);
+  margin-bottom:8px;
+}
+.loginH1{
+  font-size:44px;
+  line-height:1.05;
+  margin:0;
   font-weight:800;
-  letter-spacing:.5px;
-  color:#fff;
-  background: linear-gradient(135deg, var(--lp-accent), var(--lp-accent2));
 }
 
-.loginTitle{
-  font-size:16px;
-  font-weight:800;
-  line-height:1.2;
+@media (max-width: 520px){
+  .loginCard{ padding:26px 22px 20px; }
+  .loginH1{ font-size:34px; }
 }
 
-.loginForm{
-  display:flex;
-  flex-direction:column;
-  gap:12px;
-}
+.loginBody{ margin-top:6px; }
 
-.loginField label{
+.loginLabel{
   display:block;
-  font-size:12px;
-  color:var(--lp-muted);
-  margin-bottom:6px;
+  font-size:14px;
+  font-weight:700;
+  color:rgba(15,23,42,.78);
+  margin:12px 0 10px;
 }
 
-.loginInput{
+.loginInputLine{
   width:100%;
-  padding:11px 12px;
-  border-radius:12px;
-  border:1px solid var(--lp-border);
+  border:none;
+  border-bottom:2px solid rgba(15,23,42,.28);
+  background:transparent;
+  padding:12px 0;
   outline:none;
-  background:#fff;
+  font-size:16px;
+  color:var(--lp-text);
 }
+.loginInputLine::placeholder{ color:rgba(15,23,42,.35); }
+.loginInputLine:focus{ border-bottom-color: rgba(15,23,42,.55); }
 
-.loginInput:focus{
-  border-color: rgba(47,111,237,.45);
-  box-shadow: 0 0 0 4px rgba(47,111,237,.12);
-}
-
-.loginPwRow{
+.loginPassRow{
+  position:relative;
   display:flex;
-  gap:8px;
   align-items:center;
 }
-
-.loginPwToggle{
-  border:1px solid var(--lp-border);
-  background:#fff;
-  border-radius:12px;
-  padding:10px 10px;
+.loginEye{
+  position:absolute;
+  right:0;
+  top:50%;
+  transform:translateY(-50%);
+  border:none;
+  background:transparent;
   cursor:pointer;
+  font-size:18px;
+  padding:6px 8px;
+  opacity:.8;
 }
+.loginEye:hover{ opacity:1; }
 
-.loginBtn{
-  margin-top:6px;
+.loginBtnWide{
+  margin-top:28px;
   width:100%;
-  padding:12px 12px;
-  border:0;
+  height:48px;
+  border:none;
   border-radius:12px;
   cursor:pointer;
   font-weight:800;
-  color:#fff;
-  background: linear-gradient(135deg, var(--lp-accent), var(--lp-accent2));
-  box-shadow: 0 12px 28px rgba(47,111,237,.20);
+  font-size:18px;
+  background:rgba(255,255,255,.90);
+  box-shadow: 0 10px 24px rgba(15,23,42,.12);
 }
-
-.loginBtn:hover{ filter:brightness(0.98); }
-.loginBtn:active{ transform: translateY(1px); }
-
-.loginHint{
-  margin-top:10px;
-  font-size:12px;
-  color:var(--lp-muted);
-}
+.loginBtnWide:hover{ transform: translateY(-1px); }
+.loginBtnWide:active{ transform: translateY(0px); }
 `;
 
 const THEME_CSS = "";
@@ -1647,61 +1673,73 @@ for(const emp of (next.employees || [])){
 
   if(!auth){
     return (
-      <div className="loginPage">
-        <div className="loginCardSimple">
-          <div className="loginBrandRow">
-            <div className="loginLogo">VTP</div>
-            <div className="loginTitle">Veri Takip Platformu</div>
+      <div className="loginHero">
+        <div className="loginShell">
+          <div className="loginArt" aria-hidden="true">
+            <div className="loginArtBlob" />
+            <svg className="loginArtSvg" viewBox="0 0 640 520" role="img" aria-label="">
+              <defs>
+                <linearGradient id="g1" x1="0" y1="0" x2="1" y2="1">
+                  <stop offset="0" stopColor="rgba(59,130,246,.25)" />
+                  <stop offset="1" stopColor="rgba(16,185,129,.18)" />
+                </linearGradient>
+              </defs>
+              <rect x="40" y="60" width="560" height="380" rx="42" fill="url(#g1)" />
+              <rect x="120" y="120" width="250" height="200" rx="20" fill="rgba(255,255,255,.75)" />
+              <rect x="390" y="140" width="150" height="120" rx="18" fill="rgba(255,255,255,.6)" />
+              <circle cx="470" cy="340" r="42" fill="rgba(255,255,255,.65)" />
+              <rect x="210" y="340" width="240" height="18" rx="9" fill="rgba(255,255,255,.55)" />
+              <rect x="210" y="370" width="200" height="14" rx="7" fill="rgba(255,255,255,.45)" />
+            </svg>
           </div>
 
-          <div className="loginForm">
-            <div className="loginField">
-              <label>Kullanıcı Adı</label>
-              <input
-                className="loginInput"
-                value={lu}
-                onChange={(e) => setLu(e.target.value)}
-                placeholder="örn: admin / socar / tupras_izmir"
-                autoComplete="username"
-              />
+          <div className="loginCard">
+            <div className="loginHead">
+              <div className="loginKicker">Scaffolding Control Services</div>
+              <div className="loginH1">Aylık Takip Formu</div>
             </div>
 
-            <div className="loginField">
-              <label>Şifre</label>
-              <div className="loginPwRow">
+            <div className="loginBody">
+              <label className="loginLabel">E‑Mail</label>
+              <input
+                className="loginInputLine"
+                value={lu}
+                onChange={(e) => setLu(e.target.value)}
+                placeholder="kullanici@firma.com"
+                autoComplete="username"
+              />
+
+              <div style={{ height: 12 }} />
+
+              <label className="loginLabel">Password</label>
+              <div className="loginPassRow">
                 <input
-                  className="loginInput"
+                  className="loginInputLine"
                   type={showPw ? "text" : "password"}
                   value={lp}
                   onChange={(e) => setLp(e.target.value)}
-                  placeholder="Şifrenizi girin"
+                  placeholder="••••••••"
                   autoComplete="current-password"
-                  onKeyDown={(e) => {
-                    if(e.key === "Enter") doLogin();
-                  }}
+                  onKeyDown={(e)=>{ if(e.key === "Enter") doLogin(); }}
                 />
                 <button
+                  className="loginEye"
                   type="button"
-                  className="loginPwToggle"
-                  onClick={() => setShowPw((v) => !v)}
-                  title={showPw ? "Şifreyi gizle" : "Şifreyi göster"}
+                  onClick={() => setShowPw((s) => !s)}
                   aria-label={showPw ? "Şifreyi gizle" : "Şifreyi göster"}
                 >
                   {showPw ? "🙈" : "👁️"}
                 </button>
               </div>
+
+              <button className="loginBtnWide" type="button" onClick={doLogin}>
+                Giriş
+              </button>
             </div>
-
-            <button className="loginBtn" onClick={doLogin}>Giriş Yap</button>
-
-            <div className="loginHint">Admin ve proje hesapları giriş yapabilir.</div>
           </div>
         </div>
       </div>
     );
-  }
-
-
   }
 
   return (
@@ -2158,6 +2196,7 @@ for(const emp of (next.employees || [])){
     </div>
   );
 
+}
 
 /* ===================== VIEWS ===================== */
 
