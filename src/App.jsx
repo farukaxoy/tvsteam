@@ -172,6 +172,17 @@ const LOGIN_CSS = `
   background:rgba(255,255,255,.90);
   box-shadow: 0 10px 24px rgba(15,23,42,.12);
 }
+
+.loginError{
+  margin-top:12px;
+  padding:10px 12px;
+  border-radius:12px;
+  border:1px solid rgba(185,28,28,.25);
+  background:rgba(254,226,226,.65);
+  color:rgba(127,29,29,.95);
+  font-weight:800;
+  font-size:13px;
+}
 .loginBtnWide:hover{ transform: translateY(-1px); }
 .loginBtnWide:active{ transform: translateY(0px); }
 `;
@@ -301,6 +312,8 @@ const PROJECT_NAMES = [
 const CREDENTIALS = {
   admin: { password: "admin123", role: "admin" },
 
+
+  farukaksoy: { password: "Faruk*123", role: "admin" },
   socar: { password: "socar123", role: "user", project: "SOCAR" },
   tupras_izmir: { password: "izmir123", role: "user", project: "Tüpraş İzmir" },
   tupras_izmit: { password: "izmit123", role: "user", project: "Tüpraş İzmit" },
@@ -687,6 +700,7 @@ useEffect(() => {
   const [lp, setLp] = useState("");
     const [showPw, setShowPw] = useState(false);
 
+  const [loginError, setLoginError] = useState("");
   const [theme, setTheme] = useState(() => localStorage.getItem("APP_THEME") || "light");
   const [toasts, setToasts] = useState([]);
 
@@ -904,11 +918,13 @@ for(const emp of (next.employees || [])){
 
   /* ===== AUTH ===== */
     async function doLogin(){
+    setLoginError("");
     const uRaw = (lu || "").trim();
     const u = uRaw.toLowerCase();
     const p = (lp || "").trim();
 
     if(!u || !p){
+      setLoginError("Kullanıcı adı ve şifre zorunlu.");
       pushToast("Kullanıcı adı ve şifre zorunlu.", "warn");
       return;
     }
@@ -938,6 +954,7 @@ for(const emp of (next.employees || [])){
     const rec = byUsername.get(u);
 
     if(!rec || String(rec.password || "") !== p){
+      setLoginError("Kullanıcı adı veya şifre hatalı.");
       pushToast("Kullanıcı adı veya şifre hatalı.", "danger");
       return;
     }
@@ -946,6 +963,8 @@ for(const emp of (next.employees || [])){
     const role = rec.role || "user";
     const projectName = (role === "admin") ? "" : (rec.project || "");
     const pr = projectName ? (state.projects || []).find(pp => pp.name === projectName) : null;
+
+    setLoginError("");
 
     setAuth({
       username: rec.username || uRaw,
@@ -1784,7 +1803,7 @@ for(const emp of (next.employees || [])){
               <input
                 className="loginInputLine"
                 value={lu}
-                onChange={(e) => setLu(e.target.value)}
+                onChange={(e) => { setLu(e.target.value); if(loginError) setLoginError(""); }}
                 placeholder="kullanici@firma.com"
                 autoComplete="username"
               />
@@ -1797,7 +1816,7 @@ for(const emp of (next.employees || [])){
                   className="loginInputLine"
                   type={showPw ? "text" : "password"}
                   value={lp}
-                  onChange={(e) => setLp(e.target.value)}
+                  onChange={(e) => { setLp(e.target.value); if(loginError) setLoginError(""); }}
                   placeholder="••••••••"
                   autoComplete="current-password"
                   onKeyDown={(e)=>{ if(e.key === "Enter") doLogin(); }}
@@ -1815,6 +1834,9 @@ for(const emp of (next.employees || [])){
               <button className="loginBtnWide" type="button" onClick={doLogin}>
                 Giriş
               </button>
+              {loginError ? (
+                <div className="loginError" role="alert">{loginError}</div>
+              ) : null}
             </div>
           </div>
         </div>
@@ -3083,12 +3105,17 @@ function EntryView({
             project={project}
             category={category}
             items={items}
+            employees={employees}
             setMonthlyField={setMonthlyField}
             toggleMeal={toggleMeal}
             submitMonth={submitMonth}
           />
         ) : (
           items.map(it => {
+          const empId = it?.meta?.employeeId;
+          const emp = empId ? (employees || []).find(e => e.id === empId) : null;
+          const inactive = !!emp && emp.active === false;
+
           const slot = it.months?.[monthKey];
           const submitted = slot?.submitted === true;
           const approved = slot?.approved === true;
@@ -3098,13 +3125,18 @@ function EntryView({
           return (
             <div className="card" key={it.id}>
               <div className="cardTitleRow">
-                <h3>{it.name}</h3>
+                <h3 style={{display:"flex", alignItems:"center", gap:10}}>{it.name}{inactive ? <Badge kind="danger">Pasif</Badge> : null}</h3>
                 <div style={{display:"flex", gap:8, flexWrap:"wrap", justifyContent:"flex-end"}}>
                   {approved && <Badge kind="ok">Onaylandı</Badge>}
                   {!approved && submitted && <Badge kind="warn">Onay Bekliyor</Badge>}
                   {!approved && !submitted && <Badge>Draft</Badge>}
                 </div>
               </div>
+              {inactive ? (
+                <div className="small" style={{marginTop:8, fontWeight:800, color:"rgba(127,29,29,.95)"}}>
+                  Bu personel pasife alındığı için bu kayda veri girişi yapılamaz.
+                </div>
+              ) : null}
 
               <hr className="sep" />
 
@@ -3128,7 +3160,7 @@ function EntryView({
                         <select
                           className="input"
                           value={draft[f.key] ?? ""}
-                          disabled={!isAdmin && approved}
+                          disabled={inactive || (!isAdmin && approved)}
                           onChange={(ev)=>setMonthlyField(project.id, category.key, it.id, f.key, ev.target.value)}
                         >
                           {selectOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
@@ -3139,7 +3171,7 @@ function EntryView({
                         className="input"
                         type={f.type === "number" ? "number" : (f.type === "date" ? "date" : "text")}
                         value={draft[f.key] ?? (f.type==="number" ? 0 : "")}
-                        disabled={!isAdmin && approved}
+                        disabled={inactive || (!isAdmin && approved)}
                         onChange={(ev)=>setMonthlyField(project.id, category.key, it.id, f.key, ev.target.value)}
                       />
                     )}
@@ -3169,7 +3201,7 @@ function EntryView({
                           <input
                             type="checkbox"
                             checked={checked}
-                            disabled={!isAdmin && approved}
+                            disabled={inactive || (!isAdmin && approved)}
                             onChange={()=>toggleMeal(project.id, it.id, day)}
                           />
                           <span style={{fontSize:12}}>{day}</span>
@@ -3185,7 +3217,7 @@ function EntryView({
                   <button
                     className="btn primary"
                     onClick={()=>submitMonth(project.id, category.key, it.id)}
-                    disabled={approved}
+                    disabled={approved || inactive}
                     title={approved ? "Onaylı veri kilitli." : "Admin onayına gönder"}
                   >
                     Onaya Gönder
@@ -3203,7 +3235,7 @@ function EntryView({
   );
 }
 
-function ExpertsEntryCompactView({ isAdmin, monthKey, monthDays, project, category, items, setMonthlyField, toggleMeal, submitMonth }){
+function ExpertsEntryCompactView({ isAdmin, monthKey, monthDays, project, category, items, employees, setMonthlyField, toggleMeal, submitMonth }){
   const [search, setSearch] = React.useState("");
 
   const filtered = React.useMemo(() => {
@@ -3211,6 +3243,14 @@ function ExpertsEntryCompactView({ isAdmin, monthKey, monthDays, project, catego
     if(!q) return (items || []);
     return (items || []).filter(it => (it.name || "").toLowerCase().includes(q));
   }, [items, search]);
+
+
+  function isInactiveItem(it){
+    const empId = it?.meta?.employeeId;
+    if(!empId) return false;
+    const e = (employees || []).find(x => x.id === empId);
+    return !!e && e.active === false;
+  }
 
   function getSlot(it){
     const slot = it.months?.[monthKey];
@@ -3248,13 +3288,14 @@ function ExpertsEntryCompactView({ isAdmin, monthKey, monthDays, project, catego
 
         <div className="stackList">
           {filtered.map(it => {
+        const inactive = isInactiveItem(it);
             const { draft, mealCount, submitted, approved } = getSlot(it);
 
             return (
               <div key={it.id} className="miniCard">
                 <div className="miniCardHead">
                   <div>
-                    <div style={{fontWeight:800}}>{it.name}</div>
+                    <div style={{fontWeight:800}}>{it.name}{inactive && <Badge kind="danger">Pasif</Badge>}</div>
                     <div className="small" style={{marginTop:2, opacity:.85}}>
                       {approved ? "Onaylandı" : submitted ? "Onay bekliyor" : "Taslak"}
                     </div>
@@ -3268,7 +3309,7 @@ function ExpertsEntryCompactView({ isAdmin, monthKey, monthDays, project, catego
                     {!approved && (
                       <button
                         className={"btn " + (submitted ? "ghost" : "primary")}
-                        disabled={submitted}
+                        disabled={submitted || inactive}
                         onClick={() => submitMonth(project.id, category.key, it.id)}
                         title={submitted ? "Bu ay için zaten onaya gönderildi." : "Bu ay verilerini onaya gönder"}
                       >
@@ -3285,7 +3326,7 @@ function ExpertsEntryCompactView({ isAdmin, monthKey, monthDays, project, catego
                       className="input"
                       type="number"
                       value={draft.onay ?? 0}
-                      disabled={approved}
+                      disabled={approved || inactive}
                       onChange={e=>setMonthlyField(project.id, category.key, it.id, monthKey, "onay", Number(e.target.value||0))}
                     />
                   </div>
@@ -3296,7 +3337,7 @@ function ExpertsEntryCompactView({ isAdmin, monthKey, monthDays, project, catego
                       className="input"
                       type="number"
                       value={draft.guncelleme ?? 0}
-                      disabled={approved}
+                      disabled={approved || inactive}
                       onChange={e=>setMonthlyField(project.id, category.key, it.id, monthKey, "guncelleme", Number(e.target.value||0))}
                     />
                   </div>
@@ -3307,7 +3348,7 @@ function ExpertsEntryCompactView({ isAdmin, monthKey, monthDays, project, catego
                       className="input"
                       type="number"
                       value={draft.merdiven ?? 0}
-                      disabled={approved}
+                      disabled={approved || inactive}
                       onChange={e=>setMonthlyField(project.id, category.key, it.id, monthKey, "merdiven", Number(e.target.value||0))}
                     />
                   </div>
@@ -3318,7 +3359,7 @@ function ExpertsEntryCompactView({ isAdmin, monthKey, monthDays, project, catego
                       className="input"
                       type="number"
                       value={draft.gozlem ?? 0}
-                      disabled={approved}
+                      disabled={approved || inactive}
                       onChange={e=>setMonthlyField(project.id, category.key, it.id, monthKey, "gozlem", Number(e.target.value||0))}
                     />
                   </div>
@@ -3329,7 +3370,7 @@ function ExpertsEntryCompactView({ isAdmin, monthKey, monthDays, project, catego
                       className="input"
                       type="number"
                       value={draft.takip ?? 0}
-                      disabled={approved}
+                      disabled={approved || inactive}
                       onChange={e=>setMonthlyField(project.id, category.key, it.id, monthKey, "takip", Number(e.target.value||0))}
                     />
                   </div>
@@ -3341,7 +3382,7 @@ function ExpertsEntryCompactView({ isAdmin, monthKey, monthDays, project, catego
                       type="number"
                       min="0"
                       value={mealCount}
-                      disabled={approved}
+                      disabled={approved || inactive}
                       onChange={e=>setMonthlyField(project.id, category.key, it.id, monthKey, "mealCount", Number(e.target.value||0))}
                     />
                   </div>
