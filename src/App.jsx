@@ -4749,7 +4749,11 @@ function DocTrackingView({ isAdmin, auth, projects, employees, docRegisterTypes,
 
   const visibleEmployees = useMemo(() => {
     const arr = Array.isArray(employees) ? employees : [];
-    if(isAdmin) return arr;
+    if(isAdmin){
+      // admin de proje filtresine göre görsün (proje seçmeden "hepsi" yok)
+      const p = (auth?.project || "") || "";
+      return arr; // ham liste; aşağıda projectFilter ile süzülecek
+    }
     // kullanıcı kendi projesinin personelini görür (aktif/pasif dahil)
     return arr.filter(e => e.project === auth.project);
   }, [employees, isAdmin, auth]);
@@ -4787,14 +4791,14 @@ function DocTrackingView({ isAdmin, auth, projects, employees, docRegisterTypes,
     return arr.filter(e => e.project === projectFilter);
   }, [visibleEmployees, projectFilter]);
 
-  const [empId, setEmpId] = useState(() => (visibleEmployees[0]?.id || ""));
+  const [empId, setEmpId] = useState(() => (filteredEmployees[0]?.id || ""));
   useEffect(() => {
-    if(!visibleEmployees.some(e => e.id === empId)){
-      setEmpId(visibleEmployees[0]?.id || "");
+    if(!filteredEmployees.some(e => e.id === empId)){
+      setEmpId(filteredEmployees[0]?.id || "");
     }
-  }, [visibleEmployees, empId]);
+  }, [filteredEmployees, empId]);
 
-  const emp = useMemo(() => visibleEmployees.find(e => e.id === empId) || null, [visibleEmployees, empId]);
+  const emp = useMemo(() => filteredEmployees.find(e => e.id === empId) || null, [filteredEmployees, empId]);
   const empInactive = emp ? (emp.active === false) : false;
   const reg = (employeeDocRegister && empId && employeeDocRegister[empId]) ? employeeDocRegister[empId] : {};
 
@@ -4870,7 +4874,7 @@ function DocTrackingView({ isAdmin, auth, projects, employees, docRegisterTypes,
           <div style={{flex:"1 1 320px"}}>
             <span className="lbl">Personel</span>
             <select className="input" value={empId || ""} onChange={e=>setEmpId(e.target.value)}>
-              {visibleEmployees.map(e => (
+              {filteredEmployees.map(e => (
                 <option key={e.id} value={e.id}>
                   {e.name} — {e.project}{e.active === false ? " (Pasif)" : ""}
                 </option>
