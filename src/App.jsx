@@ -1750,7 +1750,7 @@ for(const emp of (next.employees || [])){
     });
 
     toast({ title:"Doküman silindi", body:doc.name, level:"warn" });
-  
+  }
 
   /* ===== ADMIN: EVRAK TAKİP TÜRLERİ (Geçerlilik) ===== */
   const adminAddDocRegisterType = (nameArg, validityDaysArg, warnDaysArg) => {
@@ -2558,7 +2558,6 @@ for(const emp of (next.employees || [])){
     </div>
   );
 
-}
 
 /* ===================== VIEWS ===================== */
 
@@ -4788,16 +4787,13 @@ function DocTrackingView({ isAdmin, auth, projects, employees, docRegisterTypes,
     if(allProjectNames[0]) setProjectFilter(allProjectNames[0]);
   }, [isAdmin, auth?.project, allProjectNames]);
 
-  const normId = (v) => (v === null || v === undefined ? "" : String(v));
-  const getEmpProjectId = (emp) =>
-    normId(emp.projectId ?? emp.project_id ?? emp.project ?? emp.projectKey ?? emp.projectName ?? emp.project_code ?? "");
-  const curProjectId = normId(selectedProjectId ?? activeProjectId ?? (auth?.projectId ?? auth?.project_id ?? auth?.project));
-  const employeesInProject =
-    curProjectId
-      ? (employees || []).filter((e) => getEmpProjectId(e) === curProjectId)
-      : (employees || []);
-  const filteredEmployees = employeesInProject;
+  // proje bazlı filtre (admin seçer, kullanıcı proje kilitli)
+  const curProjectName = String(projectFilter || (auth?.project || "")).trim();
+  const employeesInProject = curProjectName
+    ? (visibleEmployees || []).filter(e => String(e.project || "").trim() === curProjectName)
+    : (visibleEmployees || []);
 
+  const filteredEmployees = employeesInProject;
 
   const [empId, setEmpId] = useState(() => (filteredEmployees[0]?.id || ""));
   useEffect(() => {
