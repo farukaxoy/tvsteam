@@ -5148,7 +5148,7 @@ function DocTrackingView({ isAdmin, auth, projects, employees, docRegisterTypes,
           <Badge>{today}</Badge>
         </div>
         <div className="small" style={{marginTop:6}}>
-          Evrak türleri admin panelinden tanımlanır. Tarih girince bitiş tarihi otomatik hesaplanır; yaklaşınca uyarı görünür.
+          Tarih girince bitiş tarihi otomatik hesaplanır; yaklaşınca uyarı görünür.
         </div>
 
         <hr className="sep" />
