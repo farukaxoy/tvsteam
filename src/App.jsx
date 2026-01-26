@@ -1995,7 +1995,7 @@ for(const emp of (next.employees || [])){
 
     // Admin haricinde proje zorunlu
     if(!u || !p || (finalRole !== "admin" && !pr)){
-      pushToast("Kullanıcı adı / şifre / proje zorunlu.", "warn");
+      pushToast("E-mail / şifre / proje zorunlu.", "warn");
       return;
     }
 
@@ -2191,12 +2191,12 @@ for(const emp of (next.employees || [])){
             </div>
 
             <div className="loginBody">
-              <label className="loginLabel">Kullanıcı Adı</label>
+              <label className="loginLabel">E-mail</label>
               <input
                 className="loginInputLine"
                 value={lu}
                 onChange={(e) => { setLu(e.target.value); if(loginError) setLoginError(""); }}
-                placeholder="Kullanıcı Adını Yazınız"
+                placeholder="E-mailnı Yazınız"
                 autoComplete="username"
               />
 
@@ -4452,7 +4452,7 @@ function ProjectUserMapping({ authUsers, projects, onUpsert, onDelete }){
 
       <div className="grid2">
         <div>
-          <label className="label">Kullanıcı Adı</label>
+          <label className="label">E-mail</label>
           <input className="input" value={username} onChange={e=>setUsername(e.target.value)} placeholder="socar_ahmet" />
         </div>
         <div>
