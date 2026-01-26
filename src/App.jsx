@@ -2054,12 +2054,12 @@ useEffect(() => {
 
   const myPendingItems = useMemo(() => {
     if(!auth || isAdmin) return [];
-        const p = state.projects.find(pp => canonProj(pp.name) === canonProj(auth.project));
+        const p = entryProject;
     if(!p) return [];
     const cat = activeCategory;
     const arr = p.itemsByCategory?.[cat.key] || [];
     return arr.filter(it => cat.approval?.item && !it.approved && it.requestedBy === auth.username);
-  }, [auth, isAdmin, visibleProjects, activeCategory]);
+  }, [auth, isAdmin, entryProject, activeCategory]);
 
   /* ===================== LOGIN SCREEN ===================== */
 
@@ -2378,7 +2378,7 @@ useEffect(() => {
                     onChange={(e) => setNewItemName(e.target.value)}
                     placeholder={`${activeCategory?.itemLabel || "Kayıt"} adı (ör: Faruk Aksoy / 34 ABC 123)`}
                   />
-                  <button className="btn primary" onClick={() => requestItem(visibleProjects[0]?.id)}>
+                  <button className="btn primary" onClick={() => requestItem(entryProject?.id)}>
                     Gönder
                   </button>
                 </div>
