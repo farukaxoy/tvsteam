@@ -42,6 +42,22 @@ toast.info    = (m)=>toast(m,{type:"info"});
 toast.warn    = (m)=>toast(m,{type:"warn"});
 
 
+
+// --- project key normalizer (SOCAR / TUPRAS_IZMIR vs "Tüpraş İzmir" etc.) ---
+function canonProj(v){
+  return String(v || "")
+    .trim()
+    .toUpperCase()
+    .replaceAll("İ","I").replaceAll("İ","I")
+    .replaceAll("ı","I")
+    .replaceAll("Ğ","G").replaceAll("ğ","G")
+    .replaceAll("Ü","U").replaceAll("ü","U")
+    .replaceAll("Ş","S").replaceAll("ş","S")
+    .replaceAll("Ö","O").replaceAll("ö","O")
+    .replaceAll("Ç","C").replaceAll("ç","C")
+    .replace(/\s+/g, "_");
+}
+
 // --- date helpers (YYYY-MM-DD) ---
 function isoDate(d){
   if(!d) return "";
@@ -1015,7 +1031,7 @@ useEffect(() => {
       return state.projects.find(p => p.id === entryProjectId) || state.projects[0] || null;
     }
     // kullanıcı: kendi projesi
-    return state.projects.find(p => p.name === auth.project) || null;
+    return state.projects.find(p => canonProj(p.name) === canonProj(auth.project)) || null;
   }, [auth, isAdmin, state.projects, entryProjectId]);
 
   /* ===== normalization: kategori eklendiğinde projelere alan aç ===== */
@@ -1266,7 +1282,7 @@ for(const emp of (next.employees || [])){
   const visibleProjects = useMemo(() => {
     if(!auth) return [];
     if(isAdmin) return state.projects;
-    return state.projects.filter(p => p.name === auth.project);
+    return state.projects.filter(p => canonProj(p.name) === canonProj(auth.project));
   }, [state.projects, auth, isAdmin]);
 
   const activeCategory = useMemo(() => {
@@ -2088,7 +2104,7 @@ for(const emp of (next.employees || [])){
 
   const myPendingItems = useMemo(() => {
     if(!auth || isAdmin) return [];
-    const p = state.projects.find(pp => pp.name === auth.project);
+    const p = state.projects.find(pp => pcanonProj(p.name) === canonProj(auth.project));
     if(!p) return [];
     const cat = activeCategory;
     const arr = p.itemsByCategory?.[cat.key] || [];
@@ -4390,7 +4406,7 @@ function EmployeesView({ isAdmin, auth, employees, projects, updateState }) {
     // kullanıcı sadece kendi projesi + aktif + onaylı
     if(!isAdmin){
       arr = arr.filter(e =>
-        e.project === auth.project &&
+        canonProj(e.project) === canonProj(auth.project) &&
         e.active !== false &&
         e.approved === true
       );
@@ -4901,7 +4917,7 @@ function DocTrackingView({ isAdmin, auth, projects, employees, docRegisterTypes,
       return arr; // ham liste; aşağıda projectFilter ile süzülecek
     }
     // kullanıcı kendi projesinin personelini görür (aktif/pasif dahil)
-    return arr.filter(e => e.project === auth.project);
+    return arr.filter(e => canonProj(e.project) === canonProj(auth.project));
   }, [employees, isAdmin, auth]);
 
 
