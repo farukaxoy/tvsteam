@@ -834,6 +834,33 @@ useEffect(() => {
   const { y: initY, m: initM } = nowYearMonth();
 
   const [auth, setAuth] = useState(null); // {username, role, project?}
+
+  // Supabase oturumu varsa (sayfa yenilenince) otomatik giriş yap
+  useEffect(() => {
+    if(!supabase) return;
+    (async () => {
+      try{
+        const { data } = await supabase.auth.getSession();
+        const sess = data?.session;
+        const email = sess?.user?.email;
+        if(email){
+          const acct = accountFromEmail(email);
+          setAuth({ ...acct, email });
+          // Buluttan veriyi çek
+          try{
+            const remote = await loadStateFromSupabase();
+            if(remote && typeof remote === "object"){
+              setState(normalizeState(remote));
+            }
+          }catch(e2){
+            console.error(e2);
+          }
+        }
+      }catch(e){
+        console.error(e);
+      }
+    })();
+  }, []);
   const [tab, setTab] = useState("dashboard");
 
   const [activeYear, setActiveYear] = useState(initY);
@@ -936,8 +963,24 @@ useEffect(() => {
 }, [theme]);
 
 useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-  }, [state]);
+    // 1) Local cache (offline için)
+    try{
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    }catch{}
+
+    // 2) Buluta kaydet (debounce)
+    if(!auth || !supabase) return;
+    if(window.__supabaseSaveTimer) clearTimeout(window.__supabaseSaveTimer);
+
+    window.__supabaseSaveTimer = setTimeout(async () => {
+      try{
+        await saveStateToSupabase(state);
+      }catch(e){
+        console.error(e);
+        // sessiz: kullanıcıyı sürekli rahatsız etmeyelim
+      }
+    }, 900);
+  }, [state, auth]);
 
   const isAdmin = auth?.role === "admin";
   const monthKey = `${activeYear}-${activeMonth}`;
@@ -1089,67 +1132,100 @@ for(const emp of (next.employees || [])){
   }
 
   /* ===== AUTH ===== */
-    async function doLogin(){
-    setLoginError("");
-    const uRaw = (lu || "").trim();
-    const u = uRaw.toLowerCase();
-    const p = (lp || "").trim();
+    
+  /* ===== AUTH (SUPABASE) ===== */
+  function accountFromEmail(email){
+    const e = String(email || "").trim().toLowerCase();
+    const key = e.includes("@") ? e.split("@")[0] : e;
+    const info = (CREDENTIALS && CREDENTIALS[key]) ? CREDENTIALS[key] : null;
 
-    if(!u || !p){
-      setLoginError("Kullanıcı adı ve şifre zorunlu.");
-      pushToast("Kullanıcı adı ve şifre zorunlu.", "warn");
-      return;
+    if(info){
+      return {
+        username: key,
+        role: info.role || "user",
+        project: info.project || ""
+      };
     }
-
-    // 1 Admin panelinden eklenen kullanıcılar (state.authUsers)
-    const panelUsers = Array.isArray(state.authUsers) ? state.authUsers.filter(Boolean) : [];
-
-    // 2 Kod içindeki sabit hesaplar (CREDENTIALS) — panel kullanıcıları yoksa / yedek olarak
-    const fallbackUsers = Object.entries(CREDENTIALS || {}).map(([username, info]) => ({
-      username,
-      password: info?.password || "",
-      role: info?.role || "user",
-      project: info?.project || ""
-    }));
-
-    // Panel kullanıcıları varsa öncelik onlarda. Yine de birleşik arama yapalım (panel > fallback).
-    const byUsername = new Map();
-    for(const rec of fallbackUsers){
-      const key = String(rec.username || "").trim().toLowerCase();
-      if(key) byUsername.set(key, rec);
-    }
-    for(const rec of panelUsers){
-      const key = String(rec.username || "").trim().toLowerCase();
-      if(key) byUsername.set(key, rec); // panel kullanıcıları override
-    }
-
-    const rec = byUsername.get(u);
-
-    if(!rec || String(rec.password || "") !== p){
-      setLoginError("Kullanıcı adı veya şifre hatalı.");
-      pushToast("Kullanıcı adı veya şifre hatalı.", "danger");
-      return;
-    }
-
-    // Admin tüm projeleri görür; diğer roller kendi projesiyle giriş yapar.
-    const role = rec.role || "user";
-    const projectName = (role === "admin") ? "" : (rec.project || "");
-    const pr = projectName ? (state.projects || []).find(pp => pp.name === projectName) : null;
-
-    setLoginError("");
-
-    setAuth({
-      username: rec.username || uRaw,
-      role,
-      project: projectName,
-      projectId: pr ? pr.id : null,
-      projectName,
-      userId: null
-    });
-
-    setLp("");
-    pushToast("Giriş başarılı.", "ok");
+    // Varsayılan: admin değilse user gibi davranır
+    return { username: key, role: "user", project: "" };
   }
+
+  async function loadStateFromSupabase(){
+    if(!supabase) return null;
+    // Tek satırda tüm uygulama verisini tutuyoruz (local kurguyu bozmamak için)
+    const project_code = "GLOBAL";
+    const { data, error } = await supabase
+      .from("app_state")
+      .select("data")
+      .eq("project_code", project_code)
+      .maybeSingle();
+
+    if(error) throw error;
+    return data?.data ?? null;
+  }
+
+  async function saveStateToSupabase(nextState){
+    if(!supabase) return;
+    const project_code = "GLOBAL";
+    const payload = {
+      project_code,
+      data: nextState,
+      updated_at: new Date().toISOString()
+    };
+    const { error } = await supabase
+      .from("app_state")
+      .upsert(payload, { onConflict: "project_code" });
+
+    if(error) throw error;
+  }
+
+  async function doLogin(){
+    setLoginError("");
+
+    const email = (lu || "").trim();
+    const password = (lp || "").trim();
+
+    if(!email || !password){
+      setLoginError("E-posta ve şifre zorunlu.");
+      pushToast("E-posta ve şifre zorunlu.", "warn");
+      return;
+    }
+
+    try{
+      // 1) Supabase giriş
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+      if(error) throw error;
+
+      // 2) Uygulama içi rol/proje eşlemesi (email'in @ öncesi ile)
+      const acct = accountFromEmail(data?.user?.email || email);
+      setAuth({ ...acct, email: data?.user?.email || email });
+
+      // 3) Buluttan en güncel veriyi çek (varsa)
+      try{
+        const remote = await loadStateFromSupabase();
+        if(remote && typeof remote === "object"){
+          // Local kurguyu bozmamak için normalize edip kur
+          setState(normalizeState(remote));
+          pushToast("Buluttaki veriler yüklendi.", "ok");
+        }else{
+          // Bulutta boşsa ilk kez kaydet
+          await saveStateToSupabase(state);
+          pushToast("Bulut veri alanı hazırlandı.", "ok");
+        }
+      }catch(e2){
+        console.error(e2);
+        pushToast("Buluttan veri okunamadı. Local veri ile devam.", "warn");
+      }
+
+      setNotifOpen(false);
+      setTab("dashboard");
+    }catch(e){
+      console.error(e);
+      setLoginError(e?.message || "Giriş yapılamadı.");
+      pushToast(e?.message || "Giriş yapılamadı.", "err");
+    }
+  }
+
 
   async function doLogout(){
     try{
