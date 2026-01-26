@@ -2681,7 +2681,7 @@ for(const emp of (next.employees || [])){
                       </div>
 
                       <div className="small" style={{marginTop:10}}>
-                        Kategoriyi seç → ilgili forma veri gir ve onaya gönder.
+                        Kategoriyi seç → sağ tarafta ilgili forma veri gir.
                       </div>
                     </>
                   );
@@ -2963,7 +2963,7 @@ function DashboardView({ monthKey, category, rows, projects, employees, actions,
 <div className="kpiRow">
         <KPI label={`Onaylı ${category?.itemLabel || "Kayıt"}`} value={totals.itemsApproved}/>
         <KPI label="Onaylı Aylık Kayıt" value={totals.monthApproved}/>
-        {Object.keys(totals.sums).map(k=>(
+        {Object.keys(totals.sums).filter(k=>k!=="mealCount").map(k=>(
           <KPI key={k} label={(category.fields.find(f=>f.key===k)?.label)||k} value={totals.sums[k]}/>
         ))}
         {(category?.special?.meals || (category?.fields||[]).some(f=>f.key==="mealCount") || totals.mealsSum>0) ? <KPI label="Yemek" value={totals.mealsSum}/> : null}
@@ -2981,14 +2981,14 @@ function DashboardView({ monthKey, category, rows, projects, employees, actions,
         </div>
 
         <div style={{marginTop:12, display:"grid", gridTemplateColumns:"repeat(5, minmax(180px, 1fr))", gap:8, overflowX:"auto"}}>
-          {(category?.fields || []).filter(f=>f.type==="number").map(f => (
+          {(category?.fields || []).filter(f=>f.type==="number" && f.key!=="mealCount").map(f => (
             <BarChart
               key={f.key}
               title={f.label}
               data={rows.map(r => ({ label: r.name, value: safeNum(r.sums?.[f.key]) }))}
             />
           ))}
-          {category?.special?.meals ? (
+          {(category?.special?.meals || (category?.fields||[]).some(f=>f.key==="mealCount") || totals.mealsSum>0) ? (
             <BarChart
               title="Yemek"
               data={rows.map(r => ({ label: r.name, value: safeNum(r.mealsSum) }))}
@@ -5148,7 +5148,7 @@ function DocTrackingView({ isAdmin, auth, projects, employees, docRegisterTypes,
           <Badge>{today}</Badge>
         </div>
         <div className="small" style={{marginTop:6}}>
-          Tarih girince bitiş tarihi otomatik hesaplanır; yaklaşınca uyarı görünür.
+          Evrak türleri admin panelinden tanımlanır. Tarih girince bitiş tarihi otomatik hesaplanır; yaklaşınca uyarı görünür.
         </div>
 
         <hr className="sep" />
