@@ -864,8 +864,24 @@ useEffect(() => {
         const sess = data?.session;
         const email = sess?.user?.email;
         if(email){
-          const acct = accountFromEmail(email);
-          setAuth({ ...acct, email });
+          // 2) Kullanıcının yetkisini (rol + proje) Supabase'ten al
+          const key = String(email || "").trim().toLowerCase().split("@")[0];
+          let role = "member";
+          let project = "";
+          try{
+            const { data: access } = await supabase
+              .from("user_access")
+              .select("role, project_code")
+              .eq("user_id", sess.user.id)
+              .maybeSingle();
+            if(access){
+              role = access.role || role;
+              project = access.project_code || "";
+            }
+          }catch(eAcc){
+            console.error(eAcc);
+          }
+          setAuth({ username: key, role, project, email });
           // Buluttan veriyi çek
           try{
             const remote = await loadStateFromSupabase("GLOBAL");
@@ -1981,8 +1997,16 @@ for(const emp of (next.employees || [])){
 /* ===== DASHBOARD (APPROVED ONLY) ===== */
   const dashboardProjects = useMemo(() => {
     if(!auth) return [];
-    if(isAdmin) return state.projects || [];
-    const p = (state.projects || []).find(pr => pr.id === auth.projectId);
+    const all = state.projects || [];
+    if(isAdmin) return all;
+
+    // member: tek proje görür (user_access.project_code)
+    const target = canonProj(auth.project || auth.projectId || "");
+    if(!target) return [];
+    const p = all.find(pr => {
+      const prKey = canonProj(pr.code || pr.projectCode || pr.project || pr.name || pr.id);
+      return prKey === target;
+    });
     return p ? [p] : [];
   }, [state.projects, auth, isAdmin]);
   const dashboardRows = useMemo(() => {
