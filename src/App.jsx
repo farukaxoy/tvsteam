@@ -2104,7 +2104,7 @@ for(const emp of (next.employees || [])){
 
   const myPendingItems = useMemo(() => {
     if(!auth || isAdmin) return [];
-    const p = state.projects.find(pp => pcanonProj(p.name) === canonProj(auth.project));
+    const p = state.projects.find(pp => canonProj(p.name) === canonProj(auth.project));
     if(!p) return [];
     const cat = activeCategory;
     const arr = p.itemsByCategory?.[cat.key] || [];
