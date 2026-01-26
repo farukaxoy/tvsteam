@@ -1846,6 +1846,21 @@ for(const emp of (next.employees || [])){
     pushToast("Proje kategorileri güncellendi.", "ok");
   }
 
+  function adminSetProjectHiddenFields(projectId, categoryKey, hiddenFieldKeys){
+    updateState(next => {
+      const p = (next.projects || []).find(x => x.id === projectId);
+      if(!p) return;
+      p.fieldVisibility = p.fieldVisibility && typeof p.fieldVisibility === "object" ? p.fieldVisibility : {};
+      const k = String(categoryKey || "").trim();
+      if(!k) return;
+      p.fieldVisibility[k] = {
+        hiddenFieldKeys: Array.isArray(hiddenFieldKeys) ? hiddenFieldKeys.filter(Boolean) : []
+      };
+    });
+    pushToast("Proje alan görünürlüğü güncellendi.", "ok");
+  }
+
+
 
 
   function adminAddField(){
@@ -2825,6 +2840,7 @@ for(const emp of (next.employees || [])){
                 adminDeleteCategory={adminDeleteCategory}
                 adminAddProject={adminAddProject}
                 adminSetProjectCategories={adminSetProjectCategories}
+          adminSetProjectHiddenFields={adminSetProjectHiddenFields}
               />
 
               <ProjectUserMapping
@@ -3159,7 +3175,11 @@ function DashboardView({ monthKey, category, rows, projects, employees, actions,
                         nums: {},
                         meals: category?.special?.meals ? ((Object.prototype.hasOwnProperty.call(dft, "mealCount") ? safeNum(dft.mealCount) : (Array.isArray(dft.meals) ? dft.meals.length : 0))) : null
                       };
+                      const hiddenDash = Array.isArray(activeProject?.fieldVisibility?.[category?.key]?.hiddenFieldKeys)
+                        ? activeProject.fieldVisibility[category.key].hiddenFieldKeys
+                        : [];
                       for(const f of (category.fields || [])){
+                        if(hiddenDash.includes(f.key)) continue;
                         if(f.type === "number") rec.nums[f.key] = safeNum(dft[f.key]);
                       }
                       out.push(rec);
@@ -4011,7 +4031,8 @@ isAdmin,
   adminDeleteField,
   adminDeleteCategory,
   adminAddProject,
-  adminSetProjectCategories
+  adminSetProjectCategories,
+  adminSetProjectHiddenFields
 
   } = props;
 
@@ -4031,6 +4052,21 @@ isAdmin,
     const keys = Array.isArray(p?.enabledCategoryKeys) ? p.enabledCategoryKeys : safeCategories.map(c=>c.key);
     return keys;
   });
+
+  const [selectedProjectFieldCatKey, setSelectedProjectFieldCatKey] = useState("experts");
+  const selectedProject = safeProjects.find(p => p.id === selectedProjectId);
+  const selectedFieldCategory = safeCategories.find(c => c.key === selectedProjectFieldCatKey) || safeCategories[0];
+  const selectedFieldHiddenKeys = Array.isArray(selectedProject?.fieldVisibility?.[selectedProjectFieldCatKey]?.hiddenFieldKeys)
+    ? selectedProject.fieldVisibility[selectedProjectFieldCatKey].hiddenFieldKeys
+    : [];
+  const [localHiddenKeys, setLocalHiddenKeys] = useState(selectedFieldHiddenKeys);
+
+  useEffect(() => {
+    const hk = Array.isArray(selectedProject?.fieldVisibility?.[selectedProjectFieldCatKey]?.hiddenFieldKeys)
+      ? selectedProject.fieldVisibility[selectedProjectFieldCatKey].hiddenFieldKeys
+      : [];
+    setLocalHiddenKeys(hk);
+  }, [selectedProjectId, selectedProjectFieldCatKey]);
 
   useEffect(() => {
     // kategori listesi değişirse yeni proje seçimlerini güncelle
@@ -4220,6 +4256,55 @@ isAdmin,
                 );
               })}
             </div>
+            <div style={{height:14}} />
+            <div className="small" style={{marginTop:6}}>
+              Proje bazlı <b>alan</b> görünürlüğü: Örn. SOCAR "Takip" görsün, Tüpraş görmesin.
+            </div>
+
+            <div className="row" style={{flexWrap:"wrap", gap:8, marginTop:10, alignItems:"center"}}>
+              <label className="small" style={{minWidth:120}}>Kategori</label>
+              <select
+                className="select"
+                value={selectedProjectFieldCatKey}
+                onChange={(e)=>setSelectedProjectFieldCatKey(e.target.value)}
+              >
+                {safeCategories.map(c => (
+                  <option key={c.key} value={c.key}>{c.name}</option>
+                ))}
+              </select>
+
+              <button
+                className="btn"
+                onClick={() => adminSetProjectHiddenFields(selectedProjectId, selectedProjectFieldCatKey, localHiddenKeys)}
+                disabled={!selectedProjectId}
+              >
+                Alanları Kaydet
+              </button>
+            </div>
+
+            <div className="row" style={{flexWrap:"wrap", gap:10, marginTop:10}}>
+              {(selectedFieldCategory?.fields || []).map(f => {
+                const isHidden = (localHiddenKeys || []).includes(f.key);
+                return (
+                  <label key={f.key} className="pill" style={{display:"inline-flex", alignItems:"center", gap:8}}>
+                    <input
+                      type="checkbox"
+                      checked={!isHidden}
+                      onChange={() => {
+                        setLocalHiddenKeys(prev => {
+                          const set = new Set(prev || []);
+                          if(set.has(f.key)) set.delete(f.key);
+                          else set.add(f.key);
+                          return Array.from(set);
+                        });
+                      }}
+                    />
+                    <span>{f.label}</span>
+                  </label>
+                );
+              })}
+            </div>
+
           </div>
         )}
 
