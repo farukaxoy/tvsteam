@@ -634,6 +634,9 @@ function seedState(){
       return {
         id: uid("prj"),
         name,
+        // Bu proje hangi kategorileri görebilir?
+        // (Admin panelden değiştirilebilir)
+        enabledCategoryKeys: categories.map(c => c.key),
         itemsByCategory
       };
     }),
@@ -1313,15 +1316,32 @@ for(const emp of (next.employees || [])){
     return state.projects.filter(p => canonProj(p.name) === canonProj(auth.project));
   }, [state.projects, auth, isAdmin]);
 
+
+  // Bu proje hangi kategorileri görsün? (admin: admin sekmesinde hepsi, diğer sekmelerde seçili proje)
+  const visibleCategories = useMemo(() => {
+    const all = Array.isArray(state.categories) ? state.categories : [];
+    // Admin "admin" sekmesinde her şeyi görsün (kategori yönetimi vs.)
+    if(isAdmin && tab === "admin") return all;
+
+    const p = entryProject || null;
+    const keys = Array.isArray(p?.enabledCategoryKeys) ? p.enabledCategoryKeys : null;
+    if(keys && keys.length){
+      const keyset = new Set(keys);
+      const filtered = all.filter(c => keyset.has(c.key));
+      return filtered.length ? filtered : all;
+    }
+    return all;
+  }, [state.categories, isAdmin, tab, entryProject]);
+
   const activeCategory = useMemo(() => {
-    return state.categories.find(c => c.key === categoryKey) || state.categories[0];
-  }, [state.categories, categoryKey]);
+    return visibleCategories.find(c => c.key === categoryKey) || visibleCategories[0] || state.categories[0];
+  }, [visibleCategories, state.categories, categoryKey]);
 
   useEffect(() => {
-    if(state.categories.length && !state.categories.some(c => c.key === categoryKey)){
-      setCategoryKey(state.categories[0].key);
+    if(visibleCategories.length && !visibleCategories.some(c => c.key === categoryKey)){
+      setCategoryKey(visibleCategories[0].key);
     }
-  }, [state.categories, categoryKey]);
+  }, [visibleCategories, categoryKey]);
 
   /* ===== NOTIFICATIONS ===== */
   function pushNotification({to, title, body, level="info"}){
@@ -1785,6 +1805,48 @@ for(const emp of (next.employees || [])){
     setCategoryKey(key);
     pushToast("Kategori eklendi.", "danger");
   }
+
+  // ===== ADMIN: PROJE EKLE / KATEGORİ YETKİSİ =====
+  function adminAddProject(projectName, enabledCategoryKeys){
+    const name = String(projectName || "").trim();
+    if(!name){
+      pushToast("Proje adı zorunlu.", "warn");
+      return;
+    }
+    updateState(next => {
+      next.projects = Array.isArray(next.projects) ? next.projects : [];
+      if(next.projects.some(p => canonProj(p.name) === canonProj(name))){
+        pushToast("Bu proje zaten var.", "warn"); return;
+      }
+      const cats = Array.isArray(next.categories) ? next.categories : [];
+      const itemsByCategory = cats.reduce((acc, c) => {
+        acc[c.key] = [];
+        return acc;
+      }, {});
+      next.projects.push({
+        id: uid("prj"),
+        name,
+        enabledCategoryKeys: Array.isArray(enabledCategoryKeys) && enabledCategoryKeys.length ? enabledCategoryKeys : cats.map(c => c.key),
+        itemsByCategory
+      });
+    });
+    pushToast("Proje eklendi.", "ok");
+  }
+
+  function adminSetProjectCategories(projectId, enabledCategoryKeys){
+    updateState(next => {
+      const cats = Array.isArray(next.categories) ? next.categories : [];
+      const keys = Array.isArray(enabledCategoryKeys) ? enabledCategoryKeys.filter(Boolean) : [];
+      const p = (next.projects || []).find(x => x.id === projectId);
+      if(!p){ pushToast("Proje bulunamadı.", "warn"); return; }
+      p.enabledCategoryKeys = keys.length ? keys : cats.map(c => c.key);
+      // Not: itemsByCategory yapısı zaten tüm kategoriler için mevcut kalsın.
+      // Gizli kategori sadece arayüzde görünmez; veri kaybı olmaz.
+    });
+    pushToast("Proje kategorileri güncellendi.", "ok");
+  }
+
+
 
   function adminAddField(){
     const c = activeCategory;
@@ -2448,7 +2510,7 @@ for(const emp of (next.employees || [])){
               value={categoryKey}
               onChange={(e) => setCategoryKey(e.target.value)}
             >
-              {state.categories.map((c) => (
+              {visibleCategories.map((c) => (
                 <option key={c.key} value={c.key}>{c.name}</option>
               ))}
             </select>
@@ -2574,7 +2636,7 @@ for(const emp of (next.employees || [])){
                     onChange={(e) => setCategoryKey(e.target.value)}
                     style={{ minWidth: 130 }}
                   >
-                    {state.categories.map((c) => (
+                    {visibleCategories.map((c) => (
                       <option key={c.key} value={c.key}>{c.name}</option>
                     ))}
                   </select>
@@ -2761,6 +2823,8 @@ for(const emp of (next.employees || [])){
                 adminAddField={adminAddField}
                 adminDeleteField={adminDeleteField}
                 adminDeleteCategory={adminDeleteCategory}
+                adminAddProject={adminAddProject}
+                adminSetProjectCategories={adminSetProjectCategories}
               />
 
               <ProjectUserMapping
@@ -3142,7 +3206,7 @@ function BarChart({ title, data }){
     <div className="card" style={{padding:14}}>
       <div className="cardTitleRow">
         <h4 style={{margin:0}}>{title}</h4>
-        <Badge kind="ok">Sayı</Badge>
+        <Badge kind="ok">Bar</Badge>
       </div>
       <div style={{marginTop:10, display:"flex", flexDirection:"column", gap:8}}>
         {(data || []).map(d => {
@@ -3945,7 +4009,9 @@ isAdmin,
   catFieldUnit, setCatFieldUnit,
   adminAddField,
   adminDeleteField,
-  adminDeleteCategory
+  adminDeleteCategory,
+  adminAddProject,
+  adminSetProjectCategories
 
   } = props;
 
@@ -3954,6 +4020,41 @@ isAdmin,
 
   // Doküman Tanımları ekleme inputu için local state
   const [newDocName, setNewDocName] = useState("");
+
+  // Proje yönetimi local state
+  const [newProjectName, setNewProjectName] = useState("");
+  const [newProjectCatKeys, setNewProjectCatKeys] = useState(() => safeCategories.map(c=>c.key));
+
+  const [selectedProjectId, setSelectedProjectId] = useState(safeProjects?.[0]?.id || "");
+  const [selectedProjectCatKeys, setSelectedProjectCatKeys] = useState(() => {
+    const p = safeProjects?.[0];
+    const keys = Array.isArray(p?.enabledCategoryKeys) ? p.enabledCategoryKeys : safeCategories.map(c=>c.key);
+    return keys;
+  });
+
+  useEffect(() => {
+    // kategori listesi değişirse yeni proje seçimlerini güncelle
+    setNewProjectCatKeys(prev => {
+      const all = safeCategories.map(c=>c.key);
+      if(!prev || prev.length === 0) return all;
+      // eski anahtarlar varsa koru, yoksa düşür
+      const set = new Set(all);
+      const next = prev.filter(k => set.has(k));
+      return next.length ? next : all;
+    });
+  }, [safeCategories]);
+
+  useEffect(() => {
+    // seçili proje değişince checkbox'ları projeden oku
+    if(!safeProjects.length) return;
+    const pid = selectedProjectId || safeProjects[0].id;
+    if(!pid) return;
+    const p = safeProjects.find(x=>x.id===pid) || safeProjects[0];
+    const keys = Array.isArray(p?.enabledCategoryKeys) ? p.enabledCategoryKeys : safeCategories.map(c=>c.key);
+    setSelectedProjectCatKeys(keys);
+    if(!selectedProjectId) setSelectedProjectId(pid);
+  }, [safeProjects, safeCategories, selectedProjectId]);
+
 
   const summaryRows = useMemo(() => {
     const out = [];
@@ -4011,6 +4112,116 @@ isAdmin,
         </div>
 
         <hr className="sep" />
+
+        {isAdmin && (
+          <div className="card" style={{marginTop:12}}>
+            <div className="cardTitleRow">
+              <h3>🏗️ Proje Yönetimi</h3>
+              <Badge kind="warn">Sadece Admin</Badge>
+            </div>
+
+            <div className="small" style={{marginTop:6}}>
+              Yeni proje ekleyebilir ve her proje için hangi kategorilerin görüneceğini seçebilirsin.
+            </div>
+
+            <div style={{height:10}} />
+
+            {/* Yeni proje ekleme */}
+            <div className="row" style={{flexWrap:"wrap", gap:8}}>
+              <input
+                className="input"
+                value={newProjectName}
+                onChange={e=>setNewProjectName(e.target.value)}
+                placeholder="Yeni proje adı (örn: Petkim)"
+                style={{minWidth:260}}
+              />
+              <button
+                className="btn"
+                onClick={() => {
+                  const keys = newProjectCatKeys.length ? newProjectCatKeys : safeCategories.map(c=>c.key);
+                  adminAddProject(newProjectName, keys);
+                  setNewProjectName("");
+                }}
+              >
+                Proje Ekle
+              </button>
+            </div>
+
+            <div className="small" style={{marginTop:8, opacity:.85}}>Yeni projede açık olacak kategoriler:</div>
+            <div className="row" style={{flexWrap:"wrap", gap:10, marginTop:6}}>
+              {safeCategories.map(c => {
+                const checked = newProjectCatKeys.includes(c.key);
+                return (
+                  <label key={c.key} className="pill" style={{display:"inline-flex", alignItems:"center", gap:8}}>
+                    <input
+                      type="checkbox"
+                      checked={checked}
+                      onChange={() => {
+                        setNewProjectCatKeys(prev => {
+                          const set = new Set(prev || []);
+                          if(set.has(c.key)) set.delete(c.key);
+                          else set.add(c.key);
+                          return Array.from(set);
+                        });
+                      }}
+                    />
+                    <span>{c.name}</span>
+                  </label>
+                );
+              })}
+            </div>
+
+            <hr className="sep" style={{marginTop:14}} />
+
+            {/* Var olan projelerde kategori görünürlüğü */}
+            <div className="cardTitleRow">
+              <h4>Mevcut Proje • Kategori Yetkisi</h4>
+            </div>
+
+            <div className="row" style={{flexWrap:"wrap", gap:8, marginTop:8}}>
+              <select
+                className="input"
+                value={selectedProjectId || ""}
+                onChange={(e)=>setSelectedProjectId(e.target.value)}
+                style={{minWidth:260}}
+              >
+                {safeProjects.map(p => (
+                  <option key={p.id} value={p.id}>{p.name}</option>
+                ))}
+              </select>
+
+              <button
+                className="btn"
+                onClick={() => adminSetProjectCategories(selectedProjectId, selectedProjectCatKeys)}
+              >
+                Kaydet
+              </button>
+            </div>
+
+            <div className="row" style={{flexWrap:"wrap", gap:10, marginTop:10}}>
+              {safeCategories.map(c => {
+                const checked = selectedProjectCatKeys.includes(c.key);
+                return (
+                  <label key={c.key} className="pill" style={{display:"inline-flex", alignItems:"center", gap:8}}>
+                    <input
+                      type="checkbox"
+                      checked={checked}
+                      onChange={() => {
+                        setSelectedProjectCatKeys(prev => {
+                          const set = new Set(prev || []);
+                          if(set.has(c.key)) set.delete(c.key);
+                          else set.add(c.key);
+                          return Array.from(set);
+                        });
+                      }}
+                    />
+                    <span>{c.name}</span>
+                  </label>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         {isAdmin && (
           <div className="card" style={{marginTop:12}}>
