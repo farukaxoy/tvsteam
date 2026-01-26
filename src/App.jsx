@@ -898,6 +898,8 @@ useEffect(() => {
     })();
   }, []);
   const [tab, setTab] = useState("dashboard");
+  const [notifOpen, setNotifOpen] = useState(false);
+  const notifRef = useRef(null);
 
   const [activeYear, setActiveYear] = useState(initY);
   const [activeMonth, setActiveMonth] = useState(initM);
@@ -1345,6 +1347,19 @@ for(const emp of (next.employees || [])){
       }
     });
   }
+
+
+
+  // 🔔 Bildirim paneli: dışarı tıklayınca kapat
+  useEffect(() => {
+    function onDown(e){
+      if(!notifOpen) return;
+      const el = notifRef.current;
+      if(el && !el.contains(e.target)) setNotifOpen(false);
+    }
+    document.addEventListener("mousedown", onDown);
+    return () => document.removeEventListener("mousedown", onDown);
+  }, [notifOpen]);
 
   /* ===== FINDERS ===== */
   function findProject(d, projectId){
@@ -2240,6 +2255,97 @@ for(const emp of (next.employees || [])){
         </div>
 
         <div className="navRight">
+          <div ref={notifRef} style={{ position: "relative", marginRight: 10 }}>
+            <button
+              type="button"
+              className="navBtn"
+              style={{ padding: "8px 10px", minWidth: 44 }}
+              onClick={() => setNotifOpen(v => !v)}
+              title="Bildirimler"
+            >
+              <span style={{ fontSize: 16 }}>🔔</span>
+              {unreadCount > 0 && (
+                <span
+                  style={{
+                    marginLeft: 6,
+                    background: "#d81b60",
+                    color: "#fff",
+                    borderRadius: 999,
+                    padding: "1px 7px",
+                    fontSize: 12,
+                    fontWeight: 700,
+                    lineHeight: "18px",
+                    display: "inline-block"
+                  }}
+                >
+                  {unreadCount}
+                </span>
+              )}
+            </button>
+
+            {notifOpen && (
+              <div
+                style={{
+                  position: "absolute",
+                  right: 0,
+                  top: "110%",
+                  width: 360,
+                  maxWidth: "80vw",
+                  background: "rgba(20,20,24,.98)",
+                  border: "1px solid rgba(255,255,255,.12)",
+                  borderRadius: 12,
+                  padding: 10,
+                  zIndex: 50,
+                  boxShadow: "0 10px 30px rgba(0,0,0,.35)"
+                }}
+              >
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
+                  <div style={{ fontWeight: 800 }}>Bildirimler</div>
+                  <div style={{ display: "flex", gap: 8 }}>
+                    <button type="button" className="miniBtn" onClick={markAllRead}>Tümü okundu</button>
+                    <button type="button" className="miniBtn" onClick={() => setNotifOpen(false)}>Kapat</button>
+                  </div>
+                </div>
+
+                {myNotifications.length === 0 ? (
+                  <div style={{ opacity: .8, padding: 8 }}>Bildirim yok.</div>
+                ) : (
+                  <div style={{ maxHeight: 360, overflow: "auto" }}>
+                    {myNotifications.slice(0, 30).map((n) => (
+                      <button
+                        key={n.id}
+                        type="button"
+                        onClick={() => {
+                          updateState(d => {
+                            const nn = (d.notifications || []).find(x => x.id === n.id);
+                            if(nn) nn.read = true;
+                          });
+                        }}
+                        style={{
+                          width: "100%",
+                          textAlign: "left",
+                          padding: 10,
+                          borderRadius: 10,
+                          border: "1px solid rgba(255,255,255,.08)",
+                          background: n.read ? "rgba(255,255,255,.03)" : "rgba(76,175,80,.10)",
+                          marginBottom: 8,
+                          cursor: "pointer"
+                        }}
+                      >
+                        <div style={{ display: "flex", justifyContent: "space-between", gap: 10 }}>
+                          <div style={{ fontWeight: 800 }}>{n.title || "Bildirim"}</div>
+                          <div style={{ opacity: .7, fontSize: 12 }}>{formatDate(n.createdAt)}</div>
+                        </div>
+                        {n.body ? <div style={{ opacity: .9, marginTop: 4, fontSize: 13 }}>{n.body}</div> : null}
+                        {!n.read ? <div style={{ marginTop: 6, fontSize: 12, opacity: .85 }}>• okunmadı</div> : null}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
           <div className="userPill" title={auth?.username || ""}>
             <span>{auth?.username || "Kullanıcı"}</span>
             <span className="small" style={{opacity:.7}}>{isAdmin ? "Admin" : (auth?.projectName || "Proje")}</span>
