@@ -984,6 +984,62 @@ useEffect(() => {
     setTimeout(() => setToasts(prev => prev.filter(x => x.id !== id)), 3500);
   };
 
+  const doLogin = async () => {
+    try{
+      const email = String(lu || "").trim();
+      const password = String(lp || "");
+      if(!email || !password){
+        setLoginError("Email ve şifre gerekli.");
+        return;
+      }
+      if(!supabase){
+        setLoginError("Supabase bağlantısı yok.");
+        return;
+      }
+      setLoginError("");
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+      if(error){
+        setLoginError(error.message || "Giriş başarısız.");
+        return;
+      }
+      const sessUser = data?.user;
+      const sess = data?.session;
+      const key = email.toLowerCase().split("@")[0];
+      let role = "member";
+      let project = "";
+      try{
+        const { data: access } = await supabase
+          .from("user_access")
+          .select("role, project_code")
+          .eq("user_id", sessUser?.id || sess?.user?.id)
+          .maybeSingle();
+        if(access){
+          role = access.role || role;
+          project = access.project_code || "";
+        }
+      }catch(eAcc){
+        console.error(eAcc);
+      }
+      setAuth({ username: key, role, project, email });
+      // GLOBAL state yükle
+      try{
+        const remote = await loadStateFromSupabase("GLOBAL");
+        if(remote && typeof remote === "object"){
+          setState(normalizeState(remote));
+        }
+      }catch(e2){
+        console.error(e2);
+      }
+      pushToast("Giriş başarılı", "ok", "Başarılı");
+      setTab("dashboard");
+    }catch(e){
+      console.error(e);
+      setLoginError("Beklenmeyen hata.");
+    }
+  };
+
+
+
   const closeToast = (id) => setToasts(prev => prev.filter(x => x.id !== id));
 
   /* left panel actions */
