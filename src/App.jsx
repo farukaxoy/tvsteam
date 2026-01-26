@@ -2681,7 +2681,7 @@ for(const emp of (next.employees || [])){
                       </div>
 
                       <div className="small" style={{marginTop:10}}>
-                        Kategoriyi seç → sağ tarafta ilgili forma veri gir.
+                        Kategoriyi seç → ilgili forma veri gir ve onaya gönder.
                       </div>
                     </>
                   );
