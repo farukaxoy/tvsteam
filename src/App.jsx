@@ -3456,7 +3456,7 @@ function MonthlyControlsView({
                 <button
                   className="btn primary"
                   onClick={()=>submitMonth(project.id, category.key, it.id)}
-                  disabled={approved}
+                  disabled={!isAdmin && approved}
                   title={approved ? "Onaylı veri kilitli." : "Admin onayına gönder"}
                 >
                   Onaya Gönder
@@ -3741,7 +3741,7 @@ function EntryView({
                   <button
                     className="btn primary"
                     onClick={()=>submitMonth(project.id, category.key, it.id)}
-                    disabled={approved || inactive}
+                    disabled={(!isAdmin && approved) || inactive}
                     title={approved ? "Onaylı veri kilitli." : "Admin onayına gönder"}
                   >
                     Onaya Gönder
@@ -3830,7 +3830,7 @@ function ExpertsEntryCompactView({ isAdmin, monthKey, monthDays, project, catego
                     {!approved && submitted && <Badge kind="warn">Bekliyor</Badge>}
                     {!approved && !submitted && <Badge kind="danger">Taslak</Badge>}
 
-                    {!approved && (
+                    {(isAdmin || !approved) && (
                       <button
                         className={"btn " + (submitted ? "ghost" : "primary")}
                         disabled={submitted || inactive}
@@ -3850,7 +3850,7 @@ function ExpertsEntryCompactView({ isAdmin, monthKey, monthDays, project, catego
                       className="input"
                       type="number"
                       value={draft.onay ?? 0}
-                      disabled={approved || inactive}
+                      disabled={(!isAdmin && approved) || inactive}
                       onChange={e=>setMonthlyField(project.id, category.key, it.id, monthKey, "onay", Number(e.target.value||0))}
                     />
                   </div>
@@ -3861,7 +3861,7 @@ function ExpertsEntryCompactView({ isAdmin, monthKey, monthDays, project, catego
                       className="input"
                       type="number"
                       value={draft.guncelleme ?? 0}
-                      disabled={approved || inactive}
+                      disabled={(!isAdmin && approved) || inactive}
                       onChange={e=>setMonthlyField(project.id, category.key, it.id, monthKey, "guncelleme", Number(e.target.value||0))}
                     />
                   </div>
@@ -3872,7 +3872,7 @@ function ExpertsEntryCompactView({ isAdmin, monthKey, monthDays, project, catego
                       className="input"
                       type="number"
                       value={draft.merdiven ?? 0}
-                      disabled={approved || inactive}
+                      disabled={(!isAdmin && approved) || inactive}
                       onChange={e=>setMonthlyField(project.id, category.key, it.id, monthKey, "merdiven", Number(e.target.value||0))}
                     />
                   </div>
@@ -3883,7 +3883,7 @@ function ExpertsEntryCompactView({ isAdmin, monthKey, monthDays, project, catego
                       className="input"
                       type="number"
                       value={draft.gozlem ?? 0}
-                      disabled={approved || inactive}
+                      disabled={(!isAdmin && approved) || inactive}
                       onChange={e=>setMonthlyField(project.id, category.key, it.id, monthKey, "gozlem", Number(e.target.value||0))}
                     />
                   </div>
@@ -3894,7 +3894,7 @@ function ExpertsEntryCompactView({ isAdmin, monthKey, monthDays, project, catego
                       className="input"
                       type="number"
                       value={draft.takip ?? 0}
-                      disabled={approved || inactive}
+                      disabled={(!isAdmin && approved) || inactive}
                       onChange={e=>setMonthlyField(project.id, category.key, it.id, monthKey, "takip", Number(e.target.value||0))}
                     />
                   </div>
@@ -3906,7 +3906,7 @@ function ExpertsEntryCompactView({ isAdmin, monthKey, monthDays, project, catego
                       type="number"
                       min="0"
                       value={mealCount}
-                      disabled={approved || inactive}
+                      disabled={(!isAdmin && approved) || inactive}
                       onChange={e=>setMonthlyField(project.id, category.key, it.id, monthKey, "mealCount", Number(e.target.value||0))}
                     />
                   </div>
