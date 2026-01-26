@@ -2,6 +2,19 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import "./style.css";
 import { createClient } from "@supabase/supabase-js";
 
+
+// Format timestamp/date for UI
+function formatDate(value) {
+  try {
+    if (!value) return "";
+    const d = value instanceof Date ? value : new Date(value);
+    if (Number.isNaN(d.getTime())) return String(value);
+    return d.toLocaleString("tr-TR", { year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" });
+  } catch {
+    return String(value ?? "");
+  }
+}
+
 /*
  PATCHED FOR VITE + NETLIFY
  - LOGIN_CSS / THEME_CSS tanımsız hatası giderildi
