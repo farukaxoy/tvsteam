@@ -3142,7 +3142,7 @@ function BarChart({ title, data }){
     <div className="card" style={{padding:14}}>
       <div className="cardTitleRow">
         <h4 style={{margin:0}}>{title}</h4>
-        <Badge kind="ok">Bar</Badge>
+        <Badge kind="ok">Sayı</Badge>
       </div>
       <div style={{marginTop:10, display:"flex", flexDirection:"column", gap:8}}>
         {(data || []).map(d => {
