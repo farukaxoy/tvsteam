@@ -2854,7 +2854,7 @@ for(const emp of (next.employees || [])){
       </div>
 
       </div>
-      <div className="footer">© {new Date().getFullYear()} Faruk Aksoy • Veri Takip Platformu</div>
+      <div className="footer">© {new Date().getFullYear()} 2026 Faruk Aksoy • TVS Proje Takip Platformu</div>
     </div>
   );
 
