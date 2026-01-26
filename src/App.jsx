@@ -340,6 +340,7 @@ const supabase = createClient(
 /* ===================== SETTINGS ===================== */
 
 const STORAGE_KEY = "veri_takip_secure_v4";
+const USE_LOCAL_STATE = false; // ✅ Artık ana kaynak Supabase
 
 /* ===================== MODERN LOGIN CSS (INJECTED) ===================== */
 
@@ -870,12 +871,14 @@ useEffect(() => {
   const [activeMonth, setActiveMonth] = useState(initM);
 
   const [state, setState] = useState(() => {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if(raw){
-      try{
-        const parsed = JSON.parse(raw);
-        if(parsed && Array.isArray(parsed.projects) && Array.isArray(parsed.categories)) return normalizeState(parsed);
-      }catch{}
+    if (USE_LOCAL_STATE) {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (raw) {
+        try {
+          const parsed = JSON.parse(raw);
+          if (parsed && Array.isArray(parsed.projects) && Array.isArray(parsed.categories)) return normalizeState(parsed);
+        } catch {}
+      }
     }
     return seedState();
   });
@@ -966,10 +969,12 @@ useEffect(() => {
 }, [theme]);
 
 useEffect(() => {
-    // 1) Local cache (offline için)
-    try{
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-    }catch{}
+    // 1) Local cache (isteğe bağlı). Ana kaynak Supabase.
+    if (USE_LOCAL_STATE) {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      } catch {}
+    }
 
     // 2) Buluta kaydet (debounce)
     if(!auth || !supabase) return;
