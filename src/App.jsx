@@ -2293,22 +2293,23 @@ for(const emp of (next.employees || [])){
               )}
             </button>
 
-            {notifOpen && (
-              <div
-                style={{
-                  position: "absolute",
-                  right: 0,
-                  top: "110%",
-                  width: 360,
-                  maxWidth: "80vw",
-                  background: "rgba(20,20,24,.98)",
-                  border: "1px solid rgba(255,255,255,.12)",
-                  borderRadius: 12,
-                  padding: 10,
-                  zIndex: 50,
-                  boxShadow: "0 10px 30px rgba(0,0,0,.35)"
-                }}
-              >
+           {notifOpen && (
+  <div
+    style={{
+      position: "absolute",
+      right: 0,
+      top: "110%",
+      width: 360,
+      maxWidth: "80vw",
+      background: "#ffffff",
+      border: "1px solid #e5e7eb",
+      borderRadius: 12,
+      padding: 10,
+      zIndex: 50,
+      boxShadow: "0 10px 30px rgba(0,0,0,.12)"
+    }}
+  >
+
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
                   <div style={{ fontWeight: 800 }}>Bildirimler</div>
                   <div style={{ display: "flex", gap: 8 }}>
