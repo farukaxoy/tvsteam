@@ -1116,264 +1116,29 @@ useEffect(() => {
   }, [auth, isAdmin, state.projects, entryProjectId]);
 
   const entryProject = useMemo(() => {
-    if(!auth) return null;
-    if(isAdmin){
-      return state.projects.find(p => p.id === entryProjectId) || state.projects[0] || null;
-    }
-    // kullanıcı: kendi projesi
-    return state.projects.find(p => canonProj(p.name) === canonProj(auth.project)) || null;
-  }, [auth, isAdmin, state.projects, entryProjectId]);
+    const list = Array.isArray(state.projects) ? state.projects : [];
+    // Admin veya giriş yoksa: ilk projeyi seç (varsa)
+    if(!auth) return list[0] || null;
 
-  /* ===== normalization: kategori eklendiğinde projelere alan aç ===== */
-  function normalizeState(s){
-    const next = deepClone(s);
+    const target = String(auth.project || "").trim();
+    if(!target) return list[0] || null;
 
-    // --- ensure defaults exist (without breaking existing dynamic categories) ---
-    const defaultCats = defaultCategories();
-    if(!Array.isArray(next.categories) || next.categories.length === 0){
-      next.categories = defaultCats;
-    }else{
-      const existingKeys = new Set(next.categories.map(c => c && c.key).filter(Boolean));
-      for(const dc of defaultCats){
-        if(!existingKeys.has(dc.key)){
-          next.categories.push(dc);
-          existingKeys.add(dc.key);
-        }
-      }
-    }
+    const targetLower = target.toLowerCase();
+    const targetCanon = canonProj(target);
 
-    next.projects ||= [];
-    next.employees ||= [];
-
-    // documents
-    const defaultTmpl = defaultDocTemplates();
-    if(!Array.isArray(next.docTemplates) || next.docTemplates.length === 0){
-      next.docTemplates = defaultTmpl;
-    }else{
-      const tmplKeys = new Set(next.docTemplates.map(t => t && t.key).filter(Boolean));
-      for(const dt of defaultTmpl){
-        if(!tmplKeys.has(dt.key)){
-          next.docTemplates.push(dt);
-          tmplKeys.add(dt.key);
-        }
-      }
-    }
-    next.employeeDocs ||= {};
-
-    // evrak takip (validity)
-    const defaultReg = defaultDocRegisterTypes();
-    if(!Array.isArray(next.docRegisterTypes) || next.docRegisterTypes.length === 0){
-      next.docRegisterTypes = defaultReg;
-    }else{
-      // keep existing; add missing defaults by name
-      const names = new Set(next.docRegisterTypes.map(x => (x?.name||"").trim().toLowerCase()).filter(Boolean));
-      for(const t of defaultReg){
-        const n = (t.name||"").trim().toLowerCase();
-        if(!names.has(n)){
-          next.docRegisterTypes.push(t);
-          names.add(n);
-        }
-      }
-    }
-    next.employeeDocRegister ||= {};
-
-    next.actions ||= [];
-    next.announcements ||= [];
-
-    next.contacts ||= [];
-    next.notifications ||= [];
-
-    
-// ensure employeeDocs has all templates
-const tmplKeys = (next.docTemplates || []).map(t => t.key);
-for(const emp of (next.employees || [])){
-  next.employeeDocs[emp.id] ||= {};
-  for(const tk of tmplKeys){
-    if(!next.employeeDocs[emp.id][tk]){
-      next.employeeDocs[emp.id][tk] = { signed: false, signedAt: "" };
-    }else{
-      next.employeeDocs[emp.id][tk].signed = !!next.employeeDocs[emp.id][tk].signed;
-      next.employeeDocs[emp.id][tk].signedAt ||= "";
-    }
-  }
-}
-
-// ensure each project has itemsByCategory for all categories
-    for(const p of next.projects){
-      p.itemsByCategory ||= {};
-      for(const c of next.categories){
-        if(!Array.isArray(p.itemsByCategory[c.key])) p.itemsByCategory[c.key] = [];
-      }
-    }
-
-    // seed fixed monthly controls as items (per project)
-    const mc = next.categories.find(c => c.key === MONTHLY_CAT_KEY);
-    if(mc){
-      for(const p of next.projects){
-        p.itemsByCategory ||= {};
-        let arr = p.itemsByCategory[mc.key];
-        if(!Array.isArray(arr)) arr = [];
-        const names = new Set(arr.map(x => (x.name || "").trim()));
-        for(const nm of MONTHLY_CHECK_ITEMS){
-          if(!names.has(nm)){
-            arr.push({
-              id: uid("item"),
-              name: nm,
-              approved: true,
-              requestedBy: "system",
-              createdAt: new Date().toISOString(),
-              months: {}
-            });
-          }
-        }
-        // stable ordering
-        arr.sort((a,b)=> MONTHLY_CHECK_ITEMS.indexOf(a.name) - MONTHLY_CHECK_ITEMS.indexOf(b.name));
-  
-    if(!Array.isArray(next.authUsers)) next.authUsers = [];
-      p.itemsByCategory[mc.key] = arr;
-      }
-    }
-
-    return next;
-  }
-
-  function updateState(mutator){
-    setState(prev => {
-      const next = deepClone(prev);
-      mutator(next);
-      return normalizeState(next);
+    // auth.project bazen project_code (örn: TUPRAS_IZMIT), bazen isim gelebilir.
+    // Bu yüzden hem code/id hem de isim üzerinden esnek eşleme yap.
+    const found = list.find(p => {
+      const codeCandidates = [
+        p.project_code, p.projectCode, p.code, p.id, p.name
+      ].filter(Boolean).map(x => String(x).trim());
+      if(codeCandidates.some(c => c.toLowerCase() === targetLower)) return true;
+      if(canonProj(p.name) === targetCanon) return true;
+      return false;
     });
-  }
 
-  /* ===== AUTH ===== */
-    
-  /* ===== AUTH (SUPABASE) ===== */
-  function accountFromEmail(email){
-    const e = String(email || "").trim().toLowerCase();
-    const key = e.includes("@") ? e.split("@")[0] : e;
-    const info = (CREDENTIALS && CREDENTIALS[key]) ? CREDENTIALS[key] : null;
-
-    if(info){
-      return {
-        username: key,
-        role: info.role || "user",
-        project: info.project || ""
-      };
-    }
-    // Varsayılan: admin değilse user gibi davranır
-    return { username: key, role: "user", project: "" };
-  }
-
-  async function loadStateFromSupabase(projectCodeOverride){
-    if(!supabase) return null;
-    // Tek satırda tüm uygulama verisini tutuyoruz (local kurguyu bozmamak için)
-    const project_code = "GLOBAL"; // tek ortak kayıt
-    const { data, error } = await supabase
-      .from("app_state")
-      .select("data")
-      .eq("project_code", project_code)
-      .maybeSingle();
-
-    if(error) throw error;
-    return data?.data ?? null;
-  }
-
-  async function saveStateToSupabase(nextState, projectCodeOverride){
-    if(!supabase) return;
-        const project_code = "GLOBAL"; // tek ortak kayıt
-    const payload = {
-      project_code,
-      data: nextState,
-      updated_at: new Date().toISOString()
-    };
-    const { error } = await supabase
-      .from("app_state")
-      .upsert(payload, { onConflict: "project_code" });
-
-    if(error) throw error;
-  }
-
-  async function doLogin(){
-    setLoginError("");
-
-    const email = (lu || "").trim();
-    const password = (lp || "").trim();
-
-    if(!email || !password){
-      setLoginError("E-posta ve şifre zorunlu.");
-      pushToast("E-posta ve şifre zorunlu.", "warn");
-      return;
-    }
-
-    try{
-      // 1) Supabase giriş
-      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-      if(error) throw error;
-
-      // 2) Kullanıcının yetkisini (rol + proje) Supabase'ten al
-      const user = data?.user;
-      const userEmail = user?.email || email;
-      const key = String(userEmail || "").trim().toLowerCase().split("@")[0];
-
-      const { data: access, error: accessErr } = await supabase
-        .from("user_access")
-        .select("role, project_code")
-        .eq("user_id", user.id)
-        .maybeSingle();
-
-      if(accessErr) throw accessErr;
-      if(!access) throw new Error("Bu kullanıcı için proje/rol tanımı yapılmamış (user_access tablosu).");
-
-      const role = access.role || "member";
-      setAuth({ username: key, role, project: access.project_code || "", email: userEmail });
-
-      // Proje seçimi: kullanıcı tek proje, admin çok proje
-      let chosenCode = "GLOBAL";
-      setAvailableProjectCodes([]);
-      setActiveProjectCode("GLOBAL");
-
-      // 3) Buluttan en güncel veriyi çek (varsa)
-      try{
-        const remote = await loadStateFromSupabase("GLOBAL");
-        if(remote && typeof remote === "object"){
-          // Local kurguyu bozmamak için normalize edip kur
-          setState(normalizeState(remote));
-          pushToast("Buluttaki veriler yüklendi.", "ok");
-        }else{
-          // Bulutta boşsa ilk kez kaydet
-          await saveStateToSupabase(state);
-          pushToast("Bulut veri alanı hazırlandı.", "ok");
-        }
-      }catch(e2){
-        console.error(e2);
-        pushToast("Buluttan veri okunamadı. Local veri ile devam.", "warn");
-      }
-
-      setNotifOpen(false);
-      setTab("dashboard");
-    }catch(e){
-      console.error(e);
-      setLoginError(e?.message || "Giriş yapılamadı.");
-      pushToast(e?.message || "Giriş yapılamadı.", "err");
-    }
-  }
-
-
-  async function doLogout(){
-    try{
-      if(supabase) await supabase.auth.signOut();
-    }catch{}
-    setAuth(null);
-    setTab("dashboard");
-    setNotifOpen(false);
-  }
-
-  /* ===== ACCESS: visible projects ===== */
-  const visibleProjects = useMemo(() => {
-    if(!auth) return [];
-    if(isAdmin) return state.projects;
-    return state.projects.filter(p => canonProj(p.name) === canonProj(auth.project));
-  }, [state.projects, auth, isAdmin]);
+    return found || null;
+  }, [state.projects, auth]);
 
 
   // Bu proje hangi kategorileri görsün? (admin: admin sekmesinde hepsi, diğer sekmelerde seçili proje)
@@ -2733,6 +2498,7 @@ for(const emp of (next.employees || [])){
                 categories={state.categories}
                 monthKey={monthKey}
                 category={activeCategory}
+                hiddenFieldKeys={Array.isArray(entryProject?.fieldVisibility?.[activeCategory?.key]?.hiddenFieldKeys) ? entryProject.fieldVisibility[activeCategory.key].hiddenFieldKeys : []}
                 rows={dashboardRows}
                 projects={dashboardProjects}
                 employees={state.employees}
@@ -2830,6 +2596,7 @@ for(const emp of (next.employees || [])){
                   monthKey={monthKey}
                   project={entryProject}
                   category={activeCategory}
+                hiddenFieldKeys={Array.isArray(entryProject?.fieldVisibility?.[activeCategory?.key]?.hiddenFieldKeys) ? entryProject.fieldVisibility[activeCategory.key].hiddenFieldKeys : []}
                   items={entryItems}
                   experts={entryExperts}
                   employees={state.employees}
@@ -2843,6 +2610,7 @@ for(const emp of (next.employees || [])){
                   monthDays={monthDays}
                   project={entryProject}
                   category={activeCategory}
+                hiddenFieldKeys={Array.isArray(entryProject?.fieldVisibility?.[activeCategory?.key]?.hiddenFieldKeys) ? entryProject.fieldVisibility[activeCategory.key].hiddenFieldKeys : []}
                   items={entryItems}
                   experts={entryExperts}
                   employees={state.employees}
@@ -3003,11 +2771,12 @@ for(const emp of (next.employees || [])){
 
 /* ===================== VIEWS ===================== */
 
-function DashboardView({ monthKey, category, rows, projects, employees, actions, categories, isAdmin }){
+function DashboardView({ monthKey, category, rows, projects, employees, actions, categories, isAdmin, hiddenFieldKeys }){
+  const hiddenKeys = Array.isArray(hiddenFieldKeys) ? hiddenFieldKeys : [];
   const totals = useMemo(() => {
     const t = { itemsApproved:0, monthApproved:0, sums:{}, mealsSum:0 };
     for(const f of (category?.fields || [])){
-      if(f.type === "number") t.sums[f.key] = 0;
+      if(f.type === "number" && !hiddenKeys.includes(f.key)) t.sums[f.key] = 0;
     }
 
     for(const r of rows){
@@ -3104,7 +2873,7 @@ function DashboardView({ monthKey, category, rows, projects, employees, actions,
 <div className="kpiRow">
         <KPI label={`Onaylı ${category?.itemLabel || "Kayıt"}`} value={totals.itemsApproved}/>
         <KPI label="Onaylı Aylık Kayıt" value={totals.monthApproved}/>
-        {Object.keys(totals.sums).filter(k=>k!=="mealCount").map(k=>(
+        {Object.keys(totals.sums).filter(k=>k!=="mealCount" && !hiddenKeys.includes(k)).map(k=>(
           <KPI key={k} label={(category.fields.find(f=>f.key===k)?.label)||k} value={totals.sums[k]}/>
         ))}
         {(category?.special?.meals || (category?.fields||[]).some(f=>f.key==="mealCount") || totals.mealsSum>0) ? <KPI label="Yemek" value={totals.mealsSum}/> : null}
@@ -3169,7 +2938,7 @@ function DashboardView({ monthKey, category, rows, projects, employees, actions,
               <th>Proje</th>
               <th>Onaylı {category?.itemLabel || "Kayıt"}</th>
               <th>Onaylı Aylık</th>
-              {(category?.fields || []).filter(f=>f.type==="number").map(f=>(
+              {(category?.fields || []).filter(f=>f.type==="number" && !hiddenKeys.includes(f.key) && f.key!=="mealCount").map(f=>(
                 <th key={f.key}>{f.label}</th>
               ))}
               {category?.special?.meals ? <th>Yemek</th> : null}
@@ -3181,7 +2950,7 @@ function DashboardView({ monthKey, category, rows, projects, employees, actions,
                 <td><b>{r.name}</b></td>
                 <td>{r.itemsApproved}</td>
                 <td>{r.monthApproved}</td>
-                {(category?.fields || []).filter(f=>f.type==="number").map(f=>(
+                {(category?.fields || []).filter(f=>f.type==="number" && !hiddenKeys.includes(f.key) && f.key!=="mealCount").map(f=>(
                   <td key={f.key}>{safeNum(r.sums?.[f.key])}</td>
                 ))}
                 {category?.special?.meals ? <td>{r.mealsSum}</td> : null}
@@ -3212,7 +2981,7 @@ function DashboardView({ monthKey, category, rows, projects, employees, actions,
                 <tr>
                   <th>Proje</th>
                   <th>Uzman</th>
-                  {(category?.fields || []).filter(f=>f.type==="number").map(f=>(
+                  {(category?.fields || []).filter(f=>f.type==="number" && !hiddenKeys.includes(f.key) && f.key!=="mealCount").map(f=>(
                     <th key={f.key}>{f.label}</th>
                   ))}
                   {category?.special?.meals ? <th>Yemek</th> : null}
@@ -3236,8 +3005,8 @@ function DashboardView({ monthKey, category, rows, projects, employees, actions,
                         nums: {},
                         meals: category?.special?.meals ? ((Object.prototype.hasOwnProperty.call(dft, "mealCount") ? safeNum(dft.mealCount) : (Array.isArray(dft.meals) ? dft.meals.length : 0))) : null
                       };
-                      const hiddenDash = Array.isArray(activeProject?.fieldVisibility?.[category?.key]?.hiddenFieldKeys)
-                        ? activeProject.fieldVisibility[category.key].hiddenFieldKeys
+                      const hiddenDash = Array.isArray(entryProject?.fieldVisibility?.[category?.key]?.hiddenFieldKeys)
+                        ? entryProject.fieldVisibility[category.key].hiddenFieldKeys
                         : [];
                       for(const f of (category.fields || [])){
                         if(hiddenDash.includes(f.key)) continue;
@@ -3251,7 +3020,7 @@ function DashboardView({ monthKey, category, rows, projects, employees, actions,
                     <tr key={r.project + "_" + r.name + "_" + i}>
                       <td><b>{r.project}</b></td>
                       <td>{r.name}</td>
-                      {(category?.fields || []).filter(f=>f.type==="number").map(f=>(
+                      {(category?.fields || []).filter(f=>f.type==="number" && !hiddenKeys.includes(f.key) && f.key!=="mealCount").map(f=>(
                         <td key={f.key}>{safeNum(r.nums?.[f.key])}</td>
                       ))}
                       {category?.special?.meals ? <td>{safeNum(r.meals)}</td> : null}
@@ -3502,6 +3271,13 @@ function MonthlyControlsView({
 }){
   const safeItems = Array.isArray(items) ? items : [];
   const fields = Array.isArray(category?.fields) ? category.fields : [];
+  const hiddenKeys = React.useMemo(() => {
+    const hk = project?.fieldVisibility?.[category?.key]?.hiddenFieldKeys;
+    return Array.isArray(hk) ? hk : [];
+  }, [project, category]);
+  const visibleFields = React.useMemo(() => {
+    return fields.filter(f => !hiddenKeys.includes(f.key));
+  }, [fields, hiddenKeys]);
   const expertOptions = React.useMemo(() => {
     const a = Array.isArray(experts) ? experts : [];
     const namesA = a.map(x => x?.name).filter(Boolean);
@@ -3556,7 +3332,7 @@ function MonthlyControlsView({
               </div>
 
               <div style={{marginTop:10, display:"grid", gridTemplateColumns:"repeat(auto-fit, minmax(220px, 1fr))", gap:10}}>
-                {fields.map(f => (
+                {visibleFields.map(f => (
                   <div key={f.key}>
                     <div className="small" style={{fontWeight:800, opacity:.85, marginBottom:6}}>{f.label}</div>
                     {f.type === "select" ? (
