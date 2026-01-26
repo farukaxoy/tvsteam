@@ -2196,7 +2196,7 @@ for(const emp of (next.employees || [])){
                 className="loginInputLine"
                 value={lu}
                 onChange={(e) => { setLu(e.target.value); if(loginError) setLoginError(""); }}
-                placeholder="E-mailnı Yazınız"
+                placeholder="E-mail Adresinizi Yazınız"
                 autoComplete="username"
               />
 
