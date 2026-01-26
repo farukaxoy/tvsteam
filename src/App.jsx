@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import "./style.css";
+import { createClient } from "@supabase/supabase-js";
 
 /*
  PATCHED FOR VITE + NETLIFY
@@ -303,8 +304,11 @@ const NAV_CSS = `
 const THEME_CSS = "";
 
 // ===================== AUTH MODE =====================
-// Local fixed-credentials mode (no Supabase Auth)
-const supabase = null;
+// Supabase client (DB + Auth)
+const supabase = createClient(
+  import.meta.env.VITE_SUPABASE_URL,
+  import.meta.env.VITE_SUPABASE_ANON_KEY
+);
 
 /* ===================== UYGULAMA ===================== */
 /* NOT: Buradan aşağısı senin mevcut 5098 satırlık kodundur.
@@ -934,64 +938,6 @@ useEffect(() => {
 useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
   }, [state]);
-
-  /* ===== BACKUP (EXPORT / IMPORT) ===== */
-  const backupFileRef = useRef(null);
-
-  function exportBackup(){
-    try{
-      const payload = {
-        app: "Veri-Takip",
-        storageKey: STORAGE_KEY,
-        exportedAt: new Date().toISOString(),
-        data: state
-      };
-      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json;charset=utf-8" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      const ts = new Date().toISOString().replace(/[:.]/g, "-");
-      a.href = url;
-      a.download = `Veri-Takip-Backup-${ts}.json`;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      URL.revokeObjectURL(url);
-      pushToast("Yedek indirildi (JSON).", "ok");
-    }catch(err){
-      console.error(err);
-      pushToast("Yedek indirme başarısız.", "danger");
-    }
-  }
-
-  function openImportDialog(){
-    try{
-      if(backupFileRef.current) backupFileRef.current.click();
-    }catch(e){
-      console.error(e);
-    }
-  }
-
-  async function handleImportBackupFile(e){
-    const file = e?.target?.files?.[0];
-    if(!file) return;
-    try{
-      const txt = await file.text();
-      const parsed = JSON.parse(txt);
-      const data = (parsed && (parsed.data || parsed.state)) ? (parsed.data || parsed.state) : parsed;
-      if(!data || typeof data !== "object"){
-        pushToast("Yedek dosyası geçersiz.", "danger");
-        return;
-      }
-      setState(normalizeState(data));
-      pushToast("Yedek yüklendi. (Sayfayı yenilemeden devam edebilirsin)", "ok");
-    }catch(err){
-      console.error(err);
-      pushToast("Yedek yükleme başarısız. Dosya bozuk olabilir.", "danger");
-    }finally{
-      try{ e.target.value = ""; }catch(_){}
-    }
-  }
-
 
   const isAdmin = auth?.role === "admin";
   const monthKey = `${activeYear}-${activeMonth}`;
@@ -2533,10 +2479,6 @@ for(const emp of (next.employees || [])){
                 adminAddField={adminAddField}
                 adminDeleteField={adminDeleteField}
                 adminDeleteCategory={adminDeleteCategory}
-                onExportBackup={exportBackup}
-                onOpenImportBackup={openImportDialog}
-                backupFileRef={backupFileRef}
-                onBackupFileChange={handleImportBackupFile}
               />
 
               <ProjectUserMapping
@@ -3721,11 +3663,7 @@ isAdmin,
   catFieldUnit, setCatFieldUnit,
   adminAddField,
   adminDeleteField,
-  adminDeleteCategory,
-  onExportBackup,
-  onOpenImportBackup,
-  backupFileRef,
-  onBackupFileChange
+  adminDeleteCategory
 
   } = props;
 
@@ -3791,39 +3729,6 @@ isAdmin,
         </div>
 
         <hr className="sep" />
-
-        {isAdmin && (
-          <div className="card" style={{marginTop:12}}>
-            <div className="cardTitleRow">
-              <h3>💾 Yedekleme</h3>
-              <Badge kind="ok">JSON</Badge>
-            </div>
-
-            <div className="small" style={{marginTop:6}}>
-              Veriler tarayıcıda saklanır (LocalStorage). Düzenli olarak yedek indirmen önerilir.
-            </div>
-
-            <div className="row" style={{flexWrap:"wrap", marginTop:10}}>
-              <button className="btn primary" type="button" onClick={onExportBackup}>
-                Yedek İndir (JSON)
-              </button>
-              <button className="btn" type="button" onClick={()=>{
-                if(confirm("Yedekten yükleme mevcut verilerin ÜZERİNE yazar. Devam edilsin mi?")){
-                  onOpenImportBackup && onOpenImportBackup();
-                }
-              }}>
-                Yedekten Yükle
-              </button>
-              <input
-                ref={backupFileRef}
-                type="file"
-                accept=".json,application/json"
-                style={{display:"none"}}
-                onChange={onBackupFileChange}
-              />
-            </div>
-          </div>
-        )}
 
         {isAdmin && (
           <div className="card" style={{marginTop:12}}>
