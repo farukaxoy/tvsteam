@@ -54,6 +54,41 @@ toast.error   = (m)=>toast(m,{type:"error"});
 toast.info    = (m)=>toast(m,{type:"info"});
 toast.warn    = (m)=>toast(m,{type:"warn"});
 
+// --- backup helpers (download/import JSON) ---
+function downloadJsonFile(obj, filename){
+  try{
+    const blob = new Blob([JSON.stringify(obj, null, 2)], {type:"application/json;charset=utf-8"});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename || "tvsteam_backup.json";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url), 1000);
+  }catch(e){
+    console.error(e);
+    alert("Yedek indirilemedi. Konsolu kontrol edin.");
+  }
+}
+
+function readJsonFile(file){
+  return new Promise((resolve, reject)=>{
+    try{
+      const reader = new FileReader();
+      reader.onload = () => {
+        try{
+          const txt = String(reader.result || "");
+          resolve(JSON.parse(txt));
+        }catch(err){ reject(err); }
+      };
+      reader.onerror = (e)=>reject(e);
+      reader.readAsText(file);
+    }catch(err){ reject(err); }
+  });
+}
+
+
 
 
 // --- project key normalizer (SOCAR / TUPRAS_IZMIR vs "Tüpraş İzmir" etc.) ---
@@ -953,7 +988,31 @@ useEffect(() => {
 
   /* left panel actions */
   const [search, setSearch] = useState("");
-  const [categoryKey, setCategoryKey] = useState("experts");
+  
+
+  // --- Backup (JSON) ---
+  const handleDownloadBackup = () => {
+    const ts = new Date();
+    const pad = (n)=>String(n).padStart(2,"0");
+    const name = `tvsteam_backup_${ts.getFullYear()}-${pad(ts.getMonth()+1)}-${pad(ts.getDate())}_${pad(ts.getHours())}-${pad(ts.getMinutes())}.json`;
+    downloadJsonFile(state, name);
+    toast.success("Yedek indirildi.");
+  };
+
+  const handleImportBackup = async (file) => {
+    if(!file) return;
+    try{
+      const data = await readJsonFile(file);
+      const normalized = normalizeState(data);
+      setState(normalized);
+      toast.success("Yedek içe aktarıldı.");
+    }catch(e){
+      console.error(e);
+      toast.error("Yedek içe aktarılamadı. Dosya JSON mu kontrol et.");
+      alert("Yedek içe aktarılamadı. Dosya bozuk veya JSON değil.");
+    }
+  };
+const [categoryKey, setCategoryKey] = useState("experts");
   const [newItemName, setNewItemName] = useState("");
 
   /* admin entry: project selector */
@@ -2810,6 +2869,8 @@ for(const emp of (next.employees || [])){
           {isAdmin && tab === "admin" && (
             <>
               <AdminView
+                onDownloadBackup={handleDownloadBackup}
+                onImportBackup={handleImportBackup}
                 isAdmin={isAdmin}
                 monthKey={monthKey}
                 categories={state.categories}
@@ -3687,6 +3748,32 @@ function EntryView({
     <>
       <div className="card">
         <div className="cardTitleRow">
+          <h2>Admin • Yedekleme</h2>
+        </div>
+        <div className="row" style={{gap:10, flexWrap:"wrap", marginTop:10}}>
+          <button className="btn primary" onClick={onDownloadBackup}>Yedek Al (JSON)</button>
+
+          <label className="btn" style={{cursor:"pointer"}}>
+            Yedek Yükle (JSON)
+            <input
+              type="file"
+              accept="application/json,.json"
+              style={{display:"none"}}
+              onChange={(e)=>{
+                const f = e.target.files?.[0];
+                e.target.value = "";
+                onImportBackup?.(f);
+              }}
+            />
+          </label>
+          <div className="small" style={{alignSelf:"center"}}>
+            Not: Yedek yükleme mevcut verinin üstüne yazar. Yüklemeden önce “Yedek Al” önerilir.
+          </div>
+        </div>
+      </div>
+
+      <div className="card">
+        <div className="cardTitleRow">
           <h2>Veri Girişi • {category?.name}</h2>
           <div style={{display:"flex", gap:8, flexWrap:"wrap", justifyContent:"flex-end"}}>
             <Badge>{project.name}</Badge>
@@ -4008,6 +4095,8 @@ function ExpertsEntryCompactView({ isAdmin, monthKey, monthDays, project, catego
 
 function AdminView(props){
   const {
+onDownloadBackup,
+  onImportBackup,
 isAdmin,
   monthKey,
   categories,
