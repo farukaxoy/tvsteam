@@ -835,7 +835,7 @@ useEffect(() => {
   const { y: initY, m: initM } = nowYearMonth();
 
   const [auth, setAuth] = useState(null);
-  const [activeProjectCode, setActiveProjectCode] = useState("");
+  const [activeProjectCode, setActiveProjectCode] = useState("GLOBAL"); // tek ortak DB kaydı
   const [availableProjectCodes, setAvailableProjectCodes] = useState([]); // admin için
  // {username, role, project?}
 
@@ -852,7 +852,7 @@ useEffect(() => {
           setAuth({ ...acct, email });
           // Buluttan veriyi çek
           try{
-            const remote = await loadStateFromSupabase(chosenCode);
+            const remote = await loadStateFromSupabase("GLOBAL");
             if(remote && typeof remote === "object"){
               setState(normalizeState(remote));
             }
@@ -1161,7 +1161,7 @@ for(const emp of (next.employees || [])){
   async function loadStateFromSupabase(projectCodeOverride){
     if(!supabase) return null;
     // Tek satırda tüm uygulama verisini tutuyoruz (local kurguyu bozmamak için)
-    const project_code = projectCodeOverride || activeProjectCode || "GLOBAL";
+    const project_code = "GLOBAL"; // tek ortak kayıt
     const { data, error } = await supabase
       .from("app_state")
       .select("data")
@@ -1174,8 +1174,7 @@ for(const emp of (next.employees || [])){
 
   async function saveStateToSupabase(nextState, projectCodeOverride){
     if(!supabase) return;
-    if(!(projectCodeOverride || activeProjectCode)) return;
-    const project_code = projectCodeOverride || activeProjectCode || "GLOBAL";
+        const project_code = "GLOBAL"; // tek ortak kayıt
     const payload = {
       project_code,
       data: nextState,
@@ -1223,23 +1222,13 @@ for(const emp of (next.employees || [])){
       setAuth({ username: key, role, project: access.project_code || "", email: userEmail });
 
       // Proje seçimi: kullanıcı tek proje, admin çok proje
-      let chosenCode = access.project_code || "";
-      if(role === "admin"){
-        const { data: ps, error: psErr } = await supabase
-          .from("app_state")
-          .select("project_code")
-          .order("project_code", { ascending: true });
-        if(psErr) throw psErr;
-
-        const codes = (ps || []).map(r => r.project_code).filter(Boolean);
-        setAvailableProjectCodes(codes);
-        chosenCode = codes[0] || "";
-      }
-      setActiveProjectCode(chosenCode);
+      let chosenCode = "GLOBAL";
+      setAvailableProjectCodes([]);
+      setActiveProjectCode("GLOBAL");
 
       // 3) Buluttan en güncel veriyi çek (varsa)
       try{
-        const remote = await loadStateFromSupabase(chosenCode);
+        const remote = await loadStateFromSupabase("GLOBAL");
         if(remote && typeof remote === "object"){
           // Local kurguyu bozmamak için normalize edip kur
           setState(normalizeState(remote));
