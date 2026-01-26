@@ -833,7 +833,10 @@ useEffect(() => {
 
   const { y: initY, m: initM } = nowYearMonth();
 
-  const [auth, setAuth] = useState(null); // {username, role, project?}
+  const [auth, setAuth] = useState(null);
+  const [activeProjectCode, setActiveProjectCode] = useState("");
+  const [availableProjectCodes, setAvailableProjectCodes] = useState([]); // admin için
+ // {username, role, project?}
 
   // Supabase oturumu varsa (sayfa yenilenince) otomatik giriş yap
   useEffect(() => {
@@ -848,7 +851,7 @@ useEffect(() => {
           setAuth({ ...acct, email });
           // Buluttan veriyi çek
           try{
-            const remote = await loadStateFromSupabase();
+            const remote = await loadStateFromSupabase(chosenCode);
             if(remote && typeof remote === "object"){
               setState(normalizeState(remote));
             }
@@ -1150,10 +1153,10 @@ for(const emp of (next.employees || [])){
     return { username: key, role: "user", project: "" };
   }
 
-  async function loadStateFromSupabase(){
+  async function loadStateFromSupabase(projectCodeOverride){
     if(!supabase) return null;
     // Tek satırda tüm uygulama verisini tutuyoruz (local kurguyu bozmamak için)
-    const project_code = "GLOBAL";
+    const project_code = projectCodeOverride || activeProjectCode || "GLOBAL";
     const { data, error } = await supabase
       .from("app_state")
       .select("data")
@@ -1164,9 +1167,10 @@ for(const emp of (next.employees || [])){
     return data?.data ?? null;
   }
 
-  async function saveStateToSupabase(nextState){
+  async function saveStateToSupabase(nextState, projectCodeOverride){
     if(!supabase) return;
-    const project_code = "GLOBAL";
+    if(!(projectCodeOverride || activeProjectCode)) return;
+    const project_code = projectCodeOverride || activeProjectCode || "GLOBAL";
     const payload = {
       project_code,
       data: nextState,
@@ -1196,13 +1200,41 @@ for(const emp of (next.employees || [])){
       const { data, error } = await supabase.auth.signInWithPassword({ email, password });
       if(error) throw error;
 
-      // 2) Uygulama içi rol/proje eşlemesi (email'in @ öncesi ile)
-      const acct = accountFromEmail(data?.user?.email || email);
-      setAuth({ ...acct, email: data?.user?.email || email });
+      // 2) Kullanıcının yetkisini (rol + proje) Supabase'ten al
+      const user = data?.user;
+      const userEmail = user?.email || email;
+      const key = String(userEmail || "").trim().toLowerCase().split("@")[0];
+
+      const { data: access, error: accessErr } = await supabase
+        .from("user_access")
+        .select("role, project_code")
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      if(accessErr) throw accessErr;
+      if(!access) throw new Error("Bu kullanıcı için proje/rol tanımı yapılmamış (user_access tablosu).");
+
+      const role = access.role || "member";
+      setAuth({ username: key, role, project: access.project_code || "", email: userEmail });
+
+      // Proje seçimi: kullanıcı tek proje, admin çok proje
+      let chosenCode = access.project_code || "";
+      if(role === "admin"){
+        const { data: ps, error: psErr } = await supabase
+          .from("app_state")
+          .select("project_code")
+          .order("project_code", { ascending: true });
+        if(psErr) throw psErr;
+
+        const codes = (ps || []).map(r => r.project_code).filter(Boolean);
+        setAvailableProjectCodes(codes);
+        chosenCode = codes[0] || "";
+      }
+      setActiveProjectCode(chosenCode);
 
       // 3) Buluttan en güncel veriyi çek (varsa)
       try{
-        const remote = await loadStateFromSupabase();
+        const remote = await loadStateFromSupabase(chosenCode);
         if(remote && typeof remote === "object"){
           // Local kurguyu bozmamak için normalize edip kur
           setState(normalizeState(remote));
@@ -2178,6 +2210,29 @@ for(const emp of (next.employees || [])){
             <span>{auth?.username || "Kullanıcı"}</span>
             <span className="small" style={{opacity:.7}}>{isAdmin ? "Admin" : (auth?.projectName || "Proje")}</span>
           </div>
+          {auth?.role === "admin" && availableProjectCodes?.length > 0 && (
+            <select
+              className="projectSelect"
+              value={activeProjectCode || ""}
+              onChange={async (e) => {
+                const code = e.target.value;
+                setActiveProjectCode(code);
+                try{
+                  const remote = await loadStateFromSupabase(code);
+                  if(remote) setState(normalizeState(remote));
+                }catch(err){
+                  console.error(err);
+                  alert(err?.message || "Proje verisi yüklenemedi");
+                }
+              }}
+              title="Admin proje seçimi"
+              style={{ marginRight: 10, padding: "6px 8px", borderRadius: 8 }}
+            >
+              {availableProjectCodes.map(c => (
+                <option key={c} value={c}>{c}</option>
+              ))}
+            </select>
+          )}
           <button className="logoutBtn" type="button" onClick={() => { setAuth(null); setLu(""); setLp(""); setTab("dashboard"); setNotifOpen(false); }}>Çıkış</button>
         </div>
       </div>
