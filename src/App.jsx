@@ -2475,7 +2475,7 @@ for(const emp of (next.employees || [])){
                     className="input"
                     value={newItemName}
                     onChange={(e) => setNewItemName(e.target.value)}
-                    placeholder={`${activeCategory?.itemLabel || "Kayıt"} adı (ör: Faruk Aksoy)`}
+                    placeholder={`${activeCategory?.itemLabel || "Kayıt"} adı (ör: Faruk Aksoy / 34 ABC 123)`}
                   />
                   <button className="btn primary" onClick={() => requestItem(visibleProjects[0]?.id)}>
                     Gönder
