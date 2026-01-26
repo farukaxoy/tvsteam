@@ -957,9 +957,6 @@ useEffect(() => {
   const [catFieldOptions, setCatFieldOptions] = useState("");
   const [catFieldUnit, setCatFieldUnit] = useState("");
 
-  /* notifications panel */
-  const [notifOpen, setNotifOpen] = useState(false);
-
   // Modern login styles (injected once)
 useEffect(() => {
   if(document.getElementById("login-modern-css")) return;
