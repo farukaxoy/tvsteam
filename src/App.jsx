@@ -1194,6 +1194,20 @@ useEffect(() => {
       cats.forEach(c => { if(!next.itemsByCategory[c.key]) next.itemsByCategory[c.key] = []; });
     });
   }, [auth?.project, auth?.email, isAdmin, state.projects, state.categories]);
+  // Cleanup legacy projects (old Izmir/Izmit entries) and keep only canonical project_code ones
+  useEffect(() => {
+    if(!isAdmin) return;
+    updateState(next => {
+      if(!Array.isArray(next.projects)) return;
+      next.projects = next.projects.filter(p => {
+        if(!p) return false;
+        // keep projects that have a project_code or are GLOBAL
+        if(p.id === "GLOBAL" || p.project_code) return true;
+        return false;
+      });
+    });
+  }, [isAdmin]);
+
 
   /* ===== normalization: kategori eklendiğinde projelere alan aç ===== */
   function normalizeState(s){
