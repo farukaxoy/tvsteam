@@ -2571,8 +2571,9 @@ for(const emp of (next.employees || [])){
                           updateState(d => {
                             const nn = (d.notifications || []).find(x => x.id === n.id);
                             if(nn) nn.read = true;
-                          });
-                        }}
+                  });
+                  pushToast("Proje durumu güncellendi.", "ok");
+                }}
                         style={{
                           width: "100%",
                           textAlign: "left",
@@ -4430,14 +4431,14 @@ isAdmin,
               </select>
               <button
                 className="btn sm"
+                type="button"
                 onClick={() => {
                   if(!selectedProjectId) return;
                   updateState(next => {
                     const p = (next.projects || []).find(x => x.id === selectedProjectId);
                     if(!p) return;
-                    p.is_active = !(p.is_active === false); // default true -> archive sets false
-                    // if currently true, archive it; if false, unarchive
-                    p.is_active = !p.is_active;
+                    // Toggle archive flag (true=active, false=archived)
+                    p.is_active = (p.is_active === false) ? true : false;
                   });
                 }}
                 title="Projeyi arşivle / arşivden çıkar"
