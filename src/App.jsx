@@ -4442,15 +4442,7 @@ isAdmin,
               <button
                 className="btn sm"
                 type="button"
-                onClick={() => {
-                  if(!selectedProjectId) return;
-                  updateState(next => {
-                    const p = (next.projects || []).find(x => x.id === selectedProjectId);
-                    if(!p) return;
-                    // Toggle archive flag (true=active, false=archived)
-                    p.is_active = (p.is_active === false) ? true : false;
-                  });
-                }}
+                onClick={() => toggleProjectArchive(selectedProjectId)}
                 title="Projeyi arşivle / arşivden çıkar"
               >
                 {(() => {
