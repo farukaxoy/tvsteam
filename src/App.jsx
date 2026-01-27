@@ -5558,38 +5558,47 @@ function DocTrackingView({ isAdmin, auth, projects, employees, docRegisterTypes,
 
 
   // proje bazlı görüntüleme (admin seçebilir, kullanıcı kendi projesine kilitli)
+  const mineProject = useMemo(() => ((Array.isArray(projects) && projects.length) ? projects[0] : null), [projects]);
+  const mineProjectName = useMemo(() => {
+    // Çalışan kayıtlarında genelde employee.project = "Proje Adı" tutuluyor.
+    // Bu yüzden non-admin için filtre anahtarı olarak proje adını (yoksa code/id) kullanıyoruz.
+    return String(mineProject?.name || mineProject?.project_code || mineProject?.id || auth?.project || "").trim();
+  }, [mineProject, auth?.project]);
+
   const allProjectNames = useMemo(() => {
     const set = new Set();
     (Array.isArray(projects) ? projects : []).forEach(p => p?.name && set.add(p.name));
     // fallback: employees içinden de topla
     (Array.isArray(employees) ? employees : []).forEach(e => e?.project && set.add(e.project));
+    // admin dropdown için stabil liste
     return Array.from(set);
   }, [projects, employees]);
 
   const [projectFilter, setProjectFilter] = useState(() => {
-    if(!isAdmin) return auth?.project || (allProjectNames[0] || "");
-    return auth?.project || (allProjectNames[0] || "");
+    if(!isAdmin) return mineProjectName;
+    return (allProjectNames[0] || "");
   });
 
   useEffect(() => {
-    // kullanıcı için proje kilitli
+    // kullanıcı için proje kilitli (proje adı)
     if(!isAdmin){
-      const p = auth?.project || "";
+      const p = mineProjectName;
       if(p && projectFilter !== p) setProjectFilter(p);
       return;
     }
     // admin için seçili proje geçerli değilse ilkine çek
     if(projectFilter && allProjectNames.includes(projectFilter)) return;
     if(allProjectNames[0]) setProjectFilter(allProjectNames[0]);
-  }, [isAdmin, auth?.project, allProjectNames]);
+  }, [isAdmin, mineProjectName, allProjectNames]);
 
-  // proje bazlı filtre (admin seçer, kullanıcı proje kilitli)
-  const curProjectName = String(projectFilter || (auth?.project || "")).trim();
-  const employeesInProject = curProjectName
-    ? (visibleEmployees || []).filter(e => String(e.project || "").trim() === curProjectName)
+  // proje bazlı filtre
+  const curProjectName = String(isAdmin ? (projectFilter || "") : mineProjectName).trim();
+
+  // non-admin: visibleEmployees zaten projeye göre filtreli (canonProj). Burada tekrar string eşleştirme yapmıyoruz.
+  const employeesInProject = isAdmin
+    ? (curProjectName ? (visibleEmployees || []).filter(e => String(e.project || "").trim() === curProjectName) : (visibleEmployees || []))
     : (visibleEmployees || []);
-
-  const filteredEmployees = employeesInProject;
+const filteredEmployees = employeesInProject;
 
   const [empId, setEmpId] = useState(() => (filteredEmployees[0]?.id || ""));
   useEffect(() => {
