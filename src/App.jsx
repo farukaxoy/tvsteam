@@ -1152,8 +1152,10 @@ useEffect(() => {
     if(isAdmin){
       return state.projects.find(p => p.id === entryProjectId) || state.projects[0] || null;
     }
-    // kullanıcı: kendi projesi
-    return findProjectAny(state.projects, auth.project);
+        // kullanıcı: kendi projesi
+    const mine = findProjectAny(state.projects, auth.project);
+    if(mine && mine.is_active === false) return null;
+    return mine;
   }, [auth, isAdmin, state.projects, entryProjectId]);
 
   // If a non-admin user's project isn't present in GLOBAL state yet, create it automatically.
@@ -1237,6 +1239,7 @@ useEffect(() => {
       if(!pp.id && pp.project_code) pp.id = pp.project_code;
       if(!pp.enabledCategoryKeys) pp.enabledCategoryKeys = [];
       if(!pp.fieldVisibility) pp.fieldVisibility = {}; // { [categoryKey]: string[] hiddenFieldKeys }
+      if(pp.is_active === undefined) pp.is_active = true;
       return pp;
     });
     next.employees ||= [];
@@ -2674,7 +2677,7 @@ for(const emp of (next.employees || [])){
                   onChange={(e) => setEntryProjectId(e.target.value)}
                 >
                   {(state.projects || []).map((p) => (
-                    <option key={p.id} value={p.id}>{p.name}</option>
+                    <option key={p.id} value={p.id}>{p.name}{p.is_active===false ? " (Arşivli)" : ""}</option>
                   ))}
                 </select>
                 <div style={{ height: 10 }} />
@@ -2779,7 +2782,7 @@ for(const emp of (next.employees || [])){
                     >
                       <option value="ALL">Tüm Projeler</option>
                       {(state.projects || []).map((p) => (
-                        <option key={p.id} value={p.id}>{p.name}</option>
+                        <option key={p.id} value={p.id}>{p.name}{p.is_active===false ? " (Arşivli)" : ""}</option>
                       ))}
                     </select>
                   )}
@@ -4422,9 +4425,37 @@ isAdmin,
                 style={{minWidth:260}}
               >
                 {safeProjects.map(p => (
-                  <option key={p.id} value={p.id}>{p.name}</option>
+                  <option key={p.id} value={p.id}>{p.name}{p.is_active===false ? " (Arşivli)" : ""}</option>
                 ))}
               </select>
+              <button
+                className="btn sm"
+                onClick={() => {
+                  if(!selectedProjectId) return;
+                  updateState(next => {
+                    const p = (next.projects || []).find(x => x.id === selectedProjectId);
+                    if(!p) return;
+                    p.is_active = !(p.is_active === false); // default true -> archive sets false
+                    // if currently true, archive it; if false, unarchive
+                    p.is_active = !p.is_active;
+                  });
+                }}
+                title="Projeyi arşivle / arşivden çıkar"
+              >
+                {(() => {
+                  const p = safeProjects.find(x => x.id === selectedProjectId);
+                  const archived = p && p.is_active === false;
+                  return archived ? "Arşivden Çıkar" : "Arşivle";
+                })()}
+              </button>
+              <span className="muted" style={{fontSize:12}}>
+                {(() => {
+                  const p = safeProjects.find(x => x.id === selectedProjectId);
+                  const archived = p && p.is_active === false;
+                  return archived ? " (Arşivli)" : " (Aktif)";
+                })()}
+              </span>
+
 
               <button
                 className="btn"
@@ -6314,7 +6345,7 @@ function VehiclesAdminView({ isAdmin, auth, categories, projects, updateState, p
         <div className="field">
           <label>Proje</label>
           <select value={projectId} onChange={e=>setProjectId(e.target.value)}>
-            {(projects || []).map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+            {(projects || []).map(p => <option key={p.id} value={p.id}>{p.name}{p.is_active===false ? " (Arşivli)" : ""}</option>)}
           </select>
         </div>
 
