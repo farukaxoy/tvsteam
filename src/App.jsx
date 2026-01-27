@@ -636,6 +636,19 @@ state = {
 }
 ========================================================= */
 
+
+function findProjectAny(projects, value){
+  const v = (value ?? "").toString().trim();
+  if(!v) return null;
+  const sv = slugKey(v);
+  const arr = Array.isArray(projects) ? projects : [];
+  return arr.find(p => {
+    const pid = (p?.id ?? "").toString();
+    const pcode = (p?.project_code ?? p?.code ?? p?.projectCode ?? "").toString();
+    const pname = (p?.name ?? "").toString();
+    return pid === v || pcode === v || pname === v || slugKey(pname) === sv;
+  }) || null;
+}
 function seedState(){
   const categories = defaultCategories();
   return {
@@ -1122,7 +1135,7 @@ useEffect(() => {
       return state.projects.find(p => p.id === entryProjectId) || state.projects[0] || null;
     }
     // kullanıcı: kendi projesi
-    return state.projects.find(p => canonProj(p.name) === canonProj(auth.project)) || null;
+    return findProjectAny(state.projects, auth.project);
   }, [auth, isAdmin, state.projects, entryProjectId]);
 
   /* ===== normalization: kategori eklendiğinde projelere alan aç ===== */
@@ -1374,7 +1387,8 @@ for(const emp of (next.employees || [])){
   const visibleProjects = useMemo(() => {
     if(!auth) return [];
     if(isAdmin) return state.projects;
-    return state.projects.filter(p => canonProj(p.name) === canonProj(auth.project));
+    const mine = findProjectAny(state.projects, auth.project);
+    return mine ? [mine] : [];
   }, [state.projects, auth, isAdmin]);
 
 
@@ -1386,17 +1400,18 @@ for(const emp of (next.employees || [])){
 
     const p = entryProject || null;
     const keys = Array.isArray(p?.enabledCategoryKeys) ? p.enabledCategoryKeys : null;
-    if(keys && keys.length){
+    if(keys){
       const keyset = new Set(keys);
       const filtered = all.filter(c => keyset.has(c.key));
-      return filtered.length ? filtered : all;
+      return filtered;
     }
     return all;
   }, [state.categories, isAdmin, tab, entryProject]);
 
   const activeCategory = useMemo(() => {
-    return visibleCategories.find(c => c.key === categoryKey) || visibleCategories[0] || state.categories[0];
-  }, [visibleCategories, state.categories, categoryKey]);
+    if(!visibleCategories || visibleCategories.length===0) return null;
+    return visibleCategories.find(c => c.key === categoryKey) || visibleCategories[0] || null;
+  }, [visibleCategories, categoryKey]);
 
   useEffect(() => {
     if(visibleCategories.length && !visibleCategories.some(c => c.key === categoryKey)){
@@ -2176,6 +2191,7 @@ for(const emp of (next.employees || [])){
   const dashboardRows = useMemo(() => {
     if(!auth) return [];
     const cat = activeCategory;
+    if(!cat) return [];
 
     return dashboardProjects.map(p => {
       const arr = p.itemsByCategory?.[cat.key] || [];
@@ -2276,6 +2292,7 @@ for(const emp of (next.employees || [])){
     if(!p) return [];
 
     const cat = activeCategory;
+    if(!cat) return [];
     const arrAll = p.itemsByCategory?.[cat.key] || [];
     const q = (search || "").trim().toLowerCase();
 
@@ -2292,12 +2309,12 @@ for(const emp of (next.employees || [])){
 
   const myPendingItems = useMemo(() => {
     if(!auth || isAdmin) return [];
-        const p = state.projects.find(pp => canonProj(pp.name) === canonProj(auth.project));
-    if(!p) return [];
+    if(!entryProject || !activeCategory) return [];
+    const p = entryProject;
     const cat = activeCategory;
     const arr = p.itemsByCategory?.[cat.key] || [];
     return arr.filter(it => cat.approval?.item && !it.approved && it.requestedBy === auth.username);
-  }, [auth, isAdmin, visibleProjects, activeCategory]);
+  }, [auth, isAdmin, entryProject, activeCategory]);
 
   /* ===================== LOGIN SCREEN ===================== */
 
@@ -2879,7 +2896,7 @@ for(const emp of (next.employees || [])){
                 isAdmin={isAdmin}
                 monthKey={monthKey}
                 categories={state.categories}
-                projects={state.projects}
+                projects={visibleProjects}
                 docTemplates={state.docTemplates}
                 docRegisterTypes={state.docRegisterTypes}
                 adminAddDocTemplate={adminAddDocTemplate}
@@ -2911,7 +2928,7 @@ for(const emp of (next.employees || [])){
 
               <ProjectUserMapping
                 authUsers={state.authUsers}
-                projects={state.projects}
+                projects={visibleProjects}
                 onUpsert={adminUpsertAuthUser}
                 onDelete={adminDeleteAuthUser}
               />
@@ -2920,7 +2937,7 @@ for(const emp of (next.employees || [])){
                 isAdmin={isAdmin}
                 auth={auth}
                 categories={state.categories}
-                projects={state.projects}
+                projects={visibleProjects}
                 updateState={updateState}
                 pushToast={pushToast}
               />
@@ -2932,7 +2949,7 @@ for(const emp of (next.employees || [])){
               isAdmin={isAdmin}
               auth={auth}
               employees={state.employees}
-              projects={state.projects}
+              projects={visibleProjects}
               updateState={updateState}
             />
           )}
@@ -2941,7 +2958,7 @@ for(const emp of (next.employees || [])){
             <DocsView
               isAdmin={isAdmin}
               auth={auth}
-              projects={state.projects}
+              projects={visibleProjects}
               employees={state.employees}
               docTemplates={state.docTemplates}
               employeeDocs={state.employeeDocs}
@@ -2953,7 +2970,7 @@ for(const emp of (next.employees || [])){
             <DocTrackingView
               isAdmin={isAdmin}
               auth={auth}
-              projects={state.projects}
+              projects={visibleProjects}
               employees={state.employees}
               docRegisterTypes={state.docRegisterTypes}
               employeeDocRegister={state.employeeDocRegister}
@@ -3174,10 +3191,10 @@ function DashboardView({ monthKey, category, rows, projects, employees, actions,
               <th>Proje</th>
               <th>Onaylı {category?.itemLabel || "Kayıt"}</th>
               <th>Onaylı Aylık</th>
-              {(category?.fields || []).filter(f=>f.type==="number").map(f=>(
+              {(category?.fields || []).filter(f=>f.type==="number" && f.key!=="mealCount").map(f=>(
                 <th key={f.key}>{f.label}</th>
               ))}
-              {category?.special?.meals ? <th>Yemek</th> : null}
+              {(category?.special?.meals || (category?.fields||[]).some(f=>f.key==="mealCount")) ? <th>Yemek</th> : null}
             </tr>
           </thead>
           <tbody>
@@ -3186,10 +3203,10 @@ function DashboardView({ monthKey, category, rows, projects, employees, actions,
                 <td><b>{r.name}</b></td>
                 <td>{r.itemsApproved}</td>
                 <td>{r.monthApproved}</td>
-                {(category?.fields || []).filter(f=>f.type==="number").map(f=>(
+                {(category?.fields || []).filter(f=>f.type==="number" && f.key!=="mealCount").map(f=>(
                   <td key={f.key}>{safeNum(r.sums?.[f.key])}</td>
                 ))}
-                {category?.special?.meals ? <td>{r.mealsSum}</td> : null}
+                {(category?.special?.meals || (category?.fields||[]).some(f=>f.key==="mealCount")) ? <td>{r.mealsSum}</td> : null}
               </tr>
             ))}
             {rows.length===0 && <tr><td colSpan="99">Kayıt yok.</td></tr>}
@@ -3217,10 +3234,10 @@ function DashboardView({ monthKey, category, rows, projects, employees, actions,
                 <tr>
                   <th>Proje</th>
                   <th>Uzman</th>
-                  {(category?.fields || []).filter(f=>f.type==="number").map(f=>(
+                  {(category?.fields || []).filter(f=>f.type==="number" && f.key!=="mealCount").map(f=>(
                     <th key={f.key}>{f.label}</th>
                   ))}
-                  {category?.special?.meals ? <th>Yemek</th> : null}
+                  {(category?.special?.meals || (category?.fields||[]).some(f=>f.key==="mealCount")) ? <th>Yemek</th> : null}
                 </tr>
               </thead>
               <tbody>
@@ -3256,7 +3273,7 @@ function DashboardView({ monthKey, category, rows, projects, employees, actions,
                     <tr key={r.project + "_" + r.name + "_" + i}>
                       <td><b>{r.project}</b></td>
                       <td>{r.name}</td>
-                      {(category?.fields || []).filter(f=>f.type==="number").map(f=>(
+                      {(category?.fields || []).filter(f=>f.type==="number" && f.key!=="mealCount").map(f=>(
                         <td key={f.key}>{safeNum(r.nums?.[f.key])}</td>
                       ))}
                       {category?.special?.meals ? <td>{safeNum(r.meals)}</td> : null}
@@ -3292,7 +3309,7 @@ function BarChart({ title, data }){
     <div className="card" style={{padding:14}}>
       <div className="cardTitleRow">
         <h4 style={{margin:0}}>{title}</h4>
-        <Badge kind="ok">Bar</Badge>
+        <Badge kind="ok">Sayı</Badge>
       </div>
       <div style={{marginTop:10, display:"flex", flexDirection:"column", gap:8}}>
         {(data || []).map(d => {
@@ -3756,6 +3773,7 @@ function EntryView({
 
   return (
     <>
+      {isAdmin && (
       <div className="card">
         <div className="cardTitleRow">
           <h2>Admin • Yedekleme</h2>
@@ -3772,7 +3790,7 @@ function EntryView({
               onChange={(e)=>{
                 const f = e.target.files?.[0];
                 e.target.value = "";
-                handleImportBackup?.(f);
+                onImportBackup?.(f);
               }}
             />
           </label>
@@ -3781,6 +3799,7 @@ function EntryView({
           </div>
         </div>
       </div>
+      )}
 
       <div className="card">
         <div className="cardTitleRow">
@@ -5231,8 +5250,20 @@ function DocsView({
   employeeDocs,
   updateState
 }){
-  const [projectName, setProjectName] = useState(isAdmin ? (projects?.[0]?.name || "") : (auth?.project || ""));
+  const [projectName, setProjectName] = useState(() => {
+    if(isAdmin) return (projects?.[0]?.name || "");
+    const mine = findProjectAny(projects, auth?.project);
+    return mine?.name || "";
+  });
   const [employeeId, setEmployeeId] = useState("");
+
+  useEffect(() => {
+    if(isAdmin) return;
+    const mine = findProjectAny(projects, auth?.project);
+    const nm = mine?.name || "";
+    if(projectName !== nm) setProjectName(nm);
+  }, [isAdmin, projects, auth, projectName]);
+
 
   function adminAddDocTemplate(nameArg){
     if(!isAdmin) return;
@@ -5278,7 +5309,8 @@ function DocsView({
 
   const projectEmployees = useMemo(() => {
     // Doküman takibi: pasif personel de listelensin (etiketle gösterilir)
-    return (employees || []).filter(e => (projectName ? e.project === projectName : true));
+    if(!projectName) return [];
+    return (employees || []).filter(e => e.project === projectName);
   }, [employees, projectName]);
 
   useEffect(() => {
