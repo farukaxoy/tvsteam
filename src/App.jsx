@@ -1156,6 +1156,45 @@ useEffect(() => {
     return findProjectAny(state.projects, auth.project);
   }, [auth, isAdmin, state.projects, entryProjectId]);
 
+  // If a non-admin user's project isn't present in GLOBAL state yet, create it automatically.
+  // This prevents "Proje bulunamadı" for new projects like TUPRAS_IZMIT / TUPRAS_IZMIR.
+  useEffect(() => {
+    if(!auth || isAdmin) return;
+    const codeRaw = auth.project;
+    if(!codeRaw) return;
+
+    const existing = findProjectAny(state.projects, codeRaw);
+    if(existing) return;
+
+    updateState(next => {
+      const projects = Array.isArray(next.projects) ? next.projects : [];
+      const cats = Array.isArray(next.categories) ? next.categories : [];
+      const code = String(codeRaw).trim();
+
+      // Avoid duplicates if something adds it concurrently
+      if(projects.some(p => p?.id === code || p?.project_code === code)) return;
+
+      const pretty = code
+        .replace(/_/g, " ")
+        .replace(/\s+/g, " ")
+        .trim();
+
+      projects.push({
+        id: code,
+        project_code: code,
+        name: pretty,
+        is_active: true,
+        enabledCategoryKeys: cats.map(c => c.key),
+        fieldVisibility: {}
+      });
+
+      next.projects = projects;
+      // Ensure itemsByCategory has buckets for all categories (existing logic usually already does this)
+      next.itemsByCategory = next.itemsByCategory || {};
+      cats.forEach(c => { if(!next.itemsByCategory[c.key]) next.itemsByCategory[c.key] = []; });
+    });
+  }, [auth?.project, auth?.email, isAdmin, state.projects, state.categories]);
+
   /* ===== normalization: kategori eklendiğinde projelere alan aç ===== */
   function normalizeState(s){
     const next = deepClone(s);
