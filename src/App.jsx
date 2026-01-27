@@ -5332,68 +5332,48 @@ function DocsView({
   employeeDocs,
   updateState
 }){
+  // For docs tracking we need a stable "project key" to filter employees.
+  // Employees are stored with employee.project = project.name (not project_code).
+  const myProject = useMemo(() => {
+    if(isAdmin) return null;
+    return findProjectAny(projects, auth?.project) || null; // auth.project is project_code
+  }, [isAdmin, projects, auth?.project]);
+
   const [projectName, setProjectName] = useState(() => {
     if(isAdmin) return (projects?.[0]?.name || "");
-    const mine = findProjectAny(projects, auth?.project);
-    return mine?.name || "";
+    return myProject?.name || myProject?.id || "";
   });
   const [employeeId, setEmployeeId] = useState("");
 
+  // Keep project selection in sync
   useEffect(() => {
-    if(isAdmin) return;
-    const mine = findProjectAny(projects, auth?.project);
-    const nm = mine?.name || "";
-    if(projectName !== nm) setProjectName(nm);
-  }, [isAdmin, projects, auth, projectName]);
-
-
-  function adminAddDocTemplate(nameArg){
-    if(!isAdmin) return;
-    const name = String(nameArg || "").trim();
-    if(!name) return;
-    const baseKey = slugKey(name);
-    updateState(d => {
-      d.docTemplates ||= [];
-      let key = baseKey;
-      let i = 2;
-      while(d.docTemplates.some(t => t.key === key)){
-        key = `${baseKey}_${i++}`;
-      }
-      d.docTemplates.push({ key, name });
-    });
-  }
-
-  function adminDeleteDocTemplate(key){
-    if(!isAdmin) return;
-    if(!key) return;
-    if(!confirm("Bu doküman tanımını silmek istiyor musun?")) return;
-    updateState(d => {
-      d.docTemplates ||= [];
-      d.docTemplates = d.docTemplates.filter(t => t.key !== key);
-      // optional: remove from employeeDocs to keep storage clean
-      if(d.employeeDocs){
-        Object.keys(d.employeeDocs).forEach(empId => {
-          if(d.employeeDocs[empId]) delete d.employeeDocs[empId][key];
-        });
-      }
-    });
-  }
-
-  useEffect(() => {
-    if(!isAdmin){
-      setProjectName(auth?.project || "");
-    }else{
+    if(isAdmin){
       if(projects?.length && !projects.some(p => p.name === projectName)){
         setProjectName(projects[0]?.name || "");
       }
+      return;
     }
-  }, [isAdmin, auth, projects]);
+    const nm = myProject?.name || myProject?.id || "";
+    if(projectName !== nm) setProjectName(nm);
+  }, [isAdmin, projects, myProject, projectName]);
 
   const projectEmployees = useMemo(() => {
     // Doküman takibi: pasif personel de listelensin (etiketle gösterilir)
     if(!projectName) return [];
-    return (employees || []).filter(e => e.project === projectName);
-  }, [employees, projectName]);
+    const code = String(auth?.project || "").trim();
+    const mineName = myProject?.name || "";
+    const mineId = myProject?.id || "";
+    return (employees || []).filter(e => {
+      const p = e?.project || "";
+      // Primary: employee.project == project.name
+      if(p === projectName) return true;
+      // Fallbacks for older data / mismatches
+      if(mineName && p === mineName) return true;
+      if(mineId && p === mineId) return true;
+      if(code && p === code) return true; // if someone stored project_code into employee.project
+      return false;
+    });
+  }, [employees, projectName, auth?.project, myProject]);
 
   useEffect(() => {
     if(projectEmployees.length === 0){
