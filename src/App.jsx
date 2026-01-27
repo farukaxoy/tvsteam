@@ -1152,10 +1152,8 @@ useEffect(() => {
     if(isAdmin){
       return state.projects.find(p => p.id === entryProjectId) || state.projects[0] || null;
     }
-        // kullanıcı: kendi projesi
-    const mine = findProjectAny(state.projects, auth.project);
-    if(mine && mine.is_active === false) return null;
-    return mine;
+    // kullanıcı: kendi projesi
+    return findProjectAny(state.projects, auth.project);
   }, [auth, isAdmin, state.projects, entryProjectId]);
 
   // If a non-admin user's project isn't present in GLOBAL state yet, create it automatically.
@@ -1239,9 +1237,15 @@ useEffect(() => {
       if(!pp.id && pp.project_code) pp.id = pp.project_code;
       if(!pp.enabledCategoryKeys) pp.enabledCategoryKeys = [];
       if(!pp.fieldVisibility) pp.fieldVisibility = {}; // { [categoryKey]: string[] hiddenFieldKeys }
-      if(pp.is_active === undefined) pp.is_active = true;
       return pp;
     });
+
+    // Remove legacy duplicate projects created only by name (keep canonical project_code ones)
+    const legacyNames = new Set([
+      "Tupras İzmir","Tupras Izmir","Tüpraş İzmir","Tüpraş Izmir",
+      "Tupras İzmit","Tupras Izmit","Tüpraş İzmit","Tüpraş Izmit"
+    ]);
+    next.projects = (next.projects || []).filter(p => !(p && legacyNames.has(p.name) && !p.project_code));
     next.employees ||= [];
 
     // documents
@@ -1343,17 +1347,6 @@ for(const emp of (next.employees || [])){
       mutator(next);
       return normalizeState(next);
     });
-  }
-
-  
-  function toggleProjectArchive(projectId){
-    if(!projectId) return;
-    updateState(next => {
-      const p = (next.projects || []).find(x => x.id === projectId);
-      if(!p) return;
-      p.is_active = (p.is_active === false) ? true : false;
-    });
-    pushToast("Proje durumu güncellendi.", "ok");
   }
 
   /* ===== AUTH ===== */
@@ -2582,9 +2575,8 @@ for(const emp of (next.employees || [])){
                           updateState(d => {
                             const nn = (d.notifications || []).find(x => x.id === n.id);
                             if(nn) nn.read = true;
-                  });
-                  pushToast("Proje durumu güncellendi.", "ok");
-                }}
+                          });
+                        }}
                         style={{
                           width: "100%",
                           textAlign: "left",
@@ -2689,7 +2681,7 @@ for(const emp of (next.employees || [])){
                   onChange={(e) => setEntryProjectId(e.target.value)}
                 >
                   {(state.projects || []).map((p) => (
-                    <option key={p.id} value={p.id}>{p.name}{p.is_active===false ? " (Arşivli)" : ""}</option>
+                    <option key={p.id} value={p.id}>{p.name}</option>
                   ))}
                 </select>
                 <div style={{ height: 10 }} />
@@ -2794,7 +2786,7 @@ for(const emp of (next.employees || [])){
                     >
                       <option value="ALL">Tüm Projeler</option>
                       {(state.projects || []).map((p) => (
-                        <option key={p.id} value={p.id}>{p.name}{p.is_active===false ? " (Arşivli)" : ""}</option>
+                        <option key={p.id} value={p.id}>{p.name}</option>
                       ))}
                     </select>
                   )}
@@ -4437,29 +4429,9 @@ isAdmin,
                 style={{minWidth:260}}
               >
                 {safeProjects.map(p => (
-                  <option key={p.id} value={p.id}>{p.name}{p.is_active===false ? " (Arşivli)" : ""}</option>
+                  <option key={p.id} value={p.id}>{p.name}</option>
                 ))}
               </select>
-              <button
-                className="btn sm"
-                type="button"
-                onClick={() => toggleProjectArchive(selectedProjectId)}
-                title="Projeyi arşivle / arşivden çıkar"
-              >
-                {(() => {
-                  const p = safeProjects.find(x => x.id === selectedProjectId);
-                  const archived = p && p.is_active === false;
-                  return archived ? "Arşivden Çıkar" : "Arşivle";
-                })()}
-              </button>
-              <span className="muted" style={{fontSize:12}}>
-                {(() => {
-                  const p = safeProjects.find(x => x.id === selectedProjectId);
-                  const archived = p && p.is_active === false;
-                  return archived ? " (Arşivli)" : " (Aktif)";
-                })()}
-              </span>
-
 
               <button
                 className="btn"
@@ -6349,7 +6321,7 @@ function VehiclesAdminView({ isAdmin, auth, categories, projects, updateState, p
         <div className="field">
           <label>Proje</label>
           <select value={projectId} onChange={e=>setProjectId(e.target.value)}>
-            {(projects || []).map(p => <option key={p.id} value={p.id}>{p.name}{p.is_active===false ? " (Arşivli)" : ""}</option>)}
+            {(projects || []).map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
           </select>
         </div>
 
