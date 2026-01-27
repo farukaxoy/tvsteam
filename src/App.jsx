@@ -1343,7 +1343,17 @@ for(const emp of (next.employees || [])){
       mutator(next);
       return normalizeState(next);
     });
+  
+  function toggleProjectArchive(projectId){
+    if(!projectId) return;
+    updateState(next => {
+      const p = (next.projects || []).find(x => x.id === projectId);
+      if(!p) return;
+      p.is_active = (p.is_active === false) ? true : false;
+    });
+    pushToast("Proje durumu güncellendi.", "ok");
   }
+}
 
   /* ===== AUTH ===== */
     
