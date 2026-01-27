@@ -638,15 +638,33 @@ state = {
 
 
 function findProjectAny(projects, value){
-  const v = (value ?? "").toString().trim();
-  if(!v) return null;
-  const sv = slugKey(v);
+  const vRaw = (value ?? "").toString().trim();
+  if(!vRaw) return null;
+  const v = vRaw;
+  const sv = slugKey(vRaw);
   const arr = Array.isArray(projects) ? projects : [];
   return arr.find(p => {
-    const pid = (p?.id ?? "").toString();
-    const pcode = (p?.project_code ?? p?.code ?? p?.projectCode ?? "").toString();
-    const pname = (p?.name ?? "").toString();
-    return pid === v || pcode === v || pname === v || slugKey(pname) === sv;
+    const pid = (p?.id ?? "").toString().trim();
+    const pcode = (p?.project_code ?? p?.code ?? p?.projectCode ?? "").toString().trim();
+    const pname = (p?.name ?? "").toString().trim();
+
+    // exact matches
+    if(pid === v || pcode === v || pname === v) return true;
+
+    // slug matches
+    const spid = slugKey(pid);
+    const spcode = slugKey(pcode);
+    const spname = slugKey(pname);
+
+    if(spid === sv || spcode === sv || spname === sv) return true;
+
+    // tolerate short codes like "izmit" matching "tupras-izmit" etc.
+    if(sv && (spname.includes(sv) || spcode.includes(sv) || spid.includes(sv))) return true;
+
+    // and vice-versa (in case stored key is shorter)
+    if(sv && (sv.includes(spname) || sv.includes(spcode) || sv.includes(spid))) return true;
+
+    return false;
   }) || null;
 }
 function seedState(){
@@ -1157,6 +1175,17 @@ useEffect(() => {
     }
 
     next.projects ||= [];
+    // ensure project_code exists for reliable matching (auth.project may be a code)
+    next.projects = (next.projects || []).map(p => {
+      const pp = p || {};
+      if(!pp.project_code && (pp.id || pp.name)){
+        pp.project_code = (pp.id ?? "").toString().trim() || slugKey((pp.name ?? "").toString());
+      }
+      if(!pp.id && pp.project_code) pp.id = pp.project_code;
+      if(!pp.enabledCategoryKeys) pp.enabledCategoryKeys = [];
+      if(!pp.fieldVisibility) pp.fieldVisibility = {}; // { [categoryKey]: string[] hiddenFieldKeys }
+      return pp;
+    });
     next.employees ||= [];
 
     // documents
