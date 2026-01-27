@@ -1240,12 +1240,22 @@ useEffect(() => {
       return pp;
     });
 
-    // Remove legacy duplicate projects created only by name (keep canonical project_code ones)
-    const legacyNames = new Set([
-      "Tupras İzmir","Tupras Izmir","Tüpraş İzmir","Tüpraş Izmir",
-      "Tupras İzmit","Tupras Izmit","Tüpraş İzmit","Tüpraş Izmit"
-    ]);
-    next.projects = (next.projects || []).filter(p => !(p && legacyNames.has(p.name) && !p.project_code));
+    // Remove legacy duplicate projects created only by display-name.
+// IMPORTANT: normalizeState may auto-fill project_code, so we remove by NAME regardless,
+// but always KEEP canonical coded projects.
+const keepCodes = new Set(["TUPRAS_IZMIT","TUPRAS_IZMIR","GLOBAL"]);
+const legacyNames = new Set([
+  "Tupras İzmir","Tupras Izmir","Tüpraş İzmir","Tüpraş Izmir",
+  "Tupras İzmit","Tupras Izmit","Tüpraş İzmit","Tüpraş Izmit"
+]);
+next.projects = (next.projects || []).filter(p => {
+  if(!p) return false;
+  const code = (p.project_code || p.id || "").toString().trim();
+  if(keepCodes.has(code)) return true;
+  if(legacyNames.has((p.name || "").toString().trim())) return false;
+  return true;
+});
+
     next.employees ||= [];
 
     // documents
