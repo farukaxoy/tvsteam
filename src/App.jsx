@@ -1343,6 +1343,8 @@ for(const emp of (next.employees || [])){
       mutator(next);
       return normalizeState(next);
     });
+  }
+
   
   function toggleProjectArchive(projectId){
     if(!projectId) return;
@@ -1353,7 +1355,6 @@ for(const emp of (next.employees || [])){
     });
     pushToast("Proje durumu güncellendi.", "ok");
   }
-}
 
   /* ===== AUTH ===== */
     
