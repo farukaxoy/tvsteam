@@ -3757,7 +3757,7 @@ function EntryView({
           <h2>Admin • Yedekleme</h2>
         </div>
         <div className="row" style={{gap:10, flexWrap:"wrap", marginTop:10}}>
-          <button className="btn primary" onClick={onDownloadBackup}>Yedek Al (JSON)</button>
+          <button className="btn primary" onClick={handleDownloadBackup}>Yedek Al (JSON)</button>
 
           <label className="btn" style={{cursor:"pointer"}}>
             Yedek Yükle (JSON)
@@ -3768,7 +3768,7 @@ function EntryView({
               onChange={(e)=>{
                 const f = e.target.files?.[0];
                 e.target.value = "";
-                onImportBackup?.(f);
+                handleImportBackup?.(f);
               }}
             />
           </label>
