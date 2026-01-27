@@ -5542,13 +5542,19 @@ function DocTrackingView({ isAdmin, auth, projects, employees, docRegisterTypes,
   const visibleEmployees = useMemo(() => {
     const arr = Array.isArray(employees) ? employees : [];
     if(isAdmin){
-      // admin de proje filtresine göre görsün (proje seçmeden "hepsi" yok)
-      const p = (auth?.project || "") || "";
-      return arr; // ham liste; aşağıda projectFilter ile süzülecek
+      // admin: ham liste; aşağıda projectFilter ile süzülecek
+      return arr;
     }
-    // kullanıcı kendi projesinin personelini görür (aktif/pasif dahil)
-    return arr.filter(e => canonProj(e.project) === canonProj(auth.project));
-  }, [employees, isAdmin, auth]);
+    // kullanıcı: kendi projesinin personeli (employee.project bazen "proje adı", bazen "project_code" olabiliyor)
+    const mine = (Array.isArray(projects) && projects.length) ? projects[0] : null;
+    const allow = new Set([
+      canonProj(auth?.project),
+      canonProj(mine?.project_code),
+      canonProj(mine?.id),
+      canonProj(mine?.name),
+    ].filter(Boolean));
+    return arr.filter(e => allow.has(canonProj(e?.project)));
+  }, [employees, isAdmin, auth?.project, projects]);
 
 
   // proje bazlı görüntüleme (admin seçebilir, kullanıcı kendi projesine kilitli)
