@@ -1034,38 +1034,41 @@ useEffect(() => {
   }, []);
   const [tab, setTab] = useState("dashboard");
 
-  // ==== Basit Hash Tabanlı Routing (#/dashboard, #/veri-girisi ...) ====
+  // ==== History API tabanlı Routing (pushState) (/dashboard, /veri-giris ...) ====
   const ROUTE_MAP = {
-    dashboard: '#/dashboard',
-    entry: '#/veri-girisi',
-    docs: '#/dokumanlar',
-    docTrack: '#/evrak-takip',
-    attendance: '#/puantaj',
-    actions: '#/aksiyonlar',
-    announcements: '#/duyurular',
-    contact: '#/iletisim',
-    approvals: '#/onaylar',
-    employees: '#/personel',
-    admin: '#/admin'
+    dashboard: '/dashboard',
+    entry: '/veri-giris',
+    docs: '/dokumanlar',
+    docTrack: '/evrak-takip',
+    attendance: '/puantaj',
+    actions: '/aksiyonlar',
+    announcements: '/duyurular',
+    contact: '/iletisim',
+    approvals: '/onaylar',
+    employees: '/personel',
+    admin: '/admin'
   };
-  function tabFromHash(h){
-    const v = (h||window.location.hash||'').toLowerCase();
-    const pairs = Object.entries(ROUTE_MAP);
-    for(const [key, path] of pairs){ if(v.startsWith(path)) return key; }
-    return 'dashboard';
-  }
+  function goTo(next){ const path = ROUTE_MAP[next] || '/dashboard'; if(window.location.pathname!==path){ window.history.pushState({}, '', path); } setTab(next); }
+  function tabFromPath(p){
+  const v = (p||window.location.pathname||'').toLowerCase();
+  const pairs = Object.entries(ROUTE_MAP);
+  for(const [key, path] of pairs){ if(v.startsWith(path)) return key; }
+  return 'dashboard';
+}
   useEffect(()=>{
-    const initial = tabFromHash(window.location.hash);
+    const initial = tabFromPath(window.location.pathname);
     if(initial && initial!==tab) setTab(initial);
-    const onHash = ()=>{ setTab(tabFromHash(window.location.hash)); };
-    window.addEventListener('hashchange', onHash);
-    return ()=> window.removeEventListener('hashchange', onHash);
+    const onHash = ()=>{ setTab(tabFromPath(window.location.pathname)); };
+    window.addEventListener('popstate', onHash);
+    return ()=> window.removeEventListener('popstate', onHash);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   },[]);
   useEffect(()=>{
-    const path = ROUTE_MAP[tab] || '#/dashboard';
-    if(window.location.hash !== path){ window.location.replace(path); }
-  },[tab]);
+  const path = ROUTE_MAP[tab] || '/dashboard';
+  if (typeof window !== 'undefined' && window.location.pathname !== path){
+    window.history.pushState({}, '', path);
+  }
+},[tab]);
 
   const [notifOpen, setNotifOpen] = useState(false);
   const notifRef = useRef(null);
@@ -1557,7 +1560,7 @@ for(const emp of (next.employees || [])){
       }
 
       setNotifOpen(false);
-      setTab("dashboard");
+      goTo("dashboard");
     }catch(e){
       console.error(e);
       setLoginError(e?.message || "Giriş yapılamadı.");
@@ -1571,7 +1574,7 @@ for(const emp of (next.employees || [])){
       if(supabase) await supabase.auth.signOut();
     }catch{}
     setAuth(null);
-    setTab("dashboard");
+    goTo("dashboard");
     setNotifOpen(false);
   }
 
@@ -2797,19 +2800,19 @@ for(const emp of (next.employees || [])){
         </div>
 
         <div className="navTabs">
-          <button className={"navBtn " + (tab === "dashboard" ? "active" : "")} type="button" onClick={() => setTab("dashboard")}>Dashboard</button>
-          <button className={"navBtn " + (tab === "entry" ? "active" : "")} type="button" onClick={() => setTab("entry")}>Veri Girişi</button>
-          <button className={"navBtn " + (tab === "docs" ? "active" : "")} type="button" onClick={() => setTab("docs")}>Dokümanlar</button>
-          <button className={"navBtn " + (tab === "docTrack" ? "active" : "")} type="button" onClick={() => setTab("docTrack")}>Evrak Takip</button>
-          <button className={"navBtn " + (tab === "attendance" ? "active" : "")} type="button" onClick={() => setTab("attendance")}>Puantaj</button>
-          <button className={"navBtn " + (tab === "actions" ? "active" : "")} type="button" onClick={() => setTab("actions")}>Aksiyonlar</button>
-          <button className={"navBtn " + (tab === "announcements" ? "active" : "")} type="button" onClick={() => setTab("announcements")}>Duyurular</button>
-          <button className={"navBtn " + (tab === "contact" ? "active" : "")} type="button" onClick={() => setTab("contact")}>İletişim</button>
+          <button className={"navBtn " + (tab === "dashboard" ? "active" : "")} type="button" onClick={()=> goTo("dashboard")}\>Dashboard</button>
+          <button className={"navBtn " + (tab === "entry" ? "active" : "")} type="button" onClick={()=> goTo("entry")}\>Veri Girişi</button>
+          <button className={"navBtn " + (tab === "docs" ? "active" : "")} type="button" onClick={()=> goTo("docs")}\>Dokümanlar</button>
+          <button className={"navBtn " + (tab === "docTrack" ? "active" : "")} type="button" onClick={()=> goTo("docTrack")}\>Evrak Takip</button>
+          <button className={"navBtn " + (tab === "attendance" ? "active" : "")} type="button" onClick={()=> goTo("attendance")}\>Puantaj</button>
+          <button className={"navBtn " + (tab === "actions" ? "active" : "")} type="button" onClick={()=> goTo("actions")}\>Aksiyonlar</button>
+          <button className={"navBtn " + (tab === "announcements" ? "active" : "")} type="button" onClick={()=> goTo("announcements")}\>Duyurular</button>
+          <button className={"navBtn " + (tab === "contact" ? "active" : "")} type="button" onClick={()=> goTo("contact")}\>İletişim</button>
           {isAdmin && (
             <>
-              <button className={"navBtn " + (tab === "approvals" ? "active" : "")} type="button" onClick={() => setTab("approvals")}>Onaylar</button>
-              <button className={"navBtn " + (tab === "employees" ? "active" : "")} type="button" onClick={() => setTab("employees")}>Personel</button>
-              <button className={"navBtn " + (tab === "admin" ? "active" : "")} type="button" onClick={() => setTab("admin")}>Admin</button>
+              <button className={"navBtn " + (tab === "approvals" ? "active" : "")} type="button" onClick={()=> goTo("approvals")}\>Onaylar</button>
+              <button className={"navBtn " + (tab === "employees" ? "active" : "")} type="button" onClick={()=> goTo("employees")}\>Personel</button>
+              <button className={"navBtn " + (tab === "admin" ? "active" : "")} type="button" onClick={()=> goTo("admin")}\>Admin</button>
             </>
           )}
         </div>
@@ -2936,7 +2939,7 @@ for(const emp of (next.employees || [])){
               ))}
             </select>
           )}
-          <button className="logoutBtn" type="button" onClick={() => { setAuth(null); setLu(""); setLp(""); setTab("dashboard"); setNotifOpen(false); }}>Çıkış</button>
+          <button className="logoutBtn" type="button" onClick={() => { setAuth(null); setLu(""); setLp(""); goTo("dashboard"); setNotifOpen(false); }}>Çıkış</button>
         </div>
       </div>
 
