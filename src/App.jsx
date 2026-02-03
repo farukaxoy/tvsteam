@@ -3616,8 +3616,8 @@ function DashboardView({ monthKey, category, rows, projects, employees, actions,
                         nums: {},
                         meals: category?.special?.meals ? ((Object.prototype.hasOwnProperty.call(dft, "mealCount") ? safeNum(dft.mealCount) : (Array.isArray(dft.meals) ? dft.meals.length : 0))) : null
                       };
-                      const hiddenDash = Array.isArray(activeProject?.fieldVisibility?.[category?.key]?.hiddenFieldKeys)
-                        ? activeProject.fieldVisibility[category.key].hiddenFieldKeys
+                      const hiddenDash = Array.isArray(p?.fieldVisibility?.[category?.key]?.hiddenFieldKeys)
+                        ? p.fieldVisibility[category.key].hiddenFieldKeys
                         : [];
                       for(const f of (category.fields || [])){
                         if(hiddenDash.includes(f.key)) continue;
