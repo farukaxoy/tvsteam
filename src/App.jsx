@@ -1249,7 +1249,7 @@ useEffect(() => {
 
   /* ===== normalization: kategori eklendiğinde projelere alan aç ===== */
   function normalizeState(s){
-    const next = deepClone(s);
+    const next = s; // deepClone zaten updateState'de yapılıyor, tekrar yapmayalım
 
     // --- ensure defaults exist (without breaking existing dynamic categories) ---
     const defaultCats = defaultCategories();
@@ -3211,6 +3211,7 @@ for(const emp of (next.employees || [])){
                   setMonthlyField={setMonthlyField}
                   toggleMeal={toggleMeal}
                   submitMonth={submitMonth}
+                  hiddenFieldKeys={entryProject?.fieldVisibility?.[activeCategory?.key]?.hiddenFieldKeys || []}
                 />
               )}
             </>
@@ -4122,11 +4123,18 @@ function EntryView({
   employees,
   setMonthlyField,
   toggleMeal,
-  submitMonth
+  submitMonth,
+  hiddenFieldKeys
 }){
   if(!project){
     return <div className="card">Proje bulunamadı.</div>;
   }
+
+  // Gizli alanları filtrele
+  const visibleFields = useMemo(() => {
+    const hidden = Array.isArray(hiddenFieldKeys) ? hiddenFieldKeys : [];
+    return (category?.fields || []).filter(f => !hidden.includes(f.key));
+  }, [category, hiddenFieldKeys]);
 
   return (
     <>
@@ -4190,6 +4198,7 @@ function EntryView({
             setMonthlyField={setMonthlyField}
             toggleMeal={toggleMeal}
             submitMonth={submitMonth}
+            hiddenFieldKeys={hiddenFieldKeys}
           />
         ) : (
           items.map(it => {
@@ -4223,7 +4232,7 @@ function EntryView({
 
               {/* Fields */}
               <div className="row" style={{flexWrap:"wrap"}}>
-                {(category?.fields || []).map(f => (
+                {visibleFields.map(f => (
                   <div key={f.key} style={{minWidth:220, flex:"1 1 240px"}}>
                     <div className="small" style={{fontWeight:900, marginBottom:6}}>
                       {f.label}{f.unit ? ` (${f.unit})` : ""}
@@ -4316,7 +4325,7 @@ function EntryView({
   );
 }
 
-function ExpertsEntryCompactView({ isAdmin, monthKey, monthDays, project, category, items, employees, setMonthlyField, toggleMeal, submitMonth }){
+function ExpertsEntryCompactView({ isAdmin, monthKey, monthDays, project, category, items, employees, setMonthlyField, toggleMeal, submitMonth, hiddenFieldKeys }){
   const [search, setSearch] = React.useState("");
 
   const filtered = React.useMemo(() => {
@@ -4324,6 +4333,12 @@ function ExpertsEntryCompactView({ isAdmin, monthKey, monthDays, project, catego
     if(!q) return (items || []);
     return (items || []).filter(it => (it.name || "").toLowerCase().includes(q));
   }, [items, search]);
+
+  // Gizli alanları filtrele
+  const visibleFields = React.useMemo(() => {
+    const hidden = Array.isArray(hiddenFieldKeys) ? hiddenFieldKeys : [];
+    return (category?.fields || []).filter(f => !hidden.includes(f.key));
+  }, [category, hiddenFieldKeys]);
 
 
   function isInactiveItem(it){
@@ -4401,72 +4416,36 @@ function ExpertsEntryCompactView({ isAdmin, monthKey, monthDays, project, catego
                 </div>
 
                 <div className="miniGrid">
-                  <div>
-                    <div className="lbl">Onay</div>
-                    <input
-                      className="input"
-                      type="number"
-                      value={draft.onay ?? 0}
-                      disabled={(!isAdmin && approved) || inactive}
-                      onChange={e=>setMonthlyField(project.id, category.key, it.id, monthKey, "onay", Number(e.target.value||0))}
-                    />
-                  </div>
-
-                  <div>
-                    <div className="lbl">Güncelleme</div>
-                    <input
-                      className="input"
-                      type="number"
-                      value={draft.guncelleme ?? 0}
-                      disabled={(!isAdmin && approved) || inactive}
-                      onChange={e=>setMonthlyField(project.id, category.key, it.id, monthKey, "guncelleme", Number(e.target.value||0))}
-                    />
-                  </div>
-
-                  <div>
-                    <div className="lbl">Merdiven</div>
-                    <input
-                      className="input"
-                      type="number"
-                      value={draft.merdiven ?? 0}
-                      disabled={(!isAdmin && approved) || inactive}
-                      onChange={e=>setMonthlyField(project.id, category.key, it.id, monthKey, "merdiven", Number(e.target.value||0))}
-                    />
-                  </div>
-
-                  <div>
-                    <div className="lbl">Gözlem</div>
-                    <input
-                      className="input"
-                      type="number"
-                      value={draft.gozlem ?? 0}
-                      disabled={(!isAdmin && approved) || inactive}
-                      onChange={e=>setMonthlyField(project.id, category.key, it.id, monthKey, "gozlem", Number(e.target.value||0))}
-                    />
-                  </div>
-
-                  <div>
-                    <div className="lbl">Takip</div>
-                    <input
-                      className="input"
-                      type="number"
-                      value={draft.takip ?? 0}
-                      disabled={(!isAdmin && approved) || inactive}
-                      onChange={e=>setMonthlyField(project.id, category.key, it.id, monthKey, "takip", Number(e.target.value||0))}
-                    />
-                  </div>
-
-                  <div>
-                    <div className="lbl">Yemek</div>
-                    <input
-                      className="input"
-                      type="number"
-                      min="0"
-                      value={mealCount}
-                      disabled={(!isAdmin && approved) || inactive}
-                      onChange={e=>setMonthlyField(project.id, category.key, it.id, monthKey, "mealCount", Number(e.target.value||0))}
-                    />
-                  </div>
+                  {visibleFields.map(f => {
+                    if(f.key === "mealCount") {
+                      return (
+                        <div key={f.key}>
+                          <div className="lbl">{f.label}</div>
+                          <input
+                            className="input"
+                            type="number"
+                            min="0"
+                            value={mealCount}
+                            disabled={(!isAdmin && approved) || inactive}
+                            onChange={e=>setMonthlyField(project.id, category.key, it.id, monthKey, "mealCount", Number(e.target.value||0))}
+                          />
+                        </div>
+                      );
+                    }
+                    
+                    return (
+                      <div key={f.key}>
+                        <div className="lbl">{f.label}</div>
+                        <input
+                          className="input"
+                          type="number"
+                          value={draft[f.key] ?? 0}
+                          disabled={(!isAdmin && approved) || inactive}
+                          onChange={e=>setMonthlyField(project.id, category.key, it.id, monthKey, f.key, Number(e.target.value||0))}
+                        />
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             );
@@ -6707,8 +6686,11 @@ function AttendanceView({
   
   const projectEmployees = useMemo(() => {
     if(!selectedProject) return employees || [];
-    return (employees || []).filter(e => e.projectId === selectedProject);
-  }, [employees, selectedProject]);
+    // employees array'inde projectId değil, project (name) var
+    const selectedProjectName = (projects || []).find(p => p.id === selectedProject)?.name;
+    if(!selectedProjectName) return employees || [];
+    return (employees || []).filter(e => e.project === selectedProjectName);
+  }, [employees, selectedProject, projects]);
   
   const employee = useMemo(() => {
     return (employees || []).find(e => e.id === selectedEmployee) || null;
