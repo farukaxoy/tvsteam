@@ -3098,6 +3098,7 @@ for(const emp of (next.employees || [])){
                 employees={state.employees}
                 actions={state.actions}
                 isAdmin={isAdmin}
+                attendance={state.attendance}
               />
             </>
           )}
@@ -3383,7 +3384,7 @@ for(const emp of (next.employees || [])){
 
 /* ===================== VIEWS ===================== */
 
-function DashboardView({ monthKey, category, rows, projects, employees, actions, categories, isAdmin }){
+function DashboardView({ monthKey, category, rows, projects, employees, actions, categories, isAdmin, attendance }){
   const totals = useMemo(() => {
     const t = { itemsApproved:0, monthApproved:0, sums:{}, mealsSum:0 };
     for(const f of (category?.fields || [])){
@@ -3643,6 +3644,201 @@ function DashboardView({ monthKey, category, rows, projects, employees, actions,
           </div>
         </>
       )}
+      {/* ===== PUANTAJ ÖZETİ (Dashboard) ===== */}
+      <hr className="sep" />
+      <div className="cardTitleRow">
+        <h3>📅 Puantaj Özeti</h3>
+        <Badge kind="ok">{monthKey}</Badge>
+      </div>
+      <div className="small" style={{marginTop:6}}>
+        Seçili ay için <b>proje bazlı</b> personel devam özeti.
+      </div>
+
+      {(() => {
+        // Her proje için personel + istatistik toplama
+        const prjs = Array.isArray(projects) ? projects : [];
+        const emps = Array.isArray(employees) ? employees : [];
+        const att  = attendance || {};
+
+        const projectBlocks = prjs.map(proj => {
+          const projEmps = emps.filter(e => e.project === proj.name);
+          // Ay toplam istatistikleri
+          const agg = { present:0, absent:0, paid_leave:0, unpaid_leave:0, sick_leave:0, excuse:0, weekend:0, holiday:0, half_day:0, unset:0, totalDays:0, workDays:0 };
+          const rows = projEmps.map(emp => {
+            const md = att[emp.id]?.[monthKey];
+            const s  = md?.stats || {};
+            // Aggregate
+            agg.present     += (s.present     || 0);
+            agg.absent      += (s.absent      || 0);
+            agg.paid_leave  += (s.paid_leave  || 0);
+            agg.unpaid_leave+= (s.unpaid_leave|| 0);
+            agg.sick_leave  += (s.sick_leave  || 0);
+            agg.excuse      += (s.excuse      || 0);
+            agg.weekend     += (s.weekend     || 0);
+            agg.holiday     += (s.holiday     || 0);
+            agg.half_day    += (s.half_day    || 0);
+            agg.unset       += (s.unset       || 0);
+            agg.totalDays   += (s.totalDays   || 0);
+            agg.workDays    += (s.workDays    || 0);
+            return { emp, s, completionRate: s.completionRate || 0 };
+          });
+          return { proj, projEmps, agg, rows };
+        });
+
+        // Grand toplam (tüm projeler)
+        const grand = { present:0, absent:0, paid_leave:0, unpaid_leave:0, sick_leave:0, excuse:0, weekend:0, holiday:0, half_day:0, unset:0, totalDays:0, workDays:0, empCount:0 };
+        projectBlocks.forEach(b => {
+          grand.present      += b.agg.present;
+          grand.absent       += b.agg.absent;
+          grand.paid_leave   += b.agg.paid_leave;
+          grand.unpaid_leave += b.agg.unpaid_leave;
+          grand.sick_leave   += b.agg.sick_leave;
+          grand.excuse       += b.agg.excuse;
+          grand.weekend      += b.agg.weekend;
+          grand.holiday      += b.agg.holiday;
+          grand.half_day     += b.agg.half_day;
+          grand.unset        += b.agg.unset;
+          grand.totalDays    += b.agg.totalDays;
+          grand.workDays     += b.agg.workDays;
+          grand.empCount     += b.projEmps.length;
+        });
+        const grandCompletion = grand.totalDays > 0 ? ((grand.totalDays - grand.unset) / grand.totalDays * 100).toFixed(1) : 0;
+
+        return (
+          <>
+            {/* Grand KPI satırı */}
+            <div className="kpiRow" style={{marginTop:14}}>
+              <KPI label="Toplam Personel" value={grand.empCount} />
+              <KPI label="Toplam Çalışma Günü" value={grand.workDays} />
+              <KPI label="Toplam Geldi" value={grand.present} />
+              <KPI label="Toplam İzin" value={grand.paid_leave + grand.unpaid_leave + grand.sick_leave} />
+              <KPI label="Toplam Gelmedi" value={grand.absent} />
+              <KPI label="Tamamlanma" value={`${grandCompletion}%`} />
+            </div>
+
+            {/* Grand tamamlanma barı */}
+            <div style={{marginTop:14, padding:"12px 16px", background:"#f9fafb", borderRadius:12}}>
+              <div style={{display:"flex", justifyContent:"space-between", marginBottom:6}}>
+                <span style={{fontWeight:600, fontSize:14}}>Genel Tamamlanma Oranı</span>
+                <span style={{fontWeight:700, color:"#10b981"}}>{grandCompletion}%</span>
+              </div>
+              <div style={{height:18, background:"#e5e7eb", borderRadius:999, overflow:"hidden"}}>
+                <div style={{height:"100%", width: grandCompletion + "%", background:"linear-gradient(90deg,#10b981,#3b82f6)", transition:"width .3s ease"}} />
+              </div>
+            </div>
+
+            {/* Proje bazlı kartlar */}
+            <div style={{marginTop:16, display:"grid", gridTemplateColumns:"repeat(auto-fit, minmax(260px,1fr))", gap:12}}>
+              {projectBlocks.map(({ proj, projEmps, agg }) => {
+                const comp = agg.totalDays > 0 ? ((agg.totalDays - agg.unset) / agg.totalDays * 100).toFixed(1) : 0;
+                return (
+                  <div key={proj.id} className="card" style={{padding:"14px 16px", borderRadius:14}}>
+                    <div style={{display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:10}}>
+                      <div style={{fontWeight:700, fontSize:15}}>{proj.name}</div>
+                      <Badge kind={agg.absent > 0 ? "danger" : "ok"}>{projEmps.length} kişi</Badge>
+                    </div>
+
+                    {/* Mini stat satırı */}
+                    <div style={{display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:6, marginBottom:10}}>
+                      <div style={{textAlign:"center", padding:"6px 2px", background:"#10b98118", borderRadius:8}}>
+                        <div style={{fontWeight:700, fontSize:18, color:"#10b981"}}>{agg.present}</div>
+                        <div style={{fontSize:11, color:"#6b7280"}}>Geldi</div>
+                      </div>
+                      <div style={{textAlign:"center", padding:"6px 2px", background:"#ef444418", borderRadius:8}}>
+                        <div style={{fontWeight:700, fontSize:18, color:"#ef4444"}}>{agg.absent}</div>
+                        <div style={{fontSize:11, color:"#6b7280"}}>Gelmedi</div>
+                      </div>
+                      <div style={{textAlign:"center", padding:"6px 2px", background:"#3b82f618", borderRadius:8}}>
+                        <div style={{fontWeight:700, fontSize:18, color:"#3b82f6"}}>{agg.paid_leave + agg.unpaid_leave + agg.sick_leave}</div>
+                        <div style={{fontSize:11, color:"#6b7280"}}>İzin</div>
+                      </div>
+                    </div>
+
+                    {/* Mini bar */}
+                    <div style={{height:10, background:"#e5e7eb", borderRadius:999, overflow:"hidden", marginBottom:6}}>
+                      <div style={{height:"100%", width: comp + "%", background:"linear-gradient(90deg,#10b981,#3b82f6)", transition:"width .3s"}} />
+                    </div>
+                    <div style={{fontSize:11, color:"#6b7280", display:"flex", justifyContent:"space-between"}}>
+                      <span>Tamamlanma: <b>{comp}%</b></span>
+                      <span>Çalışma: <b>{agg.workDays} gün</b></span>
+                    </div>
+
+                    {/* Personel listesi (küçük) */}
+                    {agg.totalDays > 0 && (
+                      <div style={{marginTop:10, borderTop:"1px solid #e5e7eb", paddingTop:8}}>
+                        {projEmps.map(emp => {
+                          const es = att[emp.id]?.[monthKey]?.stats || {};
+                          const eComp = es.totalDays > 0 ? ((es.totalDays - (es.unset||0)) / es.totalDays * 100).toFixed(0) : 0;
+                          return (
+                            <div key={emp.id} style={{display:"flex", alignItems:"center", justifyContent:"space-between", padding:"3px 0", fontSize:13}}>
+                              <span style={{color:"#374151"}}>{emp.name}</span>
+                              <div style={{display:"flex", alignItems:"center", gap:8}}>
+                                <span style={{color:"#10b981", fontWeight:600}}>{es.present||0}g</span>
+                                {(es.absent||0) > 0 && <span style={{color:"#ef4444", fontWeight:600}}>{es.absent}g</span>}
+                                <span style={{color:"#9ca3af", fontSize:11}}>{eComp}%</span>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Detay tablosu */}
+            <div className="tableWrap" style={{marginTop:16}}>
+              <table>
+                <thead>
+                  <tr>
+                    <th>Proje</th>
+                    <th>Personel</th>
+                    <th>Çalışma Günü</th>
+                    <th>Geldi</th>
+                    <th>Yarım Gün</th>
+                    <th>Ücretli İzin</th>
+                    <th>Ücretsiz İzin</th>
+                    <th>Hastalık</th>
+                    <th>Mazeret</th>
+                    <th>Gelmedi</th>
+                    <th>Hafta Sonu</th>
+                    <th>Tatil</th>
+                    <th>Tamamlanma</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {projectBlocks.map(({ proj, projEmps }) =>
+                    projEmps.map(emp => {
+                      const es = att[emp.id]?.[monthKey]?.stats || {};
+                      const eComp = es.totalDays > 0 ? ((es.totalDays - (es.unset||0)) / es.totalDays * 100).toFixed(1) : "-";
+                      return (
+                        <tr key={emp.id}>
+                          <td><b>{proj.name}</b></td>
+                          <td>{emp.name}</td>
+                          <td>{es.workDays || 0}</td>
+                          <td>{es.present || 0}</td>
+                          <td>{es.half_day || 0}</td>
+                          <td>{es.paid_leave || 0}</td>
+                          <td>{es.unpaid_leave || 0}</td>
+                          <td>{es.sick_leave || 0}</td>
+                          <td>{es.excuse || 0}</td>
+                          <td style={{color:"#ef4444", fontWeight: (es.absent||0)>0 ? 700 : 400}}>{es.absent || 0}</td>
+                          <td>{es.weekend || 0}</td>
+                          <td>{es.holiday || 0}</td>
+                          <td>{eComp}%</td>
+                        </tr>
+                      );
+                    })
+                  )}
+                  {grand.empCount === 0 && <tr><td colSpan="13">Personel kayıt yok.</td></tr>}
+                </tbody>
+              </table>
+            </div>
+          </>
+        );
+      })()}
+
       {true && (
         <div className="small" style={{marginTop:10}}>
           Kullanıcı ekranında sadece kendi projesi listelenir.
@@ -6683,14 +6879,29 @@ function AttendanceView({
   const [selectedProject, setSelectedProject] = useState("");
   const [selectedEmployee, setSelectedEmployee] = useState("");
   const [viewMode, setViewMode] = useState("grid");
-  
+
+  // Member kendi projesi için yazabilir, admin hepsini
+  const myProjectName = !isAdmin ? (auth?.project || "") : "";
+
   const projectEmployees = useMemo(() => {
-    if(!selectedProject) return employees || [];
-    // employees array'inde projectId değil, project (name) var
-    const selectedProjectName = (projects || []).find(p => p.id === selectedProject)?.name;
-    if(!selectedProjectName) return employees || [];
-    return (employees || []).filter(e => e.project === selectedProjectName);
-  }, [employees, selectedProject, projects]);
+    const list = employees || [];
+    if(isAdmin && selectedProject){
+      const pName = (projects || []).find(p => p.id === selectedProject)?.name;
+      return pName ? list.filter(e => e.project === pName) : list;
+    }
+    if(!isAdmin && myProjectName){
+      return list.filter(e => e.project === myProjectName);
+    }
+    return list;
+  }, [employees, selectedProject, projects, isAdmin, myProjectName]);
+
+  // Seçilen personel bu kullanıcının projesi mi? → yazma izni
+  const canEdit = useMemo(() => {
+    if(isAdmin) return true;
+    if(!selectedEmployee) return false;
+    const emp = (employees || []).find(e => e.id === selectedEmployee);
+    return emp?.project === myProjectName;
+  }, [isAdmin, selectedEmployee, employees, myProjectName]);
   
   const employee = useMemo(() => {
     return (employees || []).find(e => e.id === selectedEmployee) || null;
@@ -6710,6 +6921,7 @@ function AttendanceView({
           <div className="h2">📅 Aylık Puantaj Takibi</div>
           <div className="muted">
             Personel devam durumu ve izin takibi - {monthKey}
+            {!isAdmin && myProjectName && <span style={{marginLeft:10, color:"#3b82f6", fontWeight:600}}>• {myProjectName}</span>}
           </div>
         </div>
       </div>
@@ -6755,7 +6967,7 @@ function AttendanceView({
         </div>
       ) : (
         <>
-          {isAdmin && (
+          {canEdit && (
             <div className="row" style={{gap:8, marginTop:12, flexWrap:"wrap"}}>
               <button 
                 className="btn" 
@@ -6777,6 +6989,11 @@ function AttendanceView({
               </button>
             </div>
           )}
+          {!canEdit && (
+            <div className="small" style={{marginTop:10, color:"#f59e0b"}}>
+              ⚠️ Bu personel başka bir projede — sadece görüntüleme modunda.
+            </div>
+          )}
           
           {viewMode === "grid" && (
             <AttendanceGridView
@@ -6784,7 +7001,7 @@ function AttendanceView({
               monthKey={monthKey}
               monthDays={monthDays}
               monthData={monthData}
-              isAdmin={isAdmin}
+              isAdmin={canEdit}
               setAttendanceDay={setAttendanceDay}
             />
           )}
@@ -6797,7 +7014,7 @@ function AttendanceView({
               month={month}
               monthDays={monthDays}
               monthData={monthData}
-              isAdmin={isAdmin}
+              isAdmin={canEdit}
               setAttendanceDay={setAttendanceDay}
             />
           )}
