@@ -616,6 +616,68 @@ body {
     grid-template-columns: repeat(2, 1fr) !important;
   }
 }
+
+/* ===== Dashboard Widget Toggle ===== */
+.dash-widget-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  padding: 8px 0 4px;
+}
+.dash-widget-btn {
+  font-size: 13px;
+  font-weight: 600;
+  padding: 5px 12px;
+  border-radius: 20px;
+  border: 1.5px solid #cbd5e1;
+  background: #fff;
+  color: #475569;
+  cursor: pointer;
+  transition: all .15s;
+  user-select: none;
+}
+.dash-widget-btn:hover { border-color: #94a3b8; background: #f1f5f9; }
+.dash-widget-btn.active {
+  background: #3b82f6;
+  color: #fff;
+  border-color: #3b82f6;
+}
+[data-theme="dark"] .dash-widget-btn {
+  background: #1e293b;
+  color: #cbd5e1;
+  border-color: #334155;
+}
+[data-theme="dark"] .dash-widget-btn:hover { background: #293548; border-color: #475569; }
+[data-theme="dark"] .dash-widget-btn.active {
+  background: #2563eb;
+  color: #fff;
+  border-color: #2563eb;
+}
+
+/* ===== Trend Chart ===== */
+.trend-block { margin-top: 14px; }
+.trend-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 5px 0;
+  font-size: 13px;
+}
+.trend-label { width: 80px; flex-shrink: 0; color: #64748b; font-weight: 600; text-align: right; }
+.trend-bars { flex: 1; display: flex; gap: 4px; align-items: flex-end; height: 36px; }
+.trend-bar-wrap { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; }
+.trend-bar {
+  width: 100%;
+  border-radius: 4px 4px 0 0;
+  min-height: 4px;
+  transition: height .3s;
+}
+.trend-bar-val { font-size: 11px; font-weight: 700; color: #334155; margin-bottom: 2px; }
+.trend-month-label { font-size: 10px; color: #94a3b8; margin-top: 3px; text-align: center; }
+[data-theme="dark"] .trend-label { color: #94a3b8; }
+[data-theme="dark"] .trend-bar-val { color: #cbd5e1; }
+[data-theme="dark"] .trend-month-label { color: #64748b; }
 `;
 
 // ===================== AUTH MODE =====================
@@ -1401,12 +1463,6 @@ const [categoryKey, setCategoryKey] = useState("experts");
   
   /* admin dashboard: project filter */
   const [dashProjectId, setDashProjectId] = useState("ALL");
-  
-  /* Dashboard Comparison & Analytics */
-  const [showComparison, setShowComparison] = useState(false);
-  const [comparisonMode, setComparisonMode] = useState("month"); // "month" | "employee"
-  const [selectedEmployeeForTrend, setSelectedEmployeeForTrend] = useState("");
-  
 /* contact */
   const [contactText, setContactText] = useState("");
 
@@ -3417,72 +3473,6 @@ for(const emp of (next.employees || [])){
                 <div className="small" style={{ marginTop: 10 }}>
                   Bu filtreler, dashboard görünümünü ve hesaplamaları etkiler.
                 </div>
-                
-                {/* Analiz Toggle Butonları */}
-                <div style={{ marginTop: 16, paddingTop: 16, borderTop: "1px solid rgba(0,0,0,0.1)" }}>
-                  <div className="cardTitleRow" style={{ marginBottom: 12 }}>
-                    <h4 style={{ margin: 0, fontSize: 15 }}>📊 Analiz & Karşılaştırma</h4>
-                  </div>
-                  
-                  <div className="row" style={{ gap: 8, flexWrap: "wrap" }}>
-                    <button 
-                      className={`btn ${showComparison ? "primary" : ""}`}
-                      onClick={() => setShowComparison(!showComparison)}
-                      style={{ fontSize: 13 }}
-                    >
-                      {showComparison ? "✓ Karşılaştırma Aktif" : "Karşılaştırma Göster"}
-                    </button>
-                    
-                    {showComparison && (
-                      <>
-                        <button 
-                          className={`btn ${comparisonMode === "month" ? "primary" : ""}`}
-                          onClick={() => setComparisonMode("month")}
-                          style={{ fontSize: 13 }}
-                        >
-                          📅 Bu Ay vs Geçen Ay
-                        </button>
-                        
-                        <button 
-                          className={`btn ${comparisonMode === "employee" ? "primary" : ""}`}
-                          onClick={() => setComparisonMode("employee")}
-                          style={{ fontSize: 13 }}
-                        >
-                          👤 Personel Bazlı Trend
-                        </button>
-                        
-                        {comparisonMode === "employee" && (
-                          <select
-                            className="input sm"
-                            value={selectedEmployeeForTrend}
-                            onChange={(e) => setSelectedEmployeeForTrend(e.target.value)}
-                            style={{ minWidth: 180 }}
-                          >
-                            <option value="">Personel Seçin...</option>
-                            {(state.employees || [])
-                              .filter(emp => !emp.deleted)
-                              .sort((a, b) => a.name.localeCompare(b.name))
-                              .map((emp) => (
-                                <option key={emp.id} value={emp.id}>{emp.name}</option>
-                              ))
-                            }
-                          </select>
-                        )}
-                      </>
-                    )}
-                  </div>
-                  
-                  <div className="small" style={{ marginTop: 8, opacity: 0.7 }}>
-                    {showComparison 
-                      ? comparisonMode === "month" 
-                        ? "Seçili ay ile bir önceki ayın karşılaştırması gösterilecek"
-                        : selectedEmployeeForTrend 
-                          ? "Seçili personelin son 6 aylık trendi gösterilecek"
-                          : "Lütfen bir personel seçin"
-                      : "Detaylı analiz için karşılaştırma modunu aktifleştirin"
-                    }
-                  </div>
-                </div>
               </div>
 
               <DashboardView
@@ -3495,12 +3485,6 @@ for(const emp of (next.employees || [])){
                 actions={state.actions}
                 isAdmin={isAdmin}
                 attendance={state.attendance}
-                showComparison={showComparison}
-                comparisonMode={comparisonMode}
-                selectedEmployeeForTrend={selectedEmployeeForTrend}
-                activeYear={activeYear}
-                activeMonth={activeMonth}
-                state={state}
               />
             </>
           )}
@@ -3786,29 +3770,30 @@ for(const emp of (next.employees || [])){
 
 /* ===================== VIEWS ===================== */
 
-function DashboardView({ 
-  monthKey, 
-  category, 
-  rows, 
-  projects, 
-  employees, 
-  actions, 
-  categories, 
-  isAdmin, 
-  attendance,
-  showComparison,
-  comparisonMode,
-  selectedEmployeeForTrend,
-  activeYear,
-  activeMonth,
-  state
-}){
+function DashboardView({ monthKey, category, rows, projects, employees, actions, categories, isAdmin, attendance }){
+  // ===== Widget toggle state =====
+  const WIDGETS = [
+    { key:"aksiyonlar", label:"Aksiyonlar" },
+    { key:"kpi",        label:"KPI Özet" },
+    { key:"grafik",     label:"Grafik" },
+    { key:"rapor",      label:"PDF Rapor" },
+    { key:"tablo",      label:"Detay Tablo" },
+    { key:"puantaj",    label:"Puantaj" },
+    { key:"trend",      label:"Trend Analiz" }
+  ];
+  const [visWidgets, setVisWidgets] = useState(() => {
+    try{ const s = localStorage.getItem("dash_widgets_v1"); if(s) return JSON.parse(s); }catch(e){}
+    return { aksiyonlar:true, kpi:true, grafik:true, rapor:true, tablo:true, puantaj:true, trend:true };
+  });
+  useEffect(()=>{ try{ localStorage.setItem("dash_widgets_v1", JSON.stringify(visWidgets)); }catch(e){} }, [visWidgets]);
+  const toggleWidget = (k) => setVisWidgets(prev => ({...prev, [k]: !prev[k]}));
+
+  // ===== KPI totals =====
   const totals = useMemo(() => {
     const t = { itemsApproved:0, monthApproved:0, sums:{}, mealsSum:0 };
     for(const f of (category?.fields || [])){
       if(f.type === "number") t.sums[f.key] = 0;
     }
-
     for(const r of rows){
       t.itemsApproved += safeNum(r.itemsApproved);
       t.monthApproved += safeNum(r.monthApproved);
@@ -3819,158 +3804,42 @@ function DashboardView({
     }
     return t;
   }, [rows, category]);
-  
-  // Karşılaştırma verileri - Geçen ay hesaplaması
-  const comparisonData = useMemo(() => {
-    if (!showComparison || !state) return null;
-    
-    if (comparisonMode === "month") {
-      // Geçen ayın verilerini hesapla
-      const currentMonth = parseInt(activeMonth);
-      const currentYear = parseInt(activeYear);
-      
-      let prevMonth = currentMonth - 1;
-      let prevYear = currentYear;
-      if (prevMonth < 1) {
-        prevMonth = 12;
-        prevYear = currentYear - 1;
-      }
-      
-      const prevMonthKey = `${prevYear}-${String(prevMonth).padStart(2, '0')}`;
-      
-      // Geçen ayın verilerini hesapla (mevcut rows mantığını kullanarak)
-      const prevTotals = { itemsApproved:0, monthApproved:0, sums:{}, mealsSum:0 };
-      for(const f of (category?.fields || [])){
-        if(f.type === "number") prevTotals.sums[f.key] = 0;
-      }
-      
-      // State'ten geçen aya ait verileri filtrele
-      const catData = state.categories?.find(c => c.key === category?.key)?.data || [];
-      
-      for (const item of catData) {
-        const monthData = item.months?.[prevMonthKey];
-        if (monthData?.approved) {
-          prevTotals.itemsApproved += 1;
-          prevTotals.monthApproved += 1;
-          
-          for (const field of (category?.fields || [])) {
-            if (field.type === "number" && monthData[field.key] !== undefined) {
-              prevTotals.sums[field.key] = safeNum(prevTotals.sums[field.key]) + safeNum(monthData[field.key]);
-            }
-          }
-          
-          if (monthData.mealCount) {
-            prevTotals.mealsSum += safeNum(monthData.mealCount);
-          }
-        }
-      }
-      
-      return {
-        mode: "month",
-        current: totals,
-        previous: prevTotals,
-        currentLabel: monthKey,
-        previousLabel: prevMonthKey,
-        percentageChanges: calculatePercentageChanges(totals, prevTotals)
-      };
-    } else if (comparisonMode === "employee" && selectedEmployeeForTrend) {
-      // Personel bazlı 6 aylık trend
-      const employee = employees?.find(e => e.id === selectedEmployeeForTrend);
-      if (!employee) return null;
-      
-      const currentMonth = parseInt(activeMonth);
-      const currentYear = parseInt(activeYear);
-      
-      const last6Months = [];
-      for (let i = 5; i >= 0; i--) {
-        let m = currentMonth - i;
-        let y = currentYear;
-        while (m < 1) {
-          m += 12;
-          y -= 1;
-        }
-        last6Months.push({
-          key: `${y}-${String(m).padStart(2, '0')}`,
-          label: `${String(m).padStart(2, '0')}/${y}`
-        });
-      }
-      
-      // Her ay için verileri topla
-      const trendData = last6Months.map(month => {
-        const monthTotals = { sums: {}, mealsSum: 0, approved: 0 };
-        
-        for(const f of (category?.fields || [])){
-          if(f.type === "number") monthTotals.sums[f.key] = 0;
-        }
-        
-        // Attendance verilerinden personelin o aydaki performansını al
-        const attendanceRecords = (attendance || []).filter(a => 
-          a.employee === employee.name && a.month === month.key
-        );
-        
-        // Kategori verilerinden personele ait kayıtları bul
-        const catData = state.categories?.find(c => c.key === category?.key)?.data || [];
-        
-        for (const item of catData) {
-          // Eğer item'ın sahibi bu personelse
-          if (item.owner === employee.name || item.assignedTo === employee.id) {
-            const monthData = item.months?.[month.key];
-            if (monthData?.approved) {
-              monthTotals.approved += 1;
-              
-              for (const field of (category?.fields || [])) {
-                if (field.type === "number" && monthData[field.key] !== undefined) {
-                  monthTotals.sums[field.key] = safeNum(monthTotals.sums[field.key]) + safeNum(monthData[field.key]);
-                }
-              }
-              
-              if (monthData.mealCount) {
-                monthTotals.mealsSum += safeNum(monthData.mealCount);
-              }
-            }
-          }
-        }
-        
-        return {
-          month: month.key,
-          label: month.label,
-          data: monthTotals
-        };
+
+  // ===== Trend data: son 6 ay puantaj aggregation =====
+  const trendData = useMemo(() => {
+    const [curY, curM] = monthKey.split("-").map(Number);
+    const months = [];
+    for(let i = 5; i >= 0; i--){
+      let m = curM - i;
+      let y = curY;
+      while(m < 1){ m += 12; y--; }
+      while(m > 12){ m -= 12; y++; }
+      const mk = `${y}-${String(m).padStart(2,"0")}`;
+      const label = ["Oca","Şub","Mar","Nis","May","Haz","Tem","Ağu","Eyl","Ekim","Kas","Ara"][m-1];
+      months.push({ mk, label: label + (y !== curY ? " '"+String(y).slice(2) : "") });
+    }
+    const emps = Array.isArray(employees) ? employees : [];
+    const att  = attendance || {};
+    // Filter to visible projects only
+    const projNames = new Set((Array.isArray(projects) ? projects : []).map(p => p.name));
+
+    return months.map(({ mk, label }) => {
+      let present=0, absent=0, izin=0, workDays=0, totalDays=0, unset=0;
+      emps.forEach(emp => {
+        if(!projNames.has(emp.project)) return;
+        const s = att[emp.id]?.[mk]?.stats;
+        if(!s) return;
+        present   += (s.present || 0);
+        absent    += (s.absent  || 0);
+        izin      += (s.paid_leave||0)+(s.unpaid_leave||0)+(s.sick_leave||0);
+        workDays  += (s.workDays || 0);
+        totalDays += (s.totalDays || 0);
+        unset     += (s.unset || 0);
       });
-      
-      return {
-        mode: "employee",
-        employee: employee,
-        trendData: trendData
-      };
-    }
-    
-    return null;
-  }, [showComparison, comparisonMode, selectedEmployeeForTrend, totals, state, category, activeYear, activeMonth, employees, attendance]);
-  
-  // Yüzde değişim hesaplama yardımcı fonksiyonu
-  function calculatePercentageChanges(current, previous) {
-    const changes = {};
-    
-    changes.itemsApproved = calculateChange(current.itemsApproved, previous.itemsApproved);
-    changes.monthApproved = calculateChange(current.monthApproved, previous.monthApproved);
-    changes.mealsSum = calculateChange(current.mealsSum, previous.mealsSum);
-    
-    changes.sums = {};
-    for (const key in current.sums) {
-      changes.sums[key] = calculateChange(current.sums[key], previous.sums[key]);
-    }
-    
-    return changes;
-  }
-  
-  function calculateChange(current, previous) {
-    if (previous === 0) {
-      return current > 0 ? 100 : 0;
-    }
-    return ((current - previous) / previous * 100).toFixed(1);
-  }
-  }, [rows, category]);
+      const completion = totalDays > 0 ? ((totalDays - unset) / totalDays * 100).toFixed(0) : 0;
+      return { label, present, absent, izin, workDays, completion: Number(completion) };
+    });
+  }, [monthKey, employees, attendance, projects]);
 
   return (
     <div className="card">
@@ -3985,202 +3854,148 @@ function DashboardView({
       <div className="small" style={{marginTop:6}}>
         Bu ekranda sadece <b>admin onaylı</b> aylık veriler hesaplanır.
       </div>
-      
-      {/* Karşılaştırma & Analiz Bölümü */}
-      {showComparison && comparisonData && (
-        <>
-          <hr className="sep" />
-          {comparisonData.mode === "month" ? (
-            <MonthComparisonView 
-              comparisonData={comparisonData}
-              category={category}
-            />
-          ) : comparisonData.mode === "employee" ? (
-            <EmployeeTrendView 
-              comparisonData={comparisonData}
-              category={category}
-            />
-          ) : null}
-        </>
-      )}
 
-      {/* Proje Aksiyon Sayıları */}
-<hr className="sep" />
-<div className="cardTitleRow">
-  <h3>Proje Aksiyon Sayıları</h3>
-  <Badge kind="warn">Durum Bazlı</Badge>
-</div>
-<div className="small" style={{marginTop:6}}>
-  Detaylar için <b>Aksiyonlar</b> menüsünü kullan.
-</div>
-
-<div style={{
-  marginTop:10,
-  display:"grid",
-  gridTemplateColumns:"repeat(5, minmax(150px, 1fr))",
-  gap:8,
-  overflowX:"auto"
-}}>
-  {(Array.isArray(projects) ? projects : []).map(p => {
-    const list = (Array.isArray(actions) ? actions : []).filter(a => a?.project === p.name);
-    const count = (st) => list.filter(a => (a.status || "open") === st).length;
-    const openN = count("open");
-    const progN = count("in_progress");
-    const doneN = list.filter(a => (a.status || "open") === "done" || (a.status || "open") === "user_done").length;
-    const closedN = count("closed");
-
-    const rowStyle = {display:"flex", alignItems:"center", justifyContent:"space-between", gap:8, padding:"2px 0"};
-    const labelStyle = {fontSize:12, opacity:.9};
-
-    return (
-      <div
-        key={p.id}
-        className="card"
-        style={{
-          minWidth:150,
-          padding:"10px 12px",
-          borderRadius:12
-        }}
-      >
-        <div style={{display:"flex", alignItems:"center", justifyContent:"space-between", gap:10}}>
-          <div style={{fontWeight:700, fontSize:13, lineHeight:"16px"}}>{p.name}</div>
-          <Badge kind={openN ? "danger" : "ok"}>{list.length}</Badge>
-        </div>
-
-        <div style={{marginTop:8}}>
-          <div style={rowStyle}>
-            <span style={labelStyle}>Açık</span>
-            <Badge kind="danger">{openN}</Badge>
-          </div>
-          <div style={rowStyle}>
-            <span style={labelStyle}>Devam</span>
-            <Badge kind="warn">{progN}</Badge>
-          </div>
-          <div style={rowStyle}>
-            <span style={labelStyle}>Tamam</span>
-            <Badge kind="ok">{doneN}</Badge>
-          </div>
-          <div style={rowStyle}>
-            <span style={labelStyle}>Kapalı</span>
-            <Badge kind="ok">{closedN}</Badge>
-          </div>
-        </div>
-      </div>
-    );
-  })}
-</div>
-
-<div className="kpiRow">
-        <KPI label={`Onaylı ${category?.itemLabel || "Kayıt"}`} value={totals.itemsApproved}/>
-        <KPI label="Onaylı Aylık Kayıt" value={totals.monthApproved}/>
-        {Object.keys(totals.sums).filter(k=>k!=="mealCount").map(k=>(
-          <KPI key={k} label={(category.fields.find(f=>f.key===k)?.label)||k} value={totals.sums[k]}/>
-        ))}
-        {(category?.special?.meals || (category?.fields||[]).some(f=>f.key==="mealCount") || totals.mealsSum>0) ? <KPI label="Yemek" value={totals.mealsSum}/> : null}
-      </div>
-
-      {/* Grafikler */}
-      <div style={{marginTop:14}}>
-        <div className="cardTitleRow">
-          <h3>Grafikli Özet</h3>
-          <Badge kind="ok">Proje Bazlı</Badge>
-        </div>
-
-        <div className="small" style={{marginTop:6}}>
-          Seçili kategori: <b>{category?.name}</b> • Sadece <b>onaylı aylık</b> veriler.
-        </div>
-
-        <div style={{marginTop:12, display:"grid", gridTemplateColumns:"repeat(5, minmax(180px, 1fr))", gap:8, overflowX:"auto"}}>
-          {(category?.fields || []).filter(f=>f.type==="number" && f.key!=="mealCount").map(f => (
-            <BarChart
-              key={f.key}
-              title={f.label}
-              data={rows.map(r => ({ label: r.name, value: safeNum(r.sums?.[f.key]) }))}
-            />
-          ))}
-          {(category?.special?.meals || (category?.fields||[]).some(f=>f.key==="mealCount") || totals.mealsSum>0) ? (
-            <BarChart
-              title="Yemek"
-              data={rows.map(r => ({ label: r.name, value: safeNum(r.mealsSum) }))}
-            />
-          ) : null}
-        </div>
-      </div>
-
-      {/* Aylık Proje Raporu (PDF/Print) */}
-      <hr className="sep" />
-      <div className="cardTitleRow">
-        <h3>Aylık Proje Raporu</h3>
-        <Badge>{monthKey}</Badge>
-      </div>
-      <div className="small" style={{marginTop:6}}>
-        Butona tıkla → rapor yeni sekmede açılır → tarayıcıdan <b>PDF olarak kaydet</b>.
-      </div>
-
-      <div style={{marginTop:10, display:"flex", gap:10, flexWrap:"wrap"}}>
-        {(Array.isArray(projects) ? projects : []).map(p => (
+      {/* ===== Widget Toggle Bar ===== */}
+      <div className="dash-widget-bar" style={{marginTop:12}}>
+        <span style={{fontSize:12, color:"#64748b", fontWeight:600, marginRight:4}}>Göster:</span>
+        {WIDGETS.map(w => (
           <button
-            key={p.id}
-            className="btn primary"
-            onClick={() => openProjectMonthlyReport({ project: p, category, monthKey, employees })}
+            key={w.key}
+            type="button"
+            className={"dash-widget-btn" + (visWidgets[w.key] ? " active" : "")}
+            onClick={() => toggleWidget(w.key)}
           >
-            {p.name} • PDF Rapor
+            {w.label}
           </button>
         ))}
       </div>
 
-      <hr className="sep" />
-
-      <div className="tableWrap">
-        <table>
-          <thead>
-            <tr>
-              <th>Proje</th>
-              <th>Onaylı {category?.itemLabel || "Kayıt"}</th>
-              <th>Onaylı Aylık</th>
-              {(category?.fields || []).filter(f=>f.type==="number" && f.key!=="mealCount").map(f=>(
-                <th key={f.key}>{f.label}</th>
-              ))}
-              {(category?.special?.meals || (category?.fields||[]).some(f=>f.key==="mealCount")) ? <th>Yemek</th> : null}
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map(r=>(
-              <tr key={r.id}>
-                <td><b>{r.name}</b></td>
-                <td>{r.itemsApproved}</td>
-                <td>{r.monthApproved}</td>
-                {(category?.fields || []).filter(f=>f.type==="number" && f.key!=="mealCount").map(f=>(
-                  <td key={f.key}>{safeNum(r.sums?.[f.key])}</td>
-                ))}
-                {(category?.special?.meals || (category?.fields||[]).some(f=>f.key==="mealCount")) ? <td>{r.mealsSum}</td> : null}
-              </tr>
-            ))}
-            {rows.length===0 && <tr><td colSpan="99">Kayıt yok.</td></tr>}
-          </tbody>
-        </table>
-      </div>
-
-      {/* Kişi bazlı (Uzmanlar) */}
-      {category?.key === "experts" && (
+      {/* ===== AKSIYONLAR ===== */}
+      {visWidgets.aksiyonlar && (
         <>
-
           <hr className="sep" />
           <div className="cardTitleRow">
-            <h3>Kişi Bazlı • Onaylı Aylık</h3>
+            <h3>Proje Aksiyon Sayıları</h3>
+            <Badge kind="warn">Durum Bazlı</Badge>
+          </div>
+          <div className="small" style={{marginTop:6}}>
+            Detaylar için <b>Aksiyonlar</b> menüsünü kullan.
+          </div>
+          <div style={{
+            marginTop:10,
+            display:"grid",
+            gridTemplateColumns:"repeat(auto-fill, minmax(150px, 1fr))",
+            gap:8
+          }}>
+            {(Array.isArray(projects) ? projects : []).map(p => {
+              const list = (Array.isArray(actions) ? actions : []).filter(a => a?.project === p.name);
+              const count = (st) => list.filter(a => (a.status || "open") === st).length;
+              const openN = count("open");
+              const progN = count("in_progress");
+              const doneN = list.filter(a => (a.status || "open") === "done" || (a.status || "open") === "user_done").length;
+              const closedN = count("closed");
+              const rowStyle = {display:"flex", alignItems:"center", justifyContent:"space-between", gap:8, padding:"2px 0"};
+              const labelStyle = {fontSize:12, opacity:.9};
+              return (
+                <div key={p.id} className="card" style={{ padding:"10px 12px", borderRadius:12 }}>
+                  <div style={{display:"flex", alignItems:"center", justifyContent:"space-between", gap:10}}>
+                    <div style={{fontWeight:700, fontSize:13, lineHeight:"16px"}}>{p.name}</div>
+                    <Badge kind={openN ? "danger" : "ok"}>{list.length}</Badge>
+                  </div>
+                  <div style={{marginTop:8}}>
+                    <div style={rowStyle}><span style={labelStyle}>Açık</span><Badge kind="danger">{openN}</Badge></div>
+                    <div style={rowStyle}><span style={labelStyle}>Devam</span><Badge kind="warn">{progN}</Badge></div>
+                    <div style={rowStyle}><span style={labelStyle}>Tamam</span><Badge kind="ok">{doneN}</Badge></div>
+                    <div style={rowStyle}><span style={labelStyle}>Kapalı</span><Badge kind="ok">{closedN}</Badge></div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </>
+      )}
+
+      {/* ===== KPI ===== */}
+      {visWidgets.kpi && (
+        <>
+          <hr className="sep" />
+          <div className="cardTitleRow">
+            <h3>KPI Özet</h3>
+            <Badge kind="ok">Kategori Bazlı</Badge>
+          </div>
+          <div className="kpiRow" style={{marginTop:10}}>
+            <KPI label={`Onaylı ${category?.itemLabel || "Kayıt"}`} value={totals.itemsApproved}/>
+            <KPI label="Onaylı Aylık Kayıt" value={totals.monthApproved}/>
+            {Object.keys(totals.sums).filter(k=>k!=="mealCount").map(k=>(
+              <KPI key={k} label={(category.fields.find(f=>f.key===k)?.label)||k} value={totals.sums[k]}/>
+            ))}
+            {(category?.special?.meals || (category?.fields||[]).some(f=>f.key==="mealCount") || totals.mealsSum>0) ? <KPI label="Yemek" value={totals.mealsSum}/> : null}
+          </div>
+        </>
+      )}
+
+      {/* ===== GRAFİK ===== */}
+      {visWidgets.grafik && (
+        <>
+          <hr className="sep" />
+          <div className="cardTitleRow">
+            <h3>Grafikli Özet</h3>
+            <Badge kind="ok">Proje Bazlı</Badge>
+          </div>
+          <div className="small" style={{marginTop:6}}>
+            Seçili kategori: <b>{category?.name}</b> • Sadece <b>onaylı aylık</b> veriler.
+          </div>
+          <div style={{marginTop:12, display:"grid", gridTemplateColumns:"repeat(auto-fill, minmax(180px, 1fr))", gap:8}}>
+            {(category?.fields || []).filter(f=>f.type==="number" && f.key!=="mealCount").map(f => (
+              <BarChart
+                key={f.key}
+                title={f.label}
+                data={rows.map(r => ({ label: r.name, value: safeNum(r.sums?.[f.key]) }))}
+              />
+            ))}
+            {(category?.special?.meals || (category?.fields||[]).some(f=>f.key==="mealCount") || totals.mealsSum>0) ? (
+              <BarChart title="Yemek" data={rows.map(r => ({ label: r.name, value: safeNum(r.mealsSum) }))} />
+            ) : null}
+          </div>
+        </>
+      )}
+
+      {/* ===== PDF RAPOR ===== */}
+      {visWidgets.rapor && (
+        <>
+          <hr className="sep" />
+          <div className="cardTitleRow">
+            <h3>Aylık Proje Raporu</h3>
             <Badge>{monthKey}</Badge>
           </div>
-
           <div className="small" style={{marginTop:6}}>
-            Sadece <b>admin onaylı</b> uzman aylıkları listelenir.
+            Butona tıkla → rapor yeni sekmede açılır → tarayıcıdan <b>PDF olarak kaydet</b>.
           </div>
+          <div style={{marginTop:10, display:"flex", gap:10, flexWrap:"wrap"}}>
+            {(Array.isArray(projects) ? projects : []).map(p => (
+              <button key={p.id} className="btn primary" onClick={() => openProjectMonthlyReport({ project: p, category, monthKey, employees })}>
+                {p.name} • PDF Rapor
+              </button>
+            ))}
+          </div>
+        </>
+      )}
 
+      {/* ===== DETAY TABLO ===== */}
+      {visWidgets.tablo && (
+        <>
+          <hr className="sep" />
+          <div className="cardTitleRow">
+            <h3>Detay Tablo</h3>
+            <Badge>{monthKey}</Badge>
+          </div>
           <div className="tableWrap" style={{marginTop:10}}>
             <table>
               <thead>
                 <tr>
                   <th>Proje</th>
-                  <th>Uzman</th>
+                  <th>Onaylı {category?.itemLabel || "Kayıt"}</th>
+                  <th>Onaylı Aylık</th>
                   {(category?.fields || []).filter(f=>f.type==="number" && f.key!=="mealCount").map(f=>(
                     <th key={f.key}>{f.label}</th>
                   ))}
@@ -4188,250 +4003,385 @@ function DashboardView({
                 </tr>
               </thead>
               <tbody>
-                {(() => {
-                  const out = [];
-                  const prjs = Array.isArray(projects) ? projects : [];
-                  for(const p of prjs){
-                    const arr = p.itemsByCategory?.[category.key] || [];
-                    for(const it of arr){
-                      if(category.approval?.item && !it.approved) continue;
-                      const slot = it.months?.[monthKey];
-                      if(!slot || !slot.approved) continue;
-
-                      const dft = slot.draft || {};
-                      const rec = {
-                        project: p.name,
-                        name: it.name,
-                        nums: {},
-                        meals: category?.special?.meals ? ((Object.prototype.hasOwnProperty.call(dft, "mealCount") ? safeNum(dft.mealCount) : (Array.isArray(dft.meals) ? dft.meals.length : 0))) : null
-                      };
-                      const hiddenDash = Array.isArray(p?.fieldVisibility?.[category?.key]?.hiddenFieldKeys)
-                        ? p.fieldVisibility[category.key].hiddenFieldKeys
-                        : [];
-                      for(const f of (category.fields || [])){
-                        if(hiddenDash.includes(f.key)) continue;
-                        if(f.type === "number") rec.nums[f.key] = safeNum(dft[f.key]);
-                      }
-                      out.push(rec);
-                    }
-                  }
-                  out.sort((a,b)=> (a.project+a.name).localeCompare(b.project+b.name,"tr"));
-                  return out.map((r,i)=>(
-                    <tr key={r.project + "_" + r.name + "_" + i}>
-                      <td><b>{r.project}</b></td>
-                      <td>{r.name}</td>
-                      {(category?.fields || []).filter(f=>f.type==="number" && f.key!=="mealCount").map(f=>(
-                        <td key={f.key}>{safeNum(r.nums?.[f.key])}</td>
-                      ))}
-                      {category?.special?.meals ? <td>{safeNum(r.meals)}</td> : null}
-                    </tr>
-                  ));
-                })()}
+                {rows.map(r=>(
+                  <tr key={r.id}>
+                    <td><b>{r.name}</b></td>
+                    <td>{r.itemsApproved}</td>
+                    <td>{r.monthApproved}</td>
+                    {(category?.fields || []).filter(f=>f.type==="number" && f.key!=="mealCount").map(f=>(
+                      <td key={f.key}>{safeNum(r.sums?.[f.key])}</td>
+                    ))}
+                    {(category?.special?.meals || (category?.fields||[]).some(f=>f.key==="mealCount")) ? <td>{r.mealsSum}</td> : null}
+                  </tr>
+                ))}
+                {rows.length===0 && <tr><td colSpan="99">Kayıt yok.</td></tr>}
               </tbody>
             </table>
           </div>
+
+          {/* Kişi bazlı (Uzmanlar) */}
+          {category?.key === "experts" && (
+            <>
+              <div className="cardTitleRow" style={{marginTop:16}}>
+                <h3>Kişi Bazlı • Onaylı Aylık</h3>
+                <Badge>{monthKey}</Badge>
+              </div>
+              <div className="small" style={{marginTop:6}}>
+                Sadece <b>admin onaylı</b> uzman aylıkları listelenir.
+              </div>
+              <div className="tableWrap" style={{marginTop:10}}>
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Proje</th>
+                      <th>Uzman</th>
+                      {(category?.fields || []).filter(f=>f.type==="number" && f.key!=="mealCount").map(f=>(
+                        <th key={f.key}>{f.label}</th>
+                      ))}
+                      {(category?.special?.meals || (category?.fields||[]).some(f=>f.key==="mealCount")) ? <th>Yemek</th> : null}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {(() => {
+                      const out = [];
+                      const prjs = Array.isArray(projects) ? projects : [];
+                      for(const p of prjs){
+                        const arr = p.itemsByCategory?.[category.key] || [];
+                        for(const it of arr){
+                          if(category.approval?.item && !it.approved) continue;
+                          const slot = it.months?.[monthKey];
+                          if(!slot || !slot.approved) continue;
+                          const dft = slot.draft || {};
+                          const rec = {
+                            project: p.name,
+                            name: it.name,
+                            nums: {},
+                            meals: category?.special?.meals ? ((Object.prototype.hasOwnProperty.call(dft, "mealCount") ? safeNum(dft.mealCount) : (Array.isArray(dft.meals) ? dft.meals.length : 0))) : null
+                          };
+                          const hiddenDash = Array.isArray(p?.fieldVisibility?.[category?.key]?.hiddenFieldKeys)
+                            ? p.fieldVisibility[category.key].hiddenFieldKeys : [];
+                          for(const f of (category.fields || [])){
+                            if(hiddenDash.includes(f.key)) continue;
+                            if(f.type === "number") rec.nums[f.key] = safeNum(dft[f.key]);
+                          }
+                          out.push(rec);
+                        }
+                      }
+                      out.sort((a,b)=> (a.project+a.name).localeCompare(b.project+b.name,"tr"));
+                      return out.map((r,i)=>(
+                        <tr key={r.project + "_" + r.name + "_" + i}>
+                          <td><b>{r.project}</b></td>
+                          <td>{r.name}</td>
+                          {(category?.fields || []).filter(f=>f.type==="number" && f.key!=="mealCount").map(f=>(
+                            <td key={f.key}>{safeNum(r.nums?.[f.key])}</td>
+                          ))}
+                          {category?.special?.meals ? <td>{safeNum(r.meals)}</td> : null}
+                        </tr>
+                      ));
+                    })()}
+                  </tbody>
+                </table>
+              </div>
+            </>
+          )}
         </>
       )}
-      {/* ===== PUANTAJ ÖZETİ (Dashboard) ===== */}
-      <hr className="sep" />
-      <div className="cardTitleRow">
-        <h3>📅 Puantaj Özeti</h3>
-        <Badge kind="ok">{monthKey}</Badge>
-      </div>
-      <div className="small" style={{marginTop:6}}>
-        Seçili ay için <b>proje bazlı</b> personel devam özeti.
-      </div>
 
-      {(() => {
-        // Her proje için personel + istatistik toplama
-        const prjs = Array.isArray(projects) ? projects : [];
-        const emps = Array.isArray(employees) ? employees : [];
-        const att  = attendance || {};
-
-        const projectBlocks = prjs.map(proj => {
-          const projEmps = emps.filter(e => e.project === proj.name);
-          // Ay toplam istatistikleri
-          const agg = { present:0, absent:0, paid_leave:0, unpaid_leave:0, sick_leave:0, excuse:0, weekend:0, holiday:0, half_day:0, unset:0, totalDays:0, workDays:0 };
-          const rows = projEmps.map(emp => {
-            const md = att[emp.id]?.[monthKey];
-            const s  = md?.stats || {};
-            // Aggregate
-            agg.present     += (s.present     || 0);
-            agg.absent      += (s.absent      || 0);
-            agg.paid_leave  += (s.paid_leave  || 0);
-            agg.unpaid_leave+= (s.unpaid_leave|| 0);
-            agg.sick_leave  += (s.sick_leave  || 0);
-            agg.excuse      += (s.excuse      || 0);
-            agg.weekend     += (s.weekend     || 0);
-            agg.holiday     += (s.holiday     || 0);
-            agg.half_day    += (s.half_day    || 0);
-            agg.unset       += (s.unset       || 0);
-            agg.totalDays   += (s.totalDays   || 0);
-            agg.workDays    += (s.workDays    || 0);
-            return { emp, s, completionRate: s.completionRate || 0 };
-          });
-          return { proj, projEmps, agg, rows };
-        });
-
-        // Grand toplam (tüm projeler)
-        const grand = { present:0, absent:0, paid_leave:0, unpaid_leave:0, sick_leave:0, excuse:0, weekend:0, holiday:0, half_day:0, unset:0, totalDays:0, workDays:0, empCount:0 };
-        projectBlocks.forEach(b => {
-          grand.present      += b.agg.present;
-          grand.absent       += b.agg.absent;
-          grand.paid_leave   += b.agg.paid_leave;
-          grand.unpaid_leave += b.agg.unpaid_leave;
-          grand.sick_leave   += b.agg.sick_leave;
-          grand.excuse       += b.agg.excuse;
-          grand.weekend      += b.agg.weekend;
-          grand.holiday      += b.agg.holiday;
-          grand.half_day     += b.agg.half_day;
-          grand.unset        += b.agg.unset;
-          grand.totalDays    += b.agg.totalDays;
-          grand.workDays     += b.agg.workDays;
-          grand.empCount     += b.projEmps.length;
-        });
-        const grandCompletion = grand.totalDays > 0 ? ((grand.totalDays - grand.unset) / grand.totalDays * 100).toFixed(1) : 0;
-
-        return (
-          <>
-            {/* Grand KPI satırı */}
-            <div className="kpiRow" style={{marginTop:14}}>
-              <KPI label="Toplam Personel" value={grand.empCount} />
-              <KPI label="Toplam Çalışma Günü" value={grand.workDays} />
-              <KPI label="Toplam Geldi" value={grand.present} />
-              <KPI label="Toplam İzin" value={grand.paid_leave + grand.unpaid_leave + grand.sick_leave} />
-              <KPI label="Toplam Gelmedi" value={grand.absent} />
-              <KPI label="Tamamlanma" value={`${grandCompletion}%`} />
-            </div>
-
-            {/* Grand tamamlanma barı */}
-            <div style={{marginTop:14, padding:"12px 16px", background:"#f9fafb", borderRadius:12}}>
-              <div style={{display:"flex", justifyContent:"space-between", marginBottom:6}}>
-                <span style={{fontWeight:600, fontSize:14}}>Genel Tamamlanma Oranı</span>
-                <span style={{fontWeight:700, color:"#10b981"}}>{grandCompletion}%</span>
-              </div>
-              <div style={{height:18, background:"#e5e7eb", borderRadius:999, overflow:"hidden"}}>
-                <div style={{height:"100%", width: grandCompletion + "%", background:"linear-gradient(90deg,#10b981,#3b82f6)", transition:"width .3s ease"}} />
-              </div>
-            </div>
-
-            {/* Proje bazlı kartlar */}
-            <div style={{marginTop:16, display:"grid", gridTemplateColumns:"repeat(auto-fit, minmax(260px,1fr))", gap:12}}>
-              {projectBlocks.map(({ proj, projEmps, agg }) => {
-                const comp = agg.totalDays > 0 ? ((agg.totalDays - agg.unset) / agg.totalDays * 100).toFixed(1) : 0;
-                return (
-                  <div key={proj.id} className="card" style={{padding:"14px 16px", borderRadius:14}}>
-                    <div style={{display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:10}}>
-                      <div style={{fontWeight:700, fontSize:15}}>{proj.name}</div>
-                      <Badge kind={agg.absent > 0 ? "danger" : "ok"}>{projEmps.length} kişi</Badge>
-                    </div>
-
-                    {/* Mini stat satırı */}
-                    <div style={{display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:6, marginBottom:10}}>
-                      <div style={{textAlign:"center", padding:"6px 2px", background:"#10b98118", borderRadius:8}}>
-                        <div style={{fontWeight:700, fontSize:18, color:"#10b981"}}>{agg.present}</div>
-                        <div style={{fontSize:11, color:"#6b7280"}}>Geldi</div>
-                      </div>
-                      <div style={{textAlign:"center", padding:"6px 2px", background:"#ef444418", borderRadius:8}}>
-                        <div style={{fontWeight:700, fontSize:18, color:"#ef4444"}}>{agg.absent}</div>
-                        <div style={{fontSize:11, color:"#6b7280"}}>Gelmedi</div>
-                      </div>
-                      <div style={{textAlign:"center", padding:"6px 2px", background:"#3b82f618", borderRadius:8}}>
-                        <div style={{fontWeight:700, fontSize:18, color:"#3b82f6"}}>{agg.paid_leave + agg.unpaid_leave + agg.sick_leave}</div>
-                        <div style={{fontSize:11, color:"#6b7280"}}>İzin</div>
-                      </div>
-                    </div>
-
-                    {/* Mini bar */}
-                    <div style={{height:10, background:"#e5e7eb", borderRadius:999, overflow:"hidden", marginBottom:6}}>
-                      <div style={{height:"100%", width: comp + "%", background:"linear-gradient(90deg,#10b981,#3b82f6)", transition:"width .3s"}} />
-                    </div>
-                    <div style={{fontSize:11, color:"#6b7280", display:"flex", justifyContent:"space-between"}}>
-                      <span>Tamamlanma: <b>{comp}%</b></span>
-                      <span>Çalışma: <b>{agg.workDays} gün</b></span>
-                    </div>
-
-                    {/* Personel listesi (küçük) */}
-                    {agg.totalDays > 0 && (
-                      <div style={{marginTop:10, borderTop:"1px solid #e5e7eb", paddingTop:8}}>
-                        {projEmps.map(emp => {
-                          const es = att[emp.id]?.[monthKey]?.stats || {};
-                          const eComp = es.totalDays > 0 ? ((es.totalDays - (es.unset||0)) / es.totalDays * 100).toFixed(0) : 0;
-                          return (
-                            <div key={emp.id} style={{display:"flex", alignItems:"center", justifyContent:"space-between", padding:"3px 0", fontSize:13}}>
-                              <span style={{color:"#374151"}}>{emp.name}</span>
-                              <div style={{display:"flex", alignItems:"center", gap:8}}>
-                                <span style={{color:"#10b981", fontWeight:600}}>{es.present||0}g</span>
-                                {(es.absent||0) > 0 && <span style={{color:"#ef4444", fontWeight:600}}>{es.absent}g</span>}
-                                <span style={{color:"#9ca3af", fontSize:11}}>{eComp}%</span>
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
+      {/* ===== PUANTAJ ÖZETİ ===== */}
+      {visWidgets.puantaj && (
+        <>
+          <hr className="sep" />
+          <div className="cardTitleRow">
+            <h3>📅 Puantaj Özeti</h3>
+            <Badge kind="ok">{monthKey}</Badge>
+          </div>
+          <div className="small" style={{marginTop:6}}>
+            Seçili ay için <b>proje bazlı</b> personel devam özeti.
+          </div>
+          {(() => {
+            const prjs = Array.isArray(projects) ? projects : [];
+            const emps = Array.isArray(employees) ? employees : [];
+            const att  = attendance || {};
+            const projectBlocks = prjs.map(proj => {
+              const projEmps = emps.filter(e => e.project === proj.name);
+              const agg = { present:0, absent:0, paid_leave:0, unpaid_leave:0, sick_leave:0, excuse:0, weekend:0, holiday:0, half_day:0, unset:0, totalDays:0, workDays:0 };
+              projEmps.forEach(emp => {
+                const s = att[emp.id]?.[monthKey]?.stats || {};
+                agg.present     += (s.present     || 0);
+                agg.absent      += (s.absent      || 0);
+                agg.paid_leave  += (s.paid_leave  || 0);
+                agg.unpaid_leave+= (s.unpaid_leave|| 0);
+                agg.sick_leave  += (s.sick_leave  || 0);
+                agg.excuse      += (s.excuse      || 0);
+                agg.weekend     += (s.weekend     || 0);
+                agg.holiday     += (s.holiday     || 0);
+                agg.half_day    += (s.half_day    || 0);
+                agg.unset       += (s.unset       || 0);
+                agg.totalDays   += (s.totalDays   || 0);
+                agg.workDays    += (s.workDays    || 0);
+              });
+              return { proj, projEmps, agg };
+            });
+            const grand = { present:0, absent:0, paid_leave:0, unpaid_leave:0, sick_leave:0, totalDays:0, workDays:0, unset:0, empCount:0 };
+            projectBlocks.forEach(b => {
+              grand.present      += b.agg.present;
+              grand.absent       += b.agg.absent;
+              grand.paid_leave   += b.agg.paid_leave;
+              grand.unpaid_leave += b.agg.unpaid_leave;
+              grand.sick_leave   += b.agg.sick_leave;
+              grand.totalDays    += b.agg.totalDays;
+              grand.workDays     += b.agg.workDays;
+              grand.unset        += b.agg.unset;
+              grand.empCount     += b.projEmps.length;
+            });
+            const grandCompletion = grand.totalDays > 0 ? ((grand.totalDays - grand.unset) / grand.totalDays * 100).toFixed(1) : 0;
+            return (
+              <>
+                <div className="kpiRow" style={{marginTop:14}}>
+                  <KPI label="Toplam Personel" value={grand.empCount} />
+                  <KPI label="Toplam Çalışma Günü" value={grand.workDays} />
+                  <KPI label="Toplam Geldi" value={grand.present} />
+                  <KPI label="Toplam İzin" value={grand.paid_leave + grand.unpaid_leave + grand.sick_leave} />
+                  <KPI label="Toplam Gelmedi" value={grand.absent} />
+                  <KPI label="Tamamlanma" value={`${grandCompletion}%`} />
+                </div>
+                <div style={{marginTop:14, padding:"12px 16px", background:"#f9fafb", borderRadius:12}}>
+                  <div style={{display:"flex", justifyContent:"space-between", marginBottom:6}}>
+                    <span style={{fontWeight:600, fontSize:14}}>Genel Tamamlanma Oranı</span>
+                    <span style={{fontWeight:700, color:"#10b981"}}>{grandCompletion}%</span>
                   </div>
-                );
-              })}
-            </div>
+                  <div style={{height:18, background:"#e5e7eb", borderRadius:999, overflow:"hidden"}}>
+                    <div style={{height:"100%", width: grandCompletion + "%", background:"linear-gradient(90deg,#10b981,#3b82f6)", transition:"width .3s ease"}} />
+                  </div>
+                </div>
+                <div style={{marginTop:16, display:"grid", gridTemplateColumns:"repeat(auto-fit, minmax(260px,1fr))", gap:12}}>
+                  {projectBlocks.map(({ proj, projEmps, agg }) => {
+                    const comp = agg.totalDays > 0 ? ((agg.totalDays - agg.unset) / agg.totalDays * 100).toFixed(1) : 0;
+                    return (
+                      <div key={proj.id} className="card" style={{padding:"14px 16px", borderRadius:14}}>
+                        <div style={{display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:10}}>
+                          <div style={{fontWeight:700, fontSize:15}}>{proj.name}</div>
+                          <Badge kind={agg.absent > 0 ? "danger" : "ok"}>{projEmps.length} kişi</Badge>
+                        </div>
+                        <div style={{display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:6, marginBottom:10}}>
+                          <div style={{textAlign:"center", padding:"6px 2px", background:"#10b98118", borderRadius:8}}>
+                            <div style={{fontWeight:700, fontSize:18, color:"#10b981"}}>{agg.present}</div>
+                            <div style={{fontSize:11, color:"#6b7280"}}>Geldi</div>
+                          </div>
+                          <div style={{textAlign:"center", padding:"6px 2px", background:"#ef444418", borderRadius:8}}>
+                            <div style={{fontWeight:700, fontSize:18, color:"#ef4444"}}>{agg.absent}</div>
+                            <div style={{fontSize:11, color:"#6b7280"}}>Gelmedi</div>
+                          </div>
+                          <div style={{textAlign:"center", padding:"6px 2px", background:"#3b82f618", borderRadius:8}}>
+                            <div style={{fontWeight:700, fontSize:18, color:"#3b82f6"}}>{agg.paid_leave + agg.unpaid_leave + agg.sick_leave}</div>
+                            <div style={{fontSize:11, color:"#6b7280"}}>İzin</div>
+                          </div>
+                        </div>
+                        <div style={{height:10, background:"#e5e7eb", borderRadius:999, overflow:"hidden", marginBottom:6}}>
+                          <div style={{height:"100%", width: comp + "%", background:"linear-gradient(90deg,#10b981,#3b82f6)", transition:"width .3s"}} />
+                        </div>
+                        <div style={{fontSize:11, color:"#6b7280", display:"flex", justifyContent:"space-between"}}>
+                          <span>Tamamlanma: <b>{comp}%</b></span>
+                          <span>Çalışma: <b>{agg.workDays} gün</b></span>
+                        </div>
+                        {agg.totalDays > 0 && (
+                          <div style={{marginTop:10, borderTop:"1px solid #e5e7eb", paddingTop:8}}>
+                            {projEmps.map(emp => {
+                              const es = att[emp.id]?.[monthKey]?.stats || {};
+                              const eComp = es.totalDays > 0 ? ((es.totalDays - (es.unset||0)) / es.totalDays * 100).toFixed(0) : 0;
+                              return (
+                                <div key={emp.id} style={{display:"flex", alignItems:"center", justifyContent:"space-between", padding:"3px 0", fontSize:13}}>
+                                  <span style={{color:"#374151"}}>{emp.name}</span>
+                                  <div style={{display:"flex", alignItems:"center", gap:8}}>
+                                    <span style={{color:"#10b981", fontWeight:600}}>{es.present||0}g</span>
+                                    {(es.absent||0) > 0 && <span style={{color:"#ef4444", fontWeight:600}}>{es.absent}g</span>}
+                                    <span style={{color:"#9ca3af", fontSize:11}}>{eComp}%</span>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+                <div className="tableWrap" style={{marginTop:16}}>
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>Proje</th><th>Personel</th><th>Çalışma Günü</th><th>Geldi</th><th>Yarım Gün</th>
+                        <th>Ücretli İzin</th><th>Ücretsiz İzin</th><th>Hastalık</th><th>Mazeret</th>
+                        <th>Gelmedi</th><th>Hafta Sonu</th><th>Tatil</th><th>Tamamlanma</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {projectBlocks.map(({ proj, projEmps }) =>
+                        projEmps.map(emp => {
+                          const es = att[emp.id]?.[monthKey]?.stats || {};
+                          const eComp = es.totalDays > 0 ? ((es.totalDays - (es.unset||0)) / es.totalDays * 100).toFixed(1) : "-";
+                          return (
+                            <tr key={emp.id}>
+                              <td><b>{proj.name}</b></td><td>{emp.name}</td>
+                              <td>{es.workDays || 0}</td><td>{es.present || 0}</td><td>{es.half_day || 0}</td>
+                              <td>{es.paid_leave || 0}</td><td>{es.unpaid_leave || 0}</td><td>{es.sick_leave || 0}</td>
+                              <td>{es.excuse || 0}</td>
+                              <td style={{color:"#ef4444", fontWeight: (es.absent||0)>0 ? 700 : 400}}>{es.absent || 0}</td>
+                              <td>{es.weekend || 0}</td><td>{es.holiday || 0}</td><td>{eComp}%</td>
+                            </tr>
+                          );
+                        })
+                      )}
+                      {grand.empCount === 0 && <tr><td colSpan="13">Personel kayıt yok.</td></tr>}
+                    </tbody>
+                  </table>
+                </div>
+              </>
+            );
+          })()}
+        </>
+      )}
 
-            {/* Detay tablosu */}
-            <div className="tableWrap" style={{marginTop:16}}>
+      {/* ===== TREND ANALİZ (Son 6 ay) ===== */}
+      {visWidgets.trend && (
+        <>
+          <hr className="sep" />
+          <div className="cardTitleRow">
+            <h3>📈 Trend Analizi</h3>
+            <Badge kind="ok">Son 6 Ay</Badge>
+          </div>
+          <div className="small" style={{marginTop:6}}>
+            Seçili projeler için son 6 aylık puantaj trendleri. Veri olmayan aylar sıfır gösterilir.
+          </div>
+
+          {/* Trend: Çalışma Günü */}
+          <div className="trend-block">
+            <div style={{fontWeight:600, fontSize:13, color:"#374151", marginBottom:6}}>Çalışma Günü (Ay Bazlı)</div>
+            <div className="trend-row">
+              <div className="trend-label">Çalışma</div>
+              <div className="trend-bars">
+                {(() => {
+                  const max = Math.max(...trendData.map(d => d.workDays), 1);
+                  return trendData.map((d, i) => (
+                    <div key={i} className="trend-bar-wrap">
+                      <div className="trend-bar-val">{d.workDays}</div>
+                      <div className="trend-bar" style={{ height: (d.workDays / max * 100) + "%", background:"#3b82f6" }} />
+                      <div className="trend-month-label">{d.label}</div>
+                    </div>
+                  ));
+                })()}
+              </div>
+            </div>
+          </div>
+
+          {/* Trend: Geldi / Gelmedi / İzin — grouped */}
+          <div className="trend-block" style={{marginTop:20}}>
+            <div style={{fontWeight:600, fontSize:13, color:"#374151", marginBottom:6}}>Geldi / Gelmedi / İzin Karşılaştırma</div>
+            {["present","absent","izin"].map(metric => {
+              const colors = { present:"#10b981", absent:"#ef4444", izin:"#f59e0b" };
+              const labels = { present:"Geldi", absent:"Gelmedi", izin:"İzin" };
+              const max = Math.max(...trendData.map(d => d[metric]), 1);
+              return (
+                <div key={metric} className="trend-row">
+                  <div className="trend-label" style={{color: colors[metric]}}>{labels[metric]}</div>
+                  <div className="trend-bars">
+                    {trendData.map((d, i) => (
+                      <div key={i} className="trend-bar-wrap">
+                        <div className="trend-bar-val">{d[metric]}</div>
+                        <div className="trend-bar" style={{ height: (d[metric] / max * 100) + "%", background: colors[metric] }} />
+                        {metric === "izin" && <div className="trend-month-label">{d.label}</div>}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Trend: Tamamlanma Oranı — line-style with dots */}
+          <div className="trend-block" style={{marginTop:20}}>
+            <div style={{fontWeight:600, fontSize:13, color:"#374151", marginBottom:8}}>Tamamlanma Oranı (%)</div>
+            <div style={{display:"flex", alignItems:"flex-end", gap:0, height:70, padding:"0 4px"}}>
+              {(() => {
+                const max = 100;
+                return trendData.map((d, i) => {
+                  const pct = d.completion;
+                  const barH = (pct / max * 56);
+                  const color = pct >= 80 ? "#10b981" : pct >= 60 ? "#f59e0b" : "#ef4444";
+                  return (
+                    <div key={i} style={{flex:1, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"flex-end", height:"100%"}}>
+                      <div style={{fontSize:11, fontWeight:700, color, marginBottom:2}}>{pct}%</div>
+                      <div style={{width:"60%", height: barH + "px", background: color, borderRadius:"4px 4px 0 0", minHeight:3, transition:"height .3s"}} />
+                      <div style={{fontSize:10, color:"#94a3b8", marginTop:3, textAlign:"center"}}>{d.label}</div>
+                    </div>
+                  );
+                });
+              })()}
+            </div>
+            {/* Renkli legend */}
+            <div style={{display:"flex", gap:16, marginTop:10, justifyContent:"center"}}>
+              <div style={{display:"flex", alignItems:"center", gap:4, fontSize:12}}>
+                <div style={{width:12, height:12, borderRadius:3, background:"#10b981"}} />
+                <span style={{color:"#374151"}}>≥ 80%</span>
+              </div>
+              <div style={{display:"flex", alignItems:"center", gap:4, fontSize:12}}>
+                <div style={{width:12, height:12, borderRadius:3, background:"#f59e0b"}} />
+                <span style={{color:"#374151"}}>60–79%</span>
+              </div>
+              <div style={{display:"flex", alignItems:"center", gap:4, fontSize:12}}>
+                <div style={{width:12, height:12, borderRadius:3, background:"#ef4444"}} />
+                <span style={{color:"#374151"}}>&lt; 60%</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Trend: Proje bazlı karşılaştırma tablosu */}
+          <div style={{marginTop:18}}>
+            <div style={{fontWeight:600, fontSize:13, color:"#374151", marginBottom:8}}>Proje Bazlı Son 6 Ay Özet</div>
+            <div className="tableWrap">
               <table>
                 <thead>
                   <tr>
                     <th>Proje</th>
-                    <th>Personel</th>
-                    <th>Çalışma Günü</th>
-                    <th>Geldi</th>
-                    <th>Yarım Gün</th>
-                    <th>Ücretli İzin</th>
-                    <th>Ücretsiz İzin</th>
-                    <th>Hastalık</th>
-                    <th>Mazeret</th>
-                    <th>Gelmedi</th>
-                    <th>Hafta Sonu</th>
-                    <th>Tatil</th>
-                    <th>Tamamlanma</th>
+                    {trendData.map((d,i) => <th key={i}>{d.label}</th>)}
                   </tr>
                 </thead>
                 <tbody>
-                  {projectBlocks.map(({ proj, projEmps }) =>
-                    projEmps.map(emp => {
-                      const es = att[emp.id]?.[monthKey]?.stats || {};
-                      const eComp = es.totalDays > 0 ? ((es.totalDays - (es.unset||0)) / es.totalDays * 100).toFixed(1) : "-";
+                  {(() => {
+                    const prjs = Array.isArray(projects) ? projects : [];
+                    const emps = Array.isArray(employees) ? employees : [];
+                    const att  = attendance || {};
+                    const [curY, curM] = monthKey.split("-").map(Number);
+                    const months = [];
+                    for(let i = 5; i >= 0; i--){
+                      let m = curM - i; let y = curY;
+                      while(m < 1){ m += 12; y--; }
+                      months.push(`${y}-${String(m).padStart(2,"0")}`);
+                    }
+                    return prjs.map(proj => {
+                      const projEmps = emps.filter(e => e.project === proj.name);
                       return (
-                        <tr key={emp.id}>
+                        <tr key={proj.id}>
                           <td><b>{proj.name}</b></td>
-                          <td>{emp.name}</td>
-                          <td>{es.workDays || 0}</td>
-                          <td>{es.present || 0}</td>
-                          <td>{es.half_day || 0}</td>
-                          <td>{es.paid_leave || 0}</td>
-                          <td>{es.unpaid_leave || 0}</td>
-                          <td>{es.sick_leave || 0}</td>
-                          <td>{es.excuse || 0}</td>
-                          <td style={{color:"#ef4444", fontWeight: (es.absent||0)>0 ? 700 : 400}}>{es.absent || 0}</td>
-                          <td>{es.weekend || 0}</td>
-                          <td>{es.holiday || 0}</td>
-                          <td>{eComp}%</td>
+                          {months.map((mk, mi) => {
+                            let wd = 0;
+                            projEmps.forEach(emp => { wd += (att[emp.id]?.[mk]?.stats?.workDays || 0); });
+                            return <td key={mi}>{wd}</td>;
+                          })}
                         </tr>
                       );
-                    })
-                  )}
-                  {grand.empCount === 0 && <tr><td colSpan="13">Personel kayıt yok.</td></tr>}
+                    });
+                  })()}
                 </tbody>
               </table>
             </div>
-          </>
-        );
-      })()}
-
-      {true && (
-        <div className="small" style={{marginTop:10}}>
-          Kullanıcı ekranında sadece kendi projesi listelenir.
-        </div>
+          </div>
+        </>
       )}
+
+      <div className="small" style={{marginTop:14}}>
+        Kullanıcı ekranında sadece kendi projesi listelenir.
+      </div>
     </div>
   );
 }
@@ -4469,347 +4419,6 @@ function BarChart({ title, data }){
             </div>
           );
         })}
-      </div>
-    </div>
-  );
-}
-
-// Aylık Karşılaştırma Bileşeni
-function MonthComparisonView({ comparisonData, category }) {
-  const { current, previous, currentLabel, previousLabel, percentageChanges } = comparisonData;
-  
-  const getChangeColor = (value) => {
-    const num = parseFloat(value);
-    if (num > 0) return "#10b981"; // Yeşil - artış
-    if (num < 0) return "#ef4444"; // Kırmızı - azalış
-    return "#6b7280"; // Gri - değişim yok
-  };
-  
-  const getChangeIcon = (value) => {
-    const num = parseFloat(value);
-    if (num > 0) return "↗";
-    if (num < 0) return "↘";
-    return "→";
-  };
-  
-  return (
-    <div>
-      <div className="cardTitleRow">
-        <h3>📊 Aylık Karşılaştırma Analizi</h3>
-        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-          <Badge kind="info">{currentLabel}</Badge>
-          <Badge>{previousLabel}</Badge>
-        </div>
-      </div>
-      
-      <div className="small" style={{ marginTop: 6, marginBottom: 16 }}>
-        Bu ay ile geçen ayın karşılaştırması. Yeşil ↗ artış, kırmızı ↘ azalış gösterir.
-      </div>
-      
-      {/* Ana Metrikler */}
-      <div style={{
-        display: "grid",
-        gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
-        gap: 12,
-        marginBottom: 16
-      }}>
-        <ComparisonCard
-          label={`Onaylı ${category?.itemLabel || "Kayıt"}`}
-          currentValue={current.itemsApproved}
-          previousValue={previous.itemsApproved}
-          change={percentageChanges.itemsApproved}
-          getChangeColor={getChangeColor}
-          getChangeIcon={getChangeIcon}
-        />
-        
-        <ComparisonCard
-          label="Onaylı Aylık Kayıt"
-          currentValue={current.monthApproved}
-          previousValue={previous.monthApproved}
-          change={percentageChanges.monthApproved}
-          getChangeColor={getChangeColor}
-          getChangeIcon={getChangeIcon}
-        />
-        
-        {current.mealsSum > 0 && (
-          <ComparisonCard
-            label="Yemek"
-            currentValue={current.mealsSum}
-            previousValue={previous.mealsSum}
-            change={percentageChanges.mealsSum}
-            getChangeColor={getChangeColor}
-            getChangeIcon={getChangeIcon}
-          />
-        )}
-      </div>
-      
-      {/* Field Bazlı Karşılaştırma */}
-      {Object.keys(current.sums || {}).length > 0 && (
-        <>
-          <div style={{
-            fontSize: 14,
-            fontWeight: 700,
-            marginTop: 16,
-            marginBottom: 12,
-            opacity: 0.8
-          }}>
-            Detaylı Metrikler
-          </div>
-          
-          <div style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
-            gap: 10
-          }}>
-            {Object.keys(current.sums).map(key => {
-              const field = category?.fields?.find(f => f.key === key);
-              if (!field || key === "mealCount") return null;
-              
-              return (
-                <ComparisonCard
-                  key={key}
-                  label={field.label}
-                  currentValue={current.sums[key]}
-                  previousValue={previous.sums[key]}
-                  change={percentageChanges.sums[key]}
-                  getChangeColor={getChangeColor}
-                  getChangeIcon={getChangeIcon}
-                  small
-                />
-              );
-            })}
-          </div>
-        </>
-      )}
-    </div>
-  );
-}
-
-// Personel Trend Bileşeni
-function EmployeeTrendView({ comparisonData, category }) {
-  const { employee, trendData } = comparisonData;
-  
-  // En yüksek değeri bul (grafik skalası için)
-  const maxValue = Math.max(
-    ...trendData.map(t => t.data.approved),
-    ...trendData.flatMap(t => Object.values(t.data.sums || {})),
-    1
-  );
-  
-  return (
-    <div>
-      <div className="cardTitleRow">
-        <h3>📈 Personel Trend Analizi</h3>
-        <Badge kind="info">{employee.name}</Badge>
-      </div>
-      
-      <div className="small" style={{ marginTop: 6, marginBottom: 16 }}>
-        Son 6 aylık performans trendi. Her ay için onaylı kayıt sayısı ve metrikler.
-      </div>
-      
-      {/* Onaylı Kayıt Trendi */}
-      <div style={{ marginBottom: 20 }}>
-        <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 10 }}>
-          Onaylı Kayıt Trendi
-        </div>
-        
-        <div style={{
-          display: "grid",
-          gridTemplateColumns: `repeat(${trendData.length}, 1fr)`,
-          gap: 8,
-          alignItems: "end",
-          height: 150,
-          borderBottom: "2px solid rgba(0,0,0,0.1)",
-          paddingBottom: 8
-        }}>
-          {trendData.map((month, idx) => {
-            const height = maxValue > 0 ? (month.data.approved / maxValue) * 100 : 0;
-            const isCurrentMonth = idx === trendData.length - 1;
-            
-            return (
-              <div key={month.month} style={{ 
-                display: "flex", 
-                flexDirection: "column", 
-                alignItems: "center",
-                gap: 4
-              }}>
-                <div style={{
-                  fontSize: 13,
-                  fontWeight: 700,
-                  color: isCurrentMonth ? "#3b82f6" : "#6b7280",
-                  marginBottom: 4
-                }}>
-                  {month.data.approved}
-                </div>
-                
-                <div style={{
-                  width: "100%",
-                  height: `${height}%`,
-                  minHeight: month.data.approved > 0 ? "10px" : "0",
-                  background: isCurrentMonth 
-                    ? "linear-gradient(180deg, #3b82f6, #2563eb)"
-                    : "linear-gradient(180deg, #10b981, #059669)",
-                  borderRadius: "4px 4px 0 0",
-                  transition: "height 0.3s ease"
-                }} />
-                
-                <div style={{
-                  fontSize: 11,
-                  fontWeight: 600,
-                  color: isCurrentMonth ? "#3b82f6" : "#6b7280",
-                  marginTop: 4,
-                  textAlign: "center"
-                }}>
-                  {month.label}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-      
-      {/* Metrik Trendleri */}
-      {category?.fields?.filter(f => f.type === "number" && f.key !== "mealCount").length > 0 && (
-        <div>
-          <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 12 }}>
-            Metrik Detayları
-          </div>
-          
-          <div style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))",
-            gap: 12
-          }}>
-            {category.fields
-              .filter(f => f.type === "number" && f.key !== "mealCount")
-              .map(field => (
-                <div key={field.key} className="card" style={{
-                  padding: 12,
-                  background: "rgba(0,0,0,0.02)",
-                  marginBottom: 0
-                }}>
-                  <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 8 }}>
-                    {field.label}
-                  </div>
-                  
-                  <div style={{
-                    display: "flex",
-                    gap: 6,
-                    alignItems: "end",
-                    height: 60
-                  }}>
-                    {trendData.map((month, idx) => {
-                      const value = month.data.sums[field.key] || 0;
-                      const maxFieldValue = Math.max(
-                        ...trendData.map(t => t.data.sums[field.key] || 0),
-                        1
-                      );
-                      const height = (value / maxFieldValue) * 100;
-                      const isCurrentMonth = idx === trendData.length - 1;
-                      
-                      return (
-                        <div key={month.month} style={{
-                          flex: 1,
-                          display: "flex",
-                          flexDirection: "column",
-                          alignItems: "center",
-                          gap: 2
-                        }}>
-                          <div style={{
-                            fontSize: 10,
-                            fontWeight: 600,
-                            color: "#6b7280"
-                          }}>
-                            {value}
-                          </div>
-                          
-                          <div style={{
-                            width: "100%",
-                            height: `${height}%`,
-                            minHeight: value > 0 ? "4px" : "0",
-                            background: isCurrentMonth ? "#3b82f6" : "#10b981",
-                            borderRadius: "2px 2px 0 0"
-                          }} />
-                        </div>
-                      );
-                    })}
-                  </div>
-                  
-                  <div style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    marginTop: 8,
-                    paddingTop: 8,
-                    borderTop: "1px solid rgba(0,0,0,0.1)",
-                    fontSize: 11,
-                    color: "#6b7280"
-                  }}>
-                    <span>Toplam: {trendData.reduce((sum, m) => sum + (m.data.sums[field.key] || 0), 0)}</span>
-                    <span>Ort: {(trendData.reduce((sum, m) => sum + (m.data.sums[field.key] || 0), 0) / trendData.length).toFixed(1)}</span>
-                  </div>
-                </div>
-              ))
-            }
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-// Karşılaştırma Kartı Bileşeni
-function ComparisonCard({ label, currentValue, previousValue, change, getChangeColor, getChangeIcon, small }) {
-  return (
-    <div className="card" style={{
-      padding: small ? 10 : 14,
-      background: "rgba(0,0,0,0.02)",
-      marginBottom: 0
-    }}>
-      <div style={{
-        fontSize: small ? 12 : 13,
-        fontWeight: 700,
-        marginBottom: 8,
-        opacity: 0.8
-      }}>
-        {label}
-      </div>
-      
-      <div style={{
-        display: "flex",
-        alignItems: "baseline",
-        gap: 8,
-        marginBottom: 6
-      }}>
-        <div style={{
-          fontSize: small ? 20 : 24,
-          fontWeight: 800,
-          color: "#1f2937"
-        }}>
-          {currentValue}
-        </div>
-        
-        <div style={{
-          fontSize: small ? 11 : 12,
-          color: "#6b7280"
-        }}>
-          / {previousValue}
-        </div>
-      </div>
-      
-      <div style={{
-        display: "flex",
-        alignItems: "center",
-        gap: 6,
-        fontSize: small ? 12 : 13,
-        fontWeight: 700,
-        color: getChangeColor(change)
-      }}>
-        <span style={{ fontSize: small ? 16 : 18 }}>
-          {getChangeIcon(change)}
-        </span>
-        <span>
-          {Math.abs(parseFloat(change))}%
-        </span>
       </div>
     </div>
   );
