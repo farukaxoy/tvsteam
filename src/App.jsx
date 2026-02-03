@@ -365,7 +365,20 @@ const NAV_CSS = `
 }
 `;
 
-const THEME_CSS = "";
+const THEME_CSS = `
+:root{--bg:#f8fafc;--panel:#ffffff;--text:#0f172a;--muted:#475569;--border:rgba(15,23,42,.12);--accent:#0b5ed7;--ok:#10b981;--warn:#f59e0b;--danger:#ef4444;--info:#3b82f6;}
+[data-theme="dark"]{--bg:#0b1220;--panel:#0f172a;--text:#e5e7eb;--muted:#94a3b8;--border:rgba(226,232,240,.12);--accent:#60a5fa;--ok:#34d399;--warn:#fbbf24;--danger:#fb7185;--info:#93c5fd;}
+body{background:var(--bg);color:var(--text);}
+.card{background:var(--panel);border:1px solid var(--border);border-radius:14px;}
+.badge{background:rgba(2,8,23,.04);}
+.badge.ok{background:rgba(16,185,129,.15);color:var(--ok);}
+.badge.warn{background:rgba(245,158,11,.15);color:var(--warn);}
+.badge.danger{background:rgba(239,68,68,.15);color:var(--danger);}
+@media (max-width:1200px){.kpiRow{grid-template-columns:repeat(auto-fit,minmax(160px,1fr));display:grid;gap:8px;}}
+@media (max-width:900px){.grid{display:block}.navTabs{flex-wrap:wrap}.tableWrap{overflow-x:auto}}
+@media (max-width:600px){.kpi{min-width:140px}.topNav{padding:10px}}
+.togglePanel{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:10px;}
+`;
 
 // ===================== AUTH MODE =====================
 // Supabase client (DB + Auth)
@@ -1006,6 +1019,7 @@ useEffect(() => {
           // Buluttan veriyi çek
           try{
             const remote = await loadStateFromSupabase("GLOBAL");
+ if(remote){ try{ lastRemoteUpdatedAtRef.current = await fetchUpdatedAt(); }catch(e){} }
             if(remote && typeof remote === "object"){
               setState(normalizeState(remote));
             }
@@ -1019,8 +1033,43 @@ useEffect(() => {
     })();
   }, []);
   const [tab, setTab] = useState("dashboard");
+
+  // ==== Basit Hash Tabanlı Routing (#/dashboard, #/veri-girisi ...) ====
+  const ROUTE_MAP = {
+    dashboard: '#/dashboard',
+    entry: '#/veri-girisi',
+    docs: '#/dokumanlar',
+    docTrack: '#/evrak-takip',
+    attendance: '#/puantaj',
+    actions: '#/aksiyonlar',
+    announcements: '#/duyurular',
+    contact: '#/iletisim',
+    approvals: '#/onaylar',
+    employees: '#/personel',
+    admin: '#/admin'
+  };
+  function tabFromHash(h){
+    const v = (h||window.location.hash||'').toLowerCase();
+    const pairs = Object.entries(ROUTE_MAP);
+    for(const [key, path] of pairs){ if(v.startsWith(path)) return key; }
+    return 'dashboard';
+  }
+  useEffect(()=>{
+    const initial = tabFromHash(window.location.hash);
+    if(initial && initial!==tab) setTab(initial);
+    const onHash = ()=>{ setTab(tabFromHash(window.location.hash)); };
+    window.addEventListener('hashchange', onHash);
+    return ()=> window.removeEventListener('hashchange', onHash);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  },[]);
+  useEffect(()=>{
+    const path = ROUTE_MAP[tab] || '#/dashboard';
+    if(window.location.hash !== path){ window.location.replace(path); }
+  },[tab]);
+
   const [notifOpen, setNotifOpen] = useState(false);
   const notifRef = useRef(null);
+ const lastRemoteUpdatedAtRef = useRef(null);
 
   const [activeYear, setActiveYear] = useState(initY);
   const [activeMonth, setActiveMonth] = useState(initM);
@@ -1046,6 +1095,8 @@ useEffect(() => {
   const [loginError, setLoginError] = useState("");
   const [theme, setTheme] = useState(() => localStorage.getItem("APP_THEME") || "light");
   const [toasts, setToasts] = useState([]);
+ const [uiPrefs, setUiPrefs] = useState(()=>{ try{ return JSON.parse(localStorage.getItem("UI_PREFS")) || { dashboard:{ showActions:true, showKpis:true, showCharts:true, showPdf:true, showExperts:true, showAttendance:true, showMonthCompare:true } }; }catch(e){ return { dashboard:{ showActions:true, showKpis:true, showCharts:true, showPdf:true, showExperts:true, showAttendance:true, showMonthCompare:true } }; }});
+ useEffect(()=>{ try{ localStorage.setItem("UI_PREFS", JSON.stringify(uiPrefs)); }catch(e){} }, [uiPrefs]);
 
   const pushToast = (text, kind="info", title="") => {
     const id = uid("t");
@@ -1157,8 +1208,10 @@ useEffect(() => {
     if(window.__supabaseSaveTimer) clearTimeout(window.__supabaseSaveTimer);
 
     window.__supabaseSaveTimer = setTimeout(async () => {
-      try{
-        await saveStateToSupabase(state);
+ try{
+  try{ const serverU = await fetchUpdatedAt(); if(lastRemoteUpdatedAtRef.current && serverU && serverU !== lastRemoteUpdatedAtRef.current){ const proceed = typeof window !== 'undefined' ? window.confirm('Buluttaki veri bu arada değişmiş görünüyor. Yeniden yüklemek ister misiniz?') : true; if(!proceed){ return; } else { const fresh = await loadStateFromSupabase('GLOBAL'); if(fresh){ setState(normalizeState(fresh)); lastRemoteUpdatedAtRef.current = serverU; } return; } } }catch(e){}
+  await saveStateToSupabase(state);
+  lastRemoteUpdatedAtRef.current = new Date().toISOString();
       }catch(e){
         console.error(e);
         // sessiz: kullanıcıyı sürekli rahatsız etmeyelim
@@ -1488,6 +1541,7 @@ for(const emp of (next.employees || [])){
       // 3) Buluttan en güncel veriyi çek (varsa)
       try{
         const remote = await loadStateFromSupabase("GLOBAL");
+ if(remote){ try{ lastRemoteUpdatedAtRef.current = await fetchUpdatedAt(); }catch(e){} }
         if(remote && typeof remote === "object"){
           // Local kurguyu bozmamak için normalize edip kur
           setState(normalizeState(remote));
@@ -2761,6 +2815,7 @@ for(const emp of (next.employees || [])){
         </div>
 
         <div className="navRight">
+ <button type="button" className="navBtn" style={{ padding: "8px 10px", minWidth: 44 }} onClick={()=> setTheme(t=> t==="dark"?"light":"dark")} title={theme==="dark"?"Aydınlık tema":"Karanlık tema"}>{theme==="dark"?"☀️":"🌙"}</button>
           <div ref={notifRef} style={{ position: "relative", marginRight: 10 }}>
             <button
               type="button"
@@ -2866,6 +2921,7 @@ for(const emp of (next.employees || [])){
                 setActiveProjectCode(code);
                 try{
                   const remote = await loadStateFromSupabase(code);
+ const _u = await fetchUpdatedAt(); lastRemoteUpdatedAtRef.current = _u;
                   if(remote) setState(normalizeState(remote));
                 }catch(err){
                   console.error(err);
@@ -3384,7 +3440,7 @@ for(const emp of (next.employees || [])){
 
 /* ===================== VIEWS ===================== */
 
-function DashboardView({ monthKey, category, rows, projects, employees, actions, categories, isAdmin, attendance }){
+function DashboardView({ monthKey, category, rows, projects, employees, actions, categories, isAdmin, attendance, uiPrefs, setUiPrefs }){
   const totals = useMemo(() => {
     const t = { itemsApproved:0, monthApproved:0, sums:{}, mealsSum:0 };
     for(const f of (category?.fields || [])){
@@ -3413,6 +3469,7 @@ function DashboardView({ monthKey, category, rows, projects, employees, actions,
       </div>
 
       <div className="small" style={{marginTop:6}}>
+ <div style={{marginTop:10}}><button className="btn" type="button" onClick={()=> setUiPrefs(p=>({...p, _showToggles: !p?._showToggles}))}>Görünümü Özelleştir</button> {uiPrefs?._showToggles && (<div className="togglePanel" style={{marginTop:8}}><label style={{display:"inline-flex",alignItems:"center",gap:8,marginRight:12}}><input type="checkbox" checked={uiPrefs.dashboard.showActions} onChange={e=> setUiPrefs(p=>({...p, dashboard:{...p.dashboard, showActions:e.target.checked}}))}/> Aksiyon Kartları</label><label style={{display:"inline-flex",alignItems:"center",gap:8,marginRight:12}}><input type="checkbox" checked={uiPrefs.dashboard.showKpis} onChange={e=> setUiPrefs(p=>({...p, dashboard:{...p.dashboard, showKpis:e.target.checked}}))}/> KPI Satırı</label><label style={{display:"inline-flex",alignItems:"center",gap:8,marginRight:12}}><input type="checkbox" checked={uiPrefs.dashboard.showCharts} onChange={e=> setUiPrefs(p=>({...p, dashboard:{...p.dashboard, showCharts:e.target.checked}}))}/> Grafikli Özet</label><label style={{display:"inline-flex",alignItems:"center",gap:8,marginRight:12}}><input type="checkbox" checked={uiPrefs.dashboard.showPdf} onChange={e=> setUiPrefs(p=>({...p, dashboard:{...p.dashboard, showPdf:e.target.checked}}))}/> PDF Rapor</label>{(category?.key === "experts" && uiPrefs?.dashboard?.showExperts) && (<label style={{display:"inline-flex",alignItems:"center",gap:8,marginRight:12}}><input type="checkbox" checked={uiPrefs.dashboard.showExperts} onChange={e=> setUiPrefs(p=>({...p, dashboard:{...p.dashboard, showExperts:e.target.checked}}))}/> Kişi Bazlı Tablo</label>)}<label style={{display:"inline-flex",alignItems:"center",gap:8,marginRight:12}}><input type="checkbox" checked={uiPrefs.dashboard.showAttendance} onChange={e=> setUiPrefs(p=>({...p, dashboard:{...p.dashboard, showAttendance:e.target.checked}}))}/> Puantaj Özeti</label><label style={{display:"inline-flex",alignItems:"center",gap:8,marginRight:12}}><input type="checkbox" checked={uiPrefs.dashboard.showMonthCompare} onChange={e=> setUiPrefs(p=>({...p, dashboard:{...p.dashboard, showMonthCompare:e.target.checked}}))}/> Ay vs Ay Karşılaştırma</label></div>)}</div>
         Bu ekranda sadece <b>admin onaylı</b> aylık veriler hesaplanır.
       </div>
 
@@ -3492,13 +3549,15 @@ function DashboardView({ monthKey, category, rows, projects, employees, actions,
       </div>
 
       {/* Grafikler */}
-      <div style={{marginTop:14}}>
+       {uiPrefs?.dashboard?.showMonthCompare && (()=>{ const [yy,mm] = String(monthKey).split("-").map(x=>Number(x)); const prevDate = new Date(yy, mm-2, 1); const pY = prevDate.getFullYear(); const pM = String(prevDate.getMonth()+1).padStart(2,"0"); const prevKey = `${pY}-${pM}`; const sumFor = (mk)=>{ const t = { itemsApproved:0, monthApproved:0, sums:{}, mealsSum:0 }; for(const f of (category?.fields||[])){ if(f.type==="number") t.sums[f.key]=0;} const prjs = Array.isArray(projects)?projects:[]; for(const p of prjs){ const arr = p.itemsByCategory?.[category?.key]||[]; for(const it of arr){ if(category?.approval?.item && !it.approved) continue; t.itemsApproved++; const slot = it.months?.[mk]; if(!slot || !slot.approved) continue; t.monthApproved++; const dft = slot.draft||{}; for(const f of (category?.fields||[])){ if(f.type==="number") t.sums[f.key]+=Number(dft[f.key]||0);} if(category?.special?.meals){ t.mealsSum += (Object.prototype.hasOwnProperty.call(dft,"mealCount") ? Number(dft.mealCount||0) : (Array.isArray(dft.meals)? dft.meals.length : 0)); } } } return t; }; const cur=sumFor(monthKey), prv=sumFor(prevKey), keys=Object.keys(cur.sums); return (<div className="card" style={{marginTop:14}}><div className="cardTitleRow"><h3>Ay vs Ay Karşılaştırma</h3><Badge>{prevKey} ⇄ {monthKey}</Badge></div><div className="tableWrap" style={{marginTop:8}}><table><thead><tr><th>Metrik</th><th>{prevKey}</th><th>{monthKey}</th><th>Δ</th></tr></thead><tbody><tr><td>Onaylı Kayıt</td><td>{prv.itemsApproved}</td><td>{cur.itemsApproved}</td><td>{cur.itemsApproved-prv.itemsApproved}</td></tr><tr><td>Onaylı Aylık</td><td>{prv.monthApproved}</td><td>{cur.monthApproved}</td><td>{cur.monthApproved-prv.monthApproved}</td></tr>{keys.filter(k=>k!=="mealCount").map(k=> (<tr key={k}><td>{(category?.fields||[]).find(f=>f.key===k)?.label||k}</td><td>{prv.sums[k]||0}</td><td>{cur.sums[k]||0}</td><td>{(cur.sums[k]||0)-(prv.sums[k]||0)}</td></tr>))}{category?.special?.meals?<tr><td>Yemek</td><td>{prv.mealsSum}</td><td>{cur.mealsSum}</td><td>{cur.mealsSum-prv.mealsSum}</td></tr>:null}</tbody></table></div></div>); })()}
+{uiPrefs?.dashboard?.showCharts && (<div style={{marginTop:14}}>)
         <div className="cardTitleRow">
           <h3>Grafikli Özet</h3>
           <Badge kind="ok">Proje Bazlı</Badge>
         </div>
 
         <div className="small" style={{marginTop:6}}>
+ <div style={{marginTop:10}}><button className="btn" type="button" onClick={()=> setUiPrefs(p=>({...p, _showToggles: !p?._showToggles}))}>Görünümü Özelleştir</button> {uiPrefs?._showToggles && (<div className="togglePanel" style={{marginTop:8}}><label style={{display:"inline-flex",alignItems:"center",gap:8,marginRight:12}}><input type="checkbox" checked={uiPrefs.dashboard.showActions} onChange={e=> setUiPrefs(p=>({...p, dashboard:{...p.dashboard, showActions:e.target.checked}}))}/> Aksiyon Kartları</label><label style={{display:"inline-flex",alignItems:"center",gap:8,marginRight:12}}><input type="checkbox" checked={uiPrefs.dashboard.showKpis} onChange={e=> setUiPrefs(p=>({...p, dashboard:{...p.dashboard, showKpis:e.target.checked}}))}/> KPI Satırı</label><label style={{display:"inline-flex",alignItems:"center",gap:8,marginRight:12}}><input type="checkbox" checked={uiPrefs.dashboard.showCharts} onChange={e=> setUiPrefs(p=>({...p, dashboard:{...p.dashboard, showCharts:e.target.checked}}))}/> Grafikli Özet</label><label style={{display:"inline-flex",alignItems:"center",gap:8,marginRight:12}}><input type="checkbox" checked={uiPrefs.dashboard.showPdf} onChange={e=> setUiPrefs(p=>({...p, dashboard:{...p.dashboard, showPdf:e.target.checked}}))}/> PDF Rapor</label>{(category?.key === "experts" && uiPrefs?.dashboard?.showExperts) && (<label style={{display:"inline-flex",alignItems:"center",gap:8,marginRight:12}}><input type="checkbox" checked={uiPrefs.dashboard.showExperts} onChange={e=> setUiPrefs(p=>({...p, dashboard:{...p.dashboard, showExperts:e.target.checked}}))}/> Kişi Bazlı Tablo</label>)}<label style={{display:"inline-flex",alignItems:"center",gap:8,marginRight:12}}><input type="checkbox" checked={uiPrefs.dashboard.showAttendance} onChange={e=> setUiPrefs(p=>({...p, dashboard:{...p.dashboard, showAttendance:e.target.checked}}))}/> Puantaj Özeti</label><label style={{display:"inline-flex",alignItems:"center",gap:8,marginRight:12}}><input type="checkbox" checked={uiPrefs.dashboard.showMonthCompare} onChange={e=> setUiPrefs(p=>({...p, dashboard:{...p.dashboard, showMonthCompare:e.target.checked}}))}/> Ay vs Ay Karşılaştırma</label></div>)}</div>
           Seçili kategori: <b>{category?.name}</b> • Sadece <b>onaylı aylık</b> veriler.
         </div>
 
@@ -3526,6 +3585,7 @@ function DashboardView({ monthKey, category, rows, projects, employees, actions,
         <Badge>{monthKey}</Badge>
       </div>
       <div className="small" style={{marginTop:6}}>
+ <div style={{marginTop:10}}><button className="btn" type="button" onClick={()=> setUiPrefs(p=>({...p, _showToggles: !p?._showToggles}))}>Görünümü Özelleştir</button> {uiPrefs?._showToggles && (<div className="togglePanel" style={{marginTop:8}}><label style={{display:"inline-flex",alignItems:"center",gap:8,marginRight:12}}><input type="checkbox" checked={uiPrefs.dashboard.showActions} onChange={e=> setUiPrefs(p=>({...p, dashboard:{...p.dashboard, showActions:e.target.checked}}))}/> Aksiyon Kartları</label><label style={{display:"inline-flex",alignItems:"center",gap:8,marginRight:12}}><input type="checkbox" checked={uiPrefs.dashboard.showKpis} onChange={e=> setUiPrefs(p=>({...p, dashboard:{...p.dashboard, showKpis:e.target.checked}}))}/> KPI Satırı</label><label style={{display:"inline-flex",alignItems:"center",gap:8,marginRight:12}}><input type="checkbox" checked={uiPrefs.dashboard.showCharts} onChange={e=> setUiPrefs(p=>({...p, dashboard:{...p.dashboard, showCharts:e.target.checked}}))}/> Grafikli Özet</label><label style={{display:"inline-flex",alignItems:"center",gap:8,marginRight:12}}><input type="checkbox" checked={uiPrefs.dashboard.showPdf} onChange={e=> setUiPrefs(p=>({...p, dashboard:{...p.dashboard, showPdf:e.target.checked}}))}/> PDF Rapor</label>{(category?.key === "experts" && uiPrefs?.dashboard?.showExperts) && (<label style={{display:"inline-flex",alignItems:"center",gap:8,marginRight:12}}><input type="checkbox" checked={uiPrefs.dashboard.showExperts} onChange={e=> setUiPrefs(p=>({...p, dashboard:{...p.dashboard, showExperts:e.target.checked}}))}/> Kişi Bazlı Tablo</label>)}<label style={{display:"inline-flex",alignItems:"center",gap:8,marginRight:12}}><input type="checkbox" checked={uiPrefs.dashboard.showAttendance} onChange={e=> setUiPrefs(p=>({...p, dashboard:{...p.dashboard, showAttendance:e.target.checked}}))}/> Puantaj Özeti</label><label style={{display:"inline-flex",alignItems:"center",gap:8,marginRight:12}}><input type="checkbox" checked={uiPrefs.dashboard.showMonthCompare} onChange={e=> setUiPrefs(p=>({...p, dashboard:{...p.dashboard, showMonthCompare:e.target.checked}}))}/> Ay vs Ay Karşılaştırma</label></div>)}</div>
         Butona tıkla → rapor yeni sekmede açılır → tarayıcıdan <b>PDF olarak kaydet</b>.
       </div>
 
@@ -3574,7 +3634,7 @@ function DashboardView({ monthKey, category, rows, projects, employees, actions,
       </div>
 
       {/* Kişi bazlı (Uzmanlar) */}
-      {category?.key === "experts" && (
+      {(category?.key === "experts" && uiPrefs?.dashboard?.showExperts) && (
         <>
 
           <hr className="sep" />
@@ -3584,6 +3644,7 @@ function DashboardView({ monthKey, category, rows, projects, employees, actions,
           </div>
 
           <div className="small" style={{marginTop:6}}>
+ <div style={{marginTop:10}}><button className="btn" type="button" onClick={()=> setUiPrefs(p=>({...p, _showToggles: !p?._showToggles}))}>Görünümü Özelleştir</button> {uiPrefs?._showToggles && (<div className="togglePanel" style={{marginTop:8}}><label style={{display:"inline-flex",alignItems:"center",gap:8,marginRight:12}}><input type="checkbox" checked={uiPrefs.dashboard.showActions} onChange={e=> setUiPrefs(p=>({...p, dashboard:{...p.dashboard, showActions:e.target.checked}}))}/> Aksiyon Kartları</label><label style={{display:"inline-flex",alignItems:"center",gap:8,marginRight:12}}><input type="checkbox" checked={uiPrefs.dashboard.showKpis} onChange={e=> setUiPrefs(p=>({...p, dashboard:{...p.dashboard, showKpis:e.target.checked}}))}/> KPI Satırı</label><label style={{display:"inline-flex",alignItems:"center",gap:8,marginRight:12}}><input type="checkbox" checked={uiPrefs.dashboard.showCharts} onChange={e=> setUiPrefs(p=>({...p, dashboard:{...p.dashboard, showCharts:e.target.checked}}))}/> Grafikli Özet</label><label style={{display:"inline-flex",alignItems:"center",gap:8,marginRight:12}}><input type="checkbox" checked={uiPrefs.dashboard.showPdf} onChange={e=> setUiPrefs(p=>({...p, dashboard:{...p.dashboard, showPdf:e.target.checked}}))}/> PDF Rapor</label>{(category?.key === "experts" && uiPrefs?.dashboard?.showExperts) && (<label style={{display:"inline-flex",alignItems:"center",gap:8,marginRight:12}}><input type="checkbox" checked={uiPrefs.dashboard.showExperts} onChange={e=> setUiPrefs(p=>({...p, dashboard:{...p.dashboard, showExperts:e.target.checked}}))}/> Kişi Bazlı Tablo</label>)}<label style={{display:"inline-flex",alignItems:"center",gap:8,marginRight:12}}><input type="checkbox" checked={uiPrefs.dashboard.showAttendance} onChange={e=> setUiPrefs(p=>({...p, dashboard:{...p.dashboard, showAttendance:e.target.checked}}))}/> Puantaj Özeti</label><label style={{display:"inline-flex",alignItems:"center",gap:8,marginRight:12}}><input type="checkbox" checked={uiPrefs.dashboard.showMonthCompare} onChange={e=> setUiPrefs(p=>({...p, dashboard:{...p.dashboard, showMonthCompare:e.target.checked}}))}/> Ay vs Ay Karşılaştırma</label></div>)}</div>
             Sadece <b>admin onaylı</b> uzman aylıkları listelenir.
           </div>
 
@@ -3651,6 +3712,7 @@ function DashboardView({ monthKey, category, rows, projects, employees, actions,
         <Badge kind="ok">{monthKey}</Badge>
       </div>
       <div className="small" style={{marginTop:6}}>
+ <div style={{marginTop:10}}><button className="btn" type="button" onClick={()=> setUiPrefs(p=>({...p, _showToggles: !p?._showToggles}))}>Görünümü Özelleştir</button> {uiPrefs?._showToggles && (<div className="togglePanel" style={{marginTop:8}}><label style={{display:"inline-flex",alignItems:"center",gap:8,marginRight:12}}><input type="checkbox" checked={uiPrefs.dashboard.showActions} onChange={e=> setUiPrefs(p=>({...p, dashboard:{...p.dashboard, showActions:e.target.checked}}))}/> Aksiyon Kartları</label><label style={{display:"inline-flex",alignItems:"center",gap:8,marginRight:12}}><input type="checkbox" checked={uiPrefs.dashboard.showKpis} onChange={e=> setUiPrefs(p=>({...p, dashboard:{...p.dashboard, showKpis:e.target.checked}}))}/> KPI Satırı</label><label style={{display:"inline-flex",alignItems:"center",gap:8,marginRight:12}}><input type="checkbox" checked={uiPrefs.dashboard.showCharts} onChange={e=> setUiPrefs(p=>({...p, dashboard:{...p.dashboard, showCharts:e.target.checked}}))}/> Grafikli Özet</label><label style={{display:"inline-flex",alignItems:"center",gap:8,marginRight:12}}><input type="checkbox" checked={uiPrefs.dashboard.showPdf} onChange={e=> setUiPrefs(p=>({...p, dashboard:{...p.dashboard, showPdf:e.target.checked}}))}/> PDF Rapor</label>{(category?.key === "experts" && uiPrefs?.dashboard?.showExperts) && (<label style={{display:"inline-flex",alignItems:"center",gap:8,marginRight:12}}><input type="checkbox" checked={uiPrefs.dashboard.showExperts} onChange={e=> setUiPrefs(p=>({...p, dashboard:{...p.dashboard, showExperts:e.target.checked}}))}/> Kişi Bazlı Tablo</label>)}<label style={{display:"inline-flex",alignItems:"center",gap:8,marginRight:12}}><input type="checkbox" checked={uiPrefs.dashboard.showAttendance} onChange={e=> setUiPrefs(p=>({...p, dashboard:{...p.dashboard, showAttendance:e.target.checked}}))}/> Puantaj Özeti</label><label style={{display:"inline-flex",alignItems:"center",gap:8,marginRight:12}}><input type="checkbox" checked={uiPrefs.dashboard.showMonthCompare} onChange={e=> setUiPrefs(p=>({...p, dashboard:{...p.dashboard, showMonthCompare:e.target.checked}}))}/> Ay vs Ay Karşılaştırma</label></div>)}</div>
         Seçili ay için <b>proje bazlı</b> personel devam özeti.
       </div>
 
@@ -4111,6 +4173,7 @@ function MonthlyControlsView({
       </div>
 
       <div className="small" style={{marginTop:6}}>
+ <div style={{marginTop:10}}><button className="btn" type="button" onClick={()=> setUiPrefs(p=>({...p, _showToggles: !p?._showToggles}))}>Görünümü Özelleştir</button> {uiPrefs?._showToggles && (<div className="togglePanel" style={{marginTop:8}}><label style={{display:"inline-flex",alignItems:"center",gap:8,marginRight:12}}><input type="checkbox" checked={uiPrefs.dashboard.showActions} onChange={e=> setUiPrefs(p=>({...p, dashboard:{...p.dashboard, showActions:e.target.checked}}))}/> Aksiyon Kartları</label><label style={{display:"inline-flex",alignItems:"center",gap:8,marginRight:12}}><input type="checkbox" checked={uiPrefs.dashboard.showKpis} onChange={e=> setUiPrefs(p=>({...p, dashboard:{...p.dashboard, showKpis:e.target.checked}}))}/> KPI Satırı</label><label style={{display:"inline-flex",alignItems:"center",gap:8,marginRight:12}}><input type="checkbox" checked={uiPrefs.dashboard.showCharts} onChange={e=> setUiPrefs(p=>({...p, dashboard:{...p.dashboard, showCharts:e.target.checked}}))}/> Grafikli Özet</label><label style={{display:"inline-flex",alignItems:"center",gap:8,marginRight:12}}><input type="checkbox" checked={uiPrefs.dashboard.showPdf} onChange={e=> setUiPrefs(p=>({...p, dashboard:{...p.dashboard, showPdf:e.target.checked}}))}/> PDF Rapor</label>{(category?.key === "experts" && uiPrefs?.dashboard?.showExperts) && (<label style={{display:"inline-flex",alignItems:"center",gap:8,marginRight:12}}><input type="checkbox" checked={uiPrefs.dashboard.showExperts} onChange={e=> setUiPrefs(p=>({...p, dashboard:{...p.dashboard, showExperts:e.target.checked}}))}/> Kişi Bazlı Tablo</label>)}<label style={{display:"inline-flex",alignItems:"center",gap:8,marginRight:12}}><input type="checkbox" checked={uiPrefs.dashboard.showAttendance} onChange={e=> setUiPrefs(p=>({...p, dashboard:{...p.dashboard, showAttendance:e.target.checked}}))}/> Puantaj Özeti</label><label style={{display:"inline-flex",alignItems:"center",gap:8,marginRight:12}}><input type="checkbox" checked={uiPrefs.dashboard.showMonthCompare} onChange={e=> setUiPrefs(p=>({...p, dashboard:{...p.dashboard, showMonthCompare:e.target.checked}}))}/> Ay vs Ay Karşılaştırma</label></div>)}</div>
         Kontrol satırlarına veriyi gir → her satır için <b>Onaya Gönder</b>.
       </div>
 
@@ -4223,6 +4286,7 @@ function ApprovalsView({
       </div>
 
       <div className="small" style={{marginTop:6}}>
+ <div style={{marginTop:10}}><button className="btn" type="button" onClick={()=> setUiPrefs(p=>({...p, _showToggles: !p?._showToggles}))}>Görünümü Özelleştir</button> {uiPrefs?._showToggles && (<div className="togglePanel" style={{marginTop:8}}><label style={{display:"inline-flex",alignItems:"center",gap:8,marginRight:12}}><input type="checkbox" checked={uiPrefs.dashboard.showActions} onChange={e=> setUiPrefs(p=>({...p, dashboard:{...p.dashboard, showActions:e.target.checked}}))}/> Aksiyon Kartları</label><label style={{display:"inline-flex",alignItems:"center",gap:8,marginRight:12}}><input type="checkbox" checked={uiPrefs.dashboard.showKpis} onChange={e=> setUiPrefs(p=>({...p, dashboard:{...p.dashboard, showKpis:e.target.checked}}))}/> KPI Satırı</label><label style={{display:"inline-flex",alignItems:"center",gap:8,marginRight:12}}><input type="checkbox" checked={uiPrefs.dashboard.showCharts} onChange={e=> setUiPrefs(p=>({...p, dashboard:{...p.dashboard, showCharts:e.target.checked}}))}/> Grafikli Özet</label><label style={{display:"inline-flex",alignItems:"center",gap:8,marginRight:12}}><input type="checkbox" checked={uiPrefs.dashboard.showPdf} onChange={e=> setUiPrefs(p=>({...p, dashboard:{...p.dashboard, showPdf:e.target.checked}}))}/> PDF Rapor</label>{(category?.key === "experts" && uiPrefs?.dashboard?.showExperts) && (<label style={{display:"inline-flex",alignItems:"center",gap:8,marginRight:12}}><input type="checkbox" checked={uiPrefs.dashboard.showExperts} onChange={e=> setUiPrefs(p=>({...p, dashboard:{...p.dashboard, showExperts:e.target.checked}}))}/> Kişi Bazlı Tablo</label>)}<label style={{display:"inline-flex",alignItems:"center",gap:8,marginRight:12}}><input type="checkbox" checked={uiPrefs.dashboard.showAttendance} onChange={e=> setUiPrefs(p=>({...p, dashboard:{...p.dashboard, showAttendance:e.target.checked}}))}/> Puantaj Özeti</label><label style={{display:"inline-flex",alignItems:"center",gap:8,marginRight:12}}><input type="checkbox" checked={uiPrefs.dashboard.showMonthCompare} onChange={e=> setUiPrefs(p=>({...p, dashboard:{...p.dashboard, showMonthCompare:e.target.checked}}))}/> Ay vs Ay Karşılaştırma</label></div>)}</div>
         Burada item talepleri ve aylık veri onaylarını yönetirsin.
       </div>
 
@@ -4371,6 +4435,7 @@ function EntryView({
           </div>
         </div>
         <div className="small" style={{marginTop:6}}>
+ <div style={{marginTop:10}}><button className="btn" type="button" onClick={()=> setUiPrefs(p=>({...p, _showToggles: !p?._showToggles}))}>Görünümü Özelleştir</button> {uiPrefs?._showToggles && (<div className="togglePanel" style={{marginTop:8}}><label style={{display:"inline-flex",alignItems:"center",gap:8,marginRight:12}}><input type="checkbox" checked={uiPrefs.dashboard.showActions} onChange={e=> setUiPrefs(p=>({...p, dashboard:{...p.dashboard, showActions:e.target.checked}}))}/> Aksiyon Kartları</label><label style={{display:"inline-flex",alignItems:"center",gap:8,marginRight:12}}><input type="checkbox" checked={uiPrefs.dashboard.showKpis} onChange={e=> setUiPrefs(p=>({...p, dashboard:{...p.dashboard, showKpis:e.target.checked}}))}/> KPI Satırı</label><label style={{display:"inline-flex",alignItems:"center",gap:8,marginRight:12}}><input type="checkbox" checked={uiPrefs.dashboard.showCharts} onChange={e=> setUiPrefs(p=>({...p, dashboard:{...p.dashboard, showCharts:e.target.checked}}))}/> Grafikli Özet</label><label style={{display:"inline-flex",alignItems:"center",gap:8,marginRight:12}}><input type="checkbox" checked={uiPrefs.dashboard.showPdf} onChange={e=> setUiPrefs(p=>({...p, dashboard:{...p.dashboard, showPdf:e.target.checked}}))}/> PDF Rapor</label>{(category?.key === "experts" && uiPrefs?.dashboard?.showExperts) && (<label style={{display:"inline-flex",alignItems:"center",gap:8,marginRight:12}}><input type="checkbox" checked={uiPrefs.dashboard.showExperts} onChange={e=> setUiPrefs(p=>({...p, dashboard:{...p.dashboard, showExperts:e.target.checked}}))}/> Kişi Bazlı Tablo</label>)}<label style={{display:"inline-flex",alignItems:"center",gap:8,marginRight:12}}><input type="checkbox" checked={uiPrefs.dashboard.showAttendance} onChange={e=> setUiPrefs(p=>({...p, dashboard:{...p.dashboard, showAttendance:e.target.checked}}))}/> Puantaj Özeti</label><label style={{display:"inline-flex",alignItems:"center",gap:8,marginRight:12}}><input type="checkbox" checked={uiPrefs.dashboard.showMonthCompare} onChange={e=> setUiPrefs(p=>({...p, dashboard:{...p.dashboard, showMonthCompare:e.target.checked}}))}/> Ay vs Ay Karşılaştırma</label></div>)}</div>
           {category?.itemLabel || "Kayıt"} onaylıysa görünür. Aylık veriyi girip <b>Onaya Gönder</b> yap.
         </div>
       </div>
@@ -4794,6 +4859,7 @@ isAdmin,
           <Badge>{monthKey}</Badge>
         </div>
         <div className="small" style={{marginTop:6}}>
+ <div style={{marginTop:10}}><button className="btn" type="button" onClick={()=> setUiPrefs(p=>({...p, _showToggles: !p?._showToggles}))}>Görünümü Özelleştir</button> {uiPrefs?._showToggles && (<div className="togglePanel" style={{marginTop:8}}><label style={{display:"inline-flex",alignItems:"center",gap:8,marginRight:12}}><input type="checkbox" checked={uiPrefs.dashboard.showActions} onChange={e=> setUiPrefs(p=>({...p, dashboard:{...p.dashboard, showActions:e.target.checked}}))}/> Aksiyon Kartları</label><label style={{display:"inline-flex",alignItems:"center",gap:8,marginRight:12}}><input type="checkbox" checked={uiPrefs.dashboard.showKpis} onChange={e=> setUiPrefs(p=>({...p, dashboard:{...p.dashboard, showKpis:e.target.checked}}))}/> KPI Satırı</label><label style={{display:"inline-flex",alignItems:"center",gap:8,marginRight:12}}><input type="checkbox" checked={uiPrefs.dashboard.showCharts} onChange={e=> setUiPrefs(p=>({...p, dashboard:{...p.dashboard, showCharts:e.target.checked}}))}/> Grafikli Özet</label><label style={{display:"inline-flex",alignItems:"center",gap:8,marginRight:12}}><input type="checkbox" checked={uiPrefs.dashboard.showPdf} onChange={e=> setUiPrefs(p=>({...p, dashboard:{...p.dashboard, showPdf:e.target.checked}}))}/> PDF Rapor</label>{(category?.key === "experts" && uiPrefs?.dashboard?.showExperts) && (<label style={{display:"inline-flex",alignItems:"center",gap:8,marginRight:12}}><input type="checkbox" checked={uiPrefs.dashboard.showExperts} onChange={e=> setUiPrefs(p=>({...p, dashboard:{...p.dashboard, showExperts:e.target.checked}}))}/> Kişi Bazlı Tablo</label>)}<label style={{display:"inline-flex",alignItems:"center",gap:8,marginRight:12}}><input type="checkbox" checked={uiPrefs.dashboard.showAttendance} onChange={e=> setUiPrefs(p=>({...p, dashboard:{...p.dashboard, showAttendance:e.target.checked}}))}/> Puantaj Özeti</label><label style={{display:"inline-flex",alignItems:"center",gap:8,marginRight:12}}><input type="checkbox" checked={uiPrefs.dashboard.showMonthCompare} onChange={e=> setUiPrefs(p=>({...p, dashboard:{...p.dashboard, showMonthCompare:e.target.checked}}))}/> Ay vs Ay Karşılaştırma</label></div>)}</div>
           Yeni kategori oluşturabilir, alanlar ekleyebilirsin. (Uzman/Araç gibi)
         </div>
 
@@ -4807,6 +4873,7 @@ isAdmin,
             </div>
 
             <div className="small" style={{marginTop:6}}>
+ <div style={{marginTop:10}}><button className="btn" type="button" onClick={()=> setUiPrefs(p=>({...p, _showToggles: !p?._showToggles}))}>Görünümü Özelleştir</button> {uiPrefs?._showToggles && (<div className="togglePanel" style={{marginTop:8}}><label style={{display:"inline-flex",alignItems:"center",gap:8,marginRight:12}}><input type="checkbox" checked={uiPrefs.dashboard.showActions} onChange={e=> setUiPrefs(p=>({...p, dashboard:{...p.dashboard, showActions:e.target.checked}}))}/> Aksiyon Kartları</label><label style={{display:"inline-flex",alignItems:"center",gap:8,marginRight:12}}><input type="checkbox" checked={uiPrefs.dashboard.showKpis} onChange={e=> setUiPrefs(p=>({...p, dashboard:{...p.dashboard, showKpis:e.target.checked}}))}/> KPI Satırı</label><label style={{display:"inline-flex",alignItems:"center",gap:8,marginRight:12}}><input type="checkbox" checked={uiPrefs.dashboard.showCharts} onChange={e=> setUiPrefs(p=>({...p, dashboard:{...p.dashboard, showCharts:e.target.checked}}))}/> Grafikli Özet</label><label style={{display:"inline-flex",alignItems:"center",gap:8,marginRight:12}}><input type="checkbox" checked={uiPrefs.dashboard.showPdf} onChange={e=> setUiPrefs(p=>({...p, dashboard:{...p.dashboard, showPdf:e.target.checked}}))}/> PDF Rapor</label>{(category?.key === "experts" && uiPrefs?.dashboard?.showExperts) && (<label style={{display:"inline-flex",alignItems:"center",gap:8,marginRight:12}}><input type="checkbox" checked={uiPrefs.dashboard.showExperts} onChange={e=> setUiPrefs(p=>({...p, dashboard:{...p.dashboard, showExperts:e.target.checked}}))}/> Kişi Bazlı Tablo</label>)}<label style={{display:"inline-flex",alignItems:"center",gap:8,marginRight:12}}><input type="checkbox" checked={uiPrefs.dashboard.showAttendance} onChange={e=> setUiPrefs(p=>({...p, dashboard:{...p.dashboard, showAttendance:e.target.checked}}))}/> Puantaj Özeti</label><label style={{display:"inline-flex",alignItems:"center",gap:8,marginRight:12}}><input type="checkbox" checked={uiPrefs.dashboard.showMonthCompare} onChange={e=> setUiPrefs(p=>({...p, dashboard:{...p.dashboard, showMonthCompare:e.target.checked}}))}/> Ay vs Ay Karşılaştırma</label></div>)}</div>
               Yeni proje ekleyebilir ve her proje için hangi kategorilerin görüneceğini seçebilirsin.
             </div>
 
@@ -4908,6 +4975,7 @@ isAdmin,
             </div>
             <div style={{height:14}} />
             <div className="small" style={{marginTop:6}}>
+ <div style={{marginTop:10}}><button className="btn" type="button" onClick={()=> setUiPrefs(p=>({...p, _showToggles: !p?._showToggles}))}>Görünümü Özelleştir</button> {uiPrefs?._showToggles && (<div className="togglePanel" style={{marginTop:8}}><label style={{display:"inline-flex",alignItems:"center",gap:8,marginRight:12}}><input type="checkbox" checked={uiPrefs.dashboard.showActions} onChange={e=> setUiPrefs(p=>({...p, dashboard:{...p.dashboard, showActions:e.target.checked}}))}/> Aksiyon Kartları</label><label style={{display:"inline-flex",alignItems:"center",gap:8,marginRight:12}}><input type="checkbox" checked={uiPrefs.dashboard.showKpis} onChange={e=> setUiPrefs(p=>({...p, dashboard:{...p.dashboard, showKpis:e.target.checked}}))}/> KPI Satırı</label><label style={{display:"inline-flex",alignItems:"center",gap:8,marginRight:12}}><input type="checkbox" checked={uiPrefs.dashboard.showCharts} onChange={e=> setUiPrefs(p=>({...p, dashboard:{...p.dashboard, showCharts:e.target.checked}}))}/> Grafikli Özet</label><label style={{display:"inline-flex",alignItems:"center",gap:8,marginRight:12}}><input type="checkbox" checked={uiPrefs.dashboard.showPdf} onChange={e=> setUiPrefs(p=>({...p, dashboard:{...p.dashboard, showPdf:e.target.checked}}))}/> PDF Rapor</label>{(category?.key === "experts" && uiPrefs?.dashboard?.showExperts) && (<label style={{display:"inline-flex",alignItems:"center",gap:8,marginRight:12}}><input type="checkbox" checked={uiPrefs.dashboard.showExperts} onChange={e=> setUiPrefs(p=>({...p, dashboard:{...p.dashboard, showExperts:e.target.checked}}))}/> Kişi Bazlı Tablo</label>)}<label style={{display:"inline-flex",alignItems:"center",gap:8,marginRight:12}}><input type="checkbox" checked={uiPrefs.dashboard.showAttendance} onChange={e=> setUiPrefs(p=>({...p, dashboard:{...p.dashboard, showAttendance:e.target.checked}}))}/> Puantaj Özeti</label><label style={{display:"inline-flex",alignItems:"center",gap:8,marginRight:12}}><input type="checkbox" checked={uiPrefs.dashboard.showMonthCompare} onChange={e=> setUiPrefs(p=>({...p, dashboard:{...p.dashboard, showMonthCompare:e.target.checked}}))}/> Ay vs Ay Karşılaştırma</label></div>)}</div>
               Proje bazlı <b>alan</b> görünürlüğü: Örn. SOCAR "Takip" görsün, Tüpraş görmesin.
             </div>
 
@@ -5017,6 +5085,7 @@ isAdmin,
             </div>
 
             <div className="small" style={{marginTop:6}}>
+ <div style={{marginTop:10}}><button className="btn" type="button" onClick={()=> setUiPrefs(p=>({...p, _showToggles: !p?._showToggles}))}>Görünümü Özelleştir</button> {uiPrefs?._showToggles && (<div className="togglePanel" style={{marginTop:8}}><label style={{display:"inline-flex",alignItems:"center",gap:8,marginRight:12}}><input type="checkbox" checked={uiPrefs.dashboard.showActions} onChange={e=> setUiPrefs(p=>({...p, dashboard:{...p.dashboard, showActions:e.target.checked}}))}/> Aksiyon Kartları</label><label style={{display:"inline-flex",alignItems:"center",gap:8,marginRight:12}}><input type="checkbox" checked={uiPrefs.dashboard.showKpis} onChange={e=> setUiPrefs(p=>({...p, dashboard:{...p.dashboard, showKpis:e.target.checked}}))}/> KPI Satırı</label><label style={{display:"inline-flex",alignItems:"center",gap:8,marginRight:12}}><input type="checkbox" checked={uiPrefs.dashboard.showCharts} onChange={e=> setUiPrefs(p=>({...p, dashboard:{...p.dashboard, showCharts:e.target.checked}}))}/> Grafikli Özet</label><label style={{display:"inline-flex",alignItems:"center",gap:8,marginRight:12}}><input type="checkbox" checked={uiPrefs.dashboard.showPdf} onChange={e=> setUiPrefs(p=>({...p, dashboard:{...p.dashboard, showPdf:e.target.checked}}))}/> PDF Rapor</label>{(category?.key === "experts" && uiPrefs?.dashboard?.showExperts) && (<label style={{display:"inline-flex",alignItems:"center",gap:8,marginRight:12}}><input type="checkbox" checked={uiPrefs.dashboard.showExperts} onChange={e=> setUiPrefs(p=>({...p, dashboard:{...p.dashboard, showExperts:e.target.checked}}))}/> Kişi Bazlı Tablo</label>)}<label style={{display:"inline-flex",alignItems:"center",gap:8,marginRight:12}}><input type="checkbox" checked={uiPrefs.dashboard.showAttendance} onChange={e=> setUiPrefs(p=>({...p, dashboard:{...p.dashboard, showAttendance:e.target.checked}}))}/> Puantaj Özeti</label><label style={{display:"inline-flex",alignItems:"center",gap:8,marginRight:12}}><input type="checkbox" checked={uiPrefs.dashboard.showMonthCompare} onChange={e=> setUiPrefs(p=>({...p, dashboard:{...p.dashboard, showMonthCompare:e.target.checked}}))}/> Ay vs Ay Karşılaştırma</label></div>)}</div>
               Evrak adını ve geçerlilik süresini tanımla. Sistem bitiş tarihini hesaplar ve yaklaşınca uyarı üretir.
             </div>
 
@@ -5053,6 +5122,7 @@ isAdmin,
         </div>
 
         <div className="small" style={{marginTop:6}}>
+ <div style={{marginTop:10}}><button className="btn" type="button" onClick={()=> setUiPrefs(p=>({...p, _showToggles: !p?._showToggles}))}>Görünümü Özelleştir</button> {uiPrefs?._showToggles && (<div className="togglePanel" style={{marginTop:8}}><label style={{display:"inline-flex",alignItems:"center",gap:8,marginRight:12}}><input type="checkbox" checked={uiPrefs.dashboard.showActions} onChange={e=> setUiPrefs(p=>({...p, dashboard:{...p.dashboard, showActions:e.target.checked}}))}/> Aksiyon Kartları</label><label style={{display:"inline-flex",alignItems:"center",gap:8,marginRight:12}}><input type="checkbox" checked={uiPrefs.dashboard.showKpis} onChange={e=> setUiPrefs(p=>({...p, dashboard:{...p.dashboard, showKpis:e.target.checked}}))}/> KPI Satırı</label><label style={{display:"inline-flex",alignItems:"center",gap:8,marginRight:12}}><input type="checkbox" checked={uiPrefs.dashboard.showCharts} onChange={e=> setUiPrefs(p=>({...p, dashboard:{...p.dashboard, showCharts:e.target.checked}}))}/> Grafikli Özet</label><label style={{display:"inline-flex",alignItems:"center",gap:8,marginRight:12}}><input type="checkbox" checked={uiPrefs.dashboard.showPdf} onChange={e=> setUiPrefs(p=>({...p, dashboard:{...p.dashboard, showPdf:e.target.checked}}))}/> PDF Rapor</label>{(category?.key === "experts" && uiPrefs?.dashboard?.showExperts) && (<label style={{display:"inline-flex",alignItems:"center",gap:8,marginRight:12}}><input type="checkbox" checked={uiPrefs.dashboard.showExperts} onChange={e=> setUiPrefs(p=>({...p, dashboard:{...p.dashboard, showExperts:e.target.checked}}))}/> Kişi Bazlı Tablo</label>)}<label style={{display:"inline-flex",alignItems:"center",gap:8,marginRight:12}}><input type="checkbox" checked={uiPrefs.dashboard.showAttendance} onChange={e=> setUiPrefs(p=>({...p, dashboard:{...p.dashboard, showAttendance:e.target.checked}}))}/> Puantaj Özeti</label><label style={{display:"inline-flex",alignItems:"center",gap:8,marginRight:12}}><input type="checkbox" checked={uiPrefs.dashboard.showMonthCompare} onChange={e=> setUiPrefs(p=>({...p, dashboard:{...p.dashboard, showMonthCompare:e.target.checked}}))}/> Ay vs Ay Karşılaştırma</label></div>)}</div>
           Silme modu açıkken seçtiğin kategori tüm projelerden kaldırılır. (Geri alınamaz)
         </div>
 
@@ -5075,6 +5145,7 @@ isAdmin,
           <Badge>{activeCategory?.key}</Badge>
         </div>
         <div className="small" style={{marginTop:6}}>
+ <div style={{marginTop:10}}><button className="btn" type="button" onClick={()=> setUiPrefs(p=>({...p, _showToggles: !p?._showToggles}))}>Görünümü Özelleştir</button> {uiPrefs?._showToggles && (<div className="togglePanel" style={{marginTop:8}}><label style={{display:"inline-flex",alignItems:"center",gap:8,marginRight:12}}><input type="checkbox" checked={uiPrefs.dashboard.showActions} onChange={e=> setUiPrefs(p=>({...p, dashboard:{...p.dashboard, showActions:e.target.checked}}))}/> Aksiyon Kartları</label><label style={{display:"inline-flex",alignItems:"center",gap:8,marginRight:12}}><input type="checkbox" checked={uiPrefs.dashboard.showKpis} onChange={e=> setUiPrefs(p=>({...p, dashboard:{...p.dashboard, showKpis:e.target.checked}}))}/> KPI Satırı</label><label style={{display:"inline-flex",alignItems:"center",gap:8,marginRight:12}}><input type="checkbox" checked={uiPrefs.dashboard.showCharts} onChange={e=> setUiPrefs(p=>({...p, dashboard:{...p.dashboard, showCharts:e.target.checked}}))}/> Grafikli Özet</label><label style={{display:"inline-flex",alignItems:"center",gap:8,marginRight:12}}><input type="checkbox" checked={uiPrefs.dashboard.showPdf} onChange={e=> setUiPrefs(p=>({...p, dashboard:{...p.dashboard, showPdf:e.target.checked}}))}/> PDF Rapor</label>{(category?.key === "experts" && uiPrefs?.dashboard?.showExperts) && (<label style={{display:"inline-flex",alignItems:"center",gap:8,marginRight:12}}><input type="checkbox" checked={uiPrefs.dashboard.showExperts} onChange={e=> setUiPrefs(p=>({...p, dashboard:{...p.dashboard, showExperts:e.target.checked}}))}/> Kişi Bazlı Tablo</label>)}<label style={{display:"inline-flex",alignItems:"center",gap:8,marginRight:12}}><input type="checkbox" checked={uiPrefs.dashboard.showAttendance} onChange={e=> setUiPrefs(p=>({...p, dashboard:{...p.dashboard, showAttendance:e.target.checked}}))}/> Puantaj Özeti</label><label style={{display:"inline-flex",alignItems:"center",gap:8,marginRight:12}}><input type="checkbox" checked={uiPrefs.dashboard.showMonthCompare} onChange={e=> setUiPrefs(p=>({...p, dashboard:{...p.dashboard, showMonthCompare:e.target.checked}}))}/> Ay vs Ay Karşılaştırma</label></div>)}</div>
           Bu kategoriye aylık doldurulacak alanlar ekle. (KM, bakım tarihi, durum vb.)
         </div>
 
@@ -5198,6 +5269,7 @@ function AnnouncementsView({ isAdmin, auth, announcements, projects, addAnnounce
           <Badge kind="info">Güncel</Badge>
         </div>
         <div className="small" style={{marginTop:6}}>
+ <div style={{marginTop:10}}><button className="btn" type="button" onClick={()=> setUiPrefs(p=>({...p, _showToggles: !p?._showToggles}))}>Görünümü Özelleştir</button> {uiPrefs?._showToggles && (<div className="togglePanel" style={{marginTop:8}}><label style={{display:"inline-flex",alignItems:"center",gap:8,marginRight:12}}><input type="checkbox" checked={uiPrefs.dashboard.showActions} onChange={e=> setUiPrefs(p=>({...p, dashboard:{...p.dashboard, showActions:e.target.checked}}))}/> Aksiyon Kartları</label><label style={{display:"inline-flex",alignItems:"center",gap:8,marginRight:12}}><input type="checkbox" checked={uiPrefs.dashboard.showKpis} onChange={e=> setUiPrefs(p=>({...p, dashboard:{...p.dashboard, showKpis:e.target.checked}}))}/> KPI Satırı</label><label style={{display:"inline-flex",alignItems:"center",gap:8,marginRight:12}}><input type="checkbox" checked={uiPrefs.dashboard.showCharts} onChange={e=> setUiPrefs(p=>({...p, dashboard:{...p.dashboard, showCharts:e.target.checked}}))}/> Grafikli Özet</label><label style={{display:"inline-flex",alignItems:"center",gap:8,marginRight:12}}><input type="checkbox" checked={uiPrefs.dashboard.showPdf} onChange={e=> setUiPrefs(p=>({...p, dashboard:{...p.dashboard, showPdf:e.target.checked}}))}/> PDF Rapor</label>{(category?.key === "experts" && uiPrefs?.dashboard?.showExperts) && (<label style={{display:"inline-flex",alignItems:"center",gap:8,marginRight:12}}><input type="checkbox" checked={uiPrefs.dashboard.showExperts} onChange={e=> setUiPrefs(p=>({...p, dashboard:{...p.dashboard, showExperts:e.target.checked}}))}/> Kişi Bazlı Tablo</label>)}<label style={{display:"inline-flex",alignItems:"center",gap:8,marginRight:12}}><input type="checkbox" checked={uiPrefs.dashboard.showAttendance} onChange={e=> setUiPrefs(p=>({...p, dashboard:{...p.dashboard, showAttendance:e.target.checked}}))}/> Puantaj Özeti</label><label style={{display:"inline-flex",alignItems:"center",gap:8,marginRight:12}}><input type="checkbox" checked={uiPrefs.dashboard.showMonthCompare} onChange={e=> setUiPrefs(p=>({...p, dashboard:{...p.dashboard, showMonthCompare:e.target.checked}}))}/> Ay vs Ay Karşılaştırma</label></div>)}</div>
           {isAdmin ? "Duyuru yayınlayabilir ve kullanıcıları bilgilendirebilirsin." : "Admin tarafından yayınlanan duyurular burada görünür."}
         </div>
 
@@ -5311,6 +5383,7 @@ function ContactView({
           <Badge kind={isAdmin ? "ok" : "warn"}>{isAdmin ? "Admin Görür" : "Mesaj Gönder"}</Badge>
         </div>
         <div className="small" style={{marginTop:6}}>
+ <div style={{marginTop:10}}><button className="btn" type="button" onClick={()=> setUiPrefs(p=>({...p, _showToggles: !p?._showToggles}))}>Görünümü Özelleştir</button> {uiPrefs?._showToggles && (<div className="togglePanel" style={{marginTop:8}}><label style={{display:"inline-flex",alignItems:"center",gap:8,marginRight:12}}><input type="checkbox" checked={uiPrefs.dashboard.showActions} onChange={e=> setUiPrefs(p=>({...p, dashboard:{...p.dashboard, showActions:e.target.checked}}))}/> Aksiyon Kartları</label><label style={{display:"inline-flex",alignItems:"center",gap:8,marginRight:12}}><input type="checkbox" checked={uiPrefs.dashboard.showKpis} onChange={e=> setUiPrefs(p=>({...p, dashboard:{...p.dashboard, showKpis:e.target.checked}}))}/> KPI Satırı</label><label style={{display:"inline-flex",alignItems:"center",gap:8,marginRight:12}}><input type="checkbox" checked={uiPrefs.dashboard.showCharts} onChange={e=> setUiPrefs(p=>({...p, dashboard:{...p.dashboard, showCharts:e.target.checked}}))}/> Grafikli Özet</label><label style={{display:"inline-flex",alignItems:"center",gap:8,marginRight:12}}><input type="checkbox" checked={uiPrefs.dashboard.showPdf} onChange={e=> setUiPrefs(p=>({...p, dashboard:{...p.dashboard, showPdf:e.target.checked}}))}/> PDF Rapor</label>{(category?.key === "experts" && uiPrefs?.dashboard?.showExperts) && (<label style={{display:"inline-flex",alignItems:"center",gap:8,marginRight:12}}><input type="checkbox" checked={uiPrefs.dashboard.showExperts} onChange={e=> setUiPrefs(p=>({...p, dashboard:{...p.dashboard, showExperts:e.target.checked}}))}/> Kişi Bazlı Tablo</label>)}<label style={{display:"inline-flex",alignItems:"center",gap:8,marginRight:12}}><input type="checkbox" checked={uiPrefs.dashboard.showAttendance} onChange={e=> setUiPrefs(p=>({...p, dashboard:{...p.dashboard, showAttendance:e.target.checked}}))}/> Puantaj Özeti</label><label style={{display:"inline-flex",alignItems:"center",gap:8,marginRight:12}}><input type="checkbox" checked={uiPrefs.dashboard.showMonthCompare} onChange={e=> setUiPrefs(p=>({...p, dashboard:{...p.dashboard, showMonthCompare:e.target.checked}}))}/> Ay vs Ay Karşılaştırma</label></div>)}</div>
           Kullanıcı mesajları sadece admin tarafından görüntülenir.
         </div>
 
@@ -5338,6 +5411,7 @@ function ContactView({
               <Badge kind="info">Bildirim</Badge>
             </div>
             <div className="small" style={{marginTop:6}}>
+ <div style={{marginTop:10}}><button className="btn" type="button" onClick={()=> setUiPrefs(p=>({...p, _showToggles: !p?._showToggles}))}>Görünümü Özelleştir</button> {uiPrefs?._showToggles && (<div className="togglePanel" style={{marginTop:8}}><label style={{display:"inline-flex",alignItems:"center",gap:8,marginRight:12}}><input type="checkbox" checked={uiPrefs.dashboard.showActions} onChange={e=> setUiPrefs(p=>({...p, dashboard:{...p.dashboard, showActions:e.target.checked}}))}/> Aksiyon Kartları</label><label style={{display:"inline-flex",alignItems:"center",gap:8,marginRight:12}}><input type="checkbox" checked={uiPrefs.dashboard.showKpis} onChange={e=> setUiPrefs(p=>({...p, dashboard:{...p.dashboard, showKpis:e.target.checked}}))}/> KPI Satırı</label><label style={{display:"inline-flex",alignItems:"center",gap:8,marginRight:12}}><input type="checkbox" checked={uiPrefs.dashboard.showCharts} onChange={e=> setUiPrefs(p=>({...p, dashboard:{...p.dashboard, showCharts:e.target.checked}}))}/> Grafikli Özet</label><label style={{display:"inline-flex",alignItems:"center",gap:8,marginRight:12}}><input type="checkbox" checked={uiPrefs.dashboard.showPdf} onChange={e=> setUiPrefs(p=>({...p, dashboard:{...p.dashboard, showPdf:e.target.checked}}))}/> PDF Rapor</label>{(category?.key === "experts" && uiPrefs?.dashboard?.showExperts) && (<label style={{display:"inline-flex",alignItems:"center",gap:8,marginRight:12}}><input type="checkbox" checked={uiPrefs.dashboard.showExperts} onChange={e=> setUiPrefs(p=>({...p, dashboard:{...p.dashboard, showExperts:e.target.checked}}))}/> Kişi Bazlı Tablo</label>)}<label style={{display:"inline-flex",alignItems:"center",gap:8,marginRight:12}}><input type="checkbox" checked={uiPrefs.dashboard.showAttendance} onChange={e=> setUiPrefs(p=>({...p, dashboard:{...p.dashboard, showAttendance:e.target.checked}}))}/> Puantaj Özeti</label><label style={{display:"inline-flex",alignItems:"center",gap:8,marginRight:12}}><input type="checkbox" checked={uiPrefs.dashboard.showMonthCompare} onChange={e=> setUiPrefs(p=>({...p, dashboard:{...p.dashboard, showMonthCompare:e.target.checked}}))}/> Ay vs Ay Karşılaştırma</label></div>)}</div>
               Buradan kullanıcılara duyuru/mesaj gönderebilirsin. Mesajlar bildirim olarak düşer.
             </div>
 
@@ -5639,6 +5713,7 @@ function EmployeesView({ isAdmin, auth, employees, projects, updateState }) {
       </div>
 
       <div className="small" style={{marginTop:6}}>
+ <div style={{marginTop:10}}><button className="btn" type="button" onClick={()=> setUiPrefs(p=>({...p, _showToggles: !p?._showToggles}))}>Görünümü Özelleştir</button> {uiPrefs?._showToggles && (<div className="togglePanel" style={{marginTop:8}}><label style={{display:"inline-flex",alignItems:"center",gap:8,marginRight:12}}><input type="checkbox" checked={uiPrefs.dashboard.showActions} onChange={e=> setUiPrefs(p=>({...p, dashboard:{...p.dashboard, showActions:e.target.checked}}))}/> Aksiyon Kartları</label><label style={{display:"inline-flex",alignItems:"center",gap:8,marginRight:12}}><input type="checkbox" checked={uiPrefs.dashboard.showKpis} onChange={e=> setUiPrefs(p=>({...p, dashboard:{...p.dashboard, showKpis:e.target.checked}}))}/> KPI Satırı</label><label style={{display:"inline-flex",alignItems:"center",gap:8,marginRight:12}}><input type="checkbox" checked={uiPrefs.dashboard.showCharts} onChange={e=> setUiPrefs(p=>({...p, dashboard:{...p.dashboard, showCharts:e.target.checked}}))}/> Grafikli Özet</label><label style={{display:"inline-flex",alignItems:"center",gap:8,marginRight:12}}><input type="checkbox" checked={uiPrefs.dashboard.showPdf} onChange={e=> setUiPrefs(p=>({...p, dashboard:{...p.dashboard, showPdf:e.target.checked}}))}/> PDF Rapor</label>{(category?.key === "experts" && uiPrefs?.dashboard?.showExperts) && (<label style={{display:"inline-flex",alignItems:"center",gap:8,marginRight:12}}><input type="checkbox" checked={uiPrefs.dashboard.showExperts} onChange={e=> setUiPrefs(p=>({...p, dashboard:{...p.dashboard, showExperts:e.target.checked}}))}/> Kişi Bazlı Tablo</label>)}<label style={{display:"inline-flex",alignItems:"center",gap:8,marginRight:12}}><input type="checkbox" checked={uiPrefs.dashboard.showAttendance} onChange={e=> setUiPrefs(p=>({...p, dashboard:{...p.dashboard, showAttendance:e.target.checked}}))}/> Puantaj Özeti</label><label style={{display:"inline-flex",alignItems:"center",gap:8,marginRight:12}}><input type="checkbox" checked={uiPrefs.dashboard.showMonthCompare} onChange={e=> setUiPrefs(p=>({...p, dashboard:{...p.dashboard, showMonthCompare:e.target.checked}}))}/> Ay vs Ay Karşılaştırma</label></div>)}</div>
         Çalışanlar proje bazlı listelenir. (İsim • Görev)
       </div>
 
@@ -5880,6 +5955,7 @@ function DocsView({
         </div>
 
         <div className="small" style={{marginTop:6}}>
+ <div style={{marginTop:10}}><button className="btn" type="button" onClick={()=> setUiPrefs(p=>({...p, _showToggles: !p?._showToggles}))}>Görünümü Özelleştir</button> {uiPrefs?._showToggles && (<div className="togglePanel" style={{marginTop:8}}><label style={{display:"inline-flex",alignItems:"center",gap:8,marginRight:12}}><input type="checkbox" checked={uiPrefs.dashboard.showActions} onChange={e=> setUiPrefs(p=>({...p, dashboard:{...p.dashboard, showActions:e.target.checked}}))}/> Aksiyon Kartları</label><label style={{display:"inline-flex",alignItems:"center",gap:8,marginRight:12}}><input type="checkbox" checked={uiPrefs.dashboard.showKpis} onChange={e=> setUiPrefs(p=>({...p, dashboard:{...p.dashboard, showKpis:e.target.checked}}))}/> KPI Satırı</label><label style={{display:"inline-flex",alignItems:"center",gap:8,marginRight:12}}><input type="checkbox" checked={uiPrefs.dashboard.showCharts} onChange={e=> setUiPrefs(p=>({...p, dashboard:{...p.dashboard, showCharts:e.target.checked}}))}/> Grafikli Özet</label><label style={{display:"inline-flex",alignItems:"center",gap:8,marginRight:12}}><input type="checkbox" checked={uiPrefs.dashboard.showPdf} onChange={e=> setUiPrefs(p=>({...p, dashboard:{...p.dashboard, showPdf:e.target.checked}}))}/> PDF Rapor</label>{(category?.key === "experts" && uiPrefs?.dashboard?.showExperts) && (<label style={{display:"inline-flex",alignItems:"center",gap:8,marginRight:12}}><input type="checkbox" checked={uiPrefs.dashboard.showExperts} onChange={e=> setUiPrefs(p=>({...p, dashboard:{...p.dashboard, showExperts:e.target.checked}}))}/> Kişi Bazlı Tablo</label>)}<label style={{display:"inline-flex",alignItems:"center",gap:8,marginRight:12}}><input type="checkbox" checked={uiPrefs.dashboard.showAttendance} onChange={e=> setUiPrefs(p=>({...p, dashboard:{...p.dashboard, showAttendance:e.target.checked}}))}/> Puantaj Özeti</label><label style={{display:"inline-flex",alignItems:"center",gap:8,marginRight:12}}><input type="checkbox" checked={uiPrefs.dashboard.showMonthCompare} onChange={e=> setUiPrefs(p=>({...p, dashboard:{...p.dashboard, showMonthCompare:e.target.checked}}))}/> Ay vs Ay Karşılaştırma</label></div>)}</div>
           Her çalışan için imzalanması gereken evrakların durumu ve imza tarihi burada takip edilir.
         </div>
 
@@ -6102,6 +6178,7 @@ const filteredEmployees = employeesInProject;
           <Badge>{today}</Badge>
         </div>
         <div className="small" style={{marginTop:6}}>
+ <div style={{marginTop:10}}><button className="btn" type="button" onClick={()=> setUiPrefs(p=>({...p, _showToggles: !p?._showToggles}))}>Görünümü Özelleştir</button> {uiPrefs?._showToggles && (<div className="togglePanel" style={{marginTop:8}}><label style={{display:"inline-flex",alignItems:"center",gap:8,marginRight:12}}><input type="checkbox" checked={uiPrefs.dashboard.showActions} onChange={e=> setUiPrefs(p=>({...p, dashboard:{...p.dashboard, showActions:e.target.checked}}))}/> Aksiyon Kartları</label><label style={{display:"inline-flex",alignItems:"center",gap:8,marginRight:12}}><input type="checkbox" checked={uiPrefs.dashboard.showKpis} onChange={e=> setUiPrefs(p=>({...p, dashboard:{...p.dashboard, showKpis:e.target.checked}}))}/> KPI Satırı</label><label style={{display:"inline-flex",alignItems:"center",gap:8,marginRight:12}}><input type="checkbox" checked={uiPrefs.dashboard.showCharts} onChange={e=> setUiPrefs(p=>({...p, dashboard:{...p.dashboard, showCharts:e.target.checked}}))}/> Grafikli Özet</label><label style={{display:"inline-flex",alignItems:"center",gap:8,marginRight:12}}><input type="checkbox" checked={uiPrefs.dashboard.showPdf} onChange={e=> setUiPrefs(p=>({...p, dashboard:{...p.dashboard, showPdf:e.target.checked}}))}/> PDF Rapor</label>{(category?.key === "experts" && uiPrefs?.dashboard?.showExperts) && (<label style={{display:"inline-flex",alignItems:"center",gap:8,marginRight:12}}><input type="checkbox" checked={uiPrefs.dashboard.showExperts} onChange={e=> setUiPrefs(p=>({...p, dashboard:{...p.dashboard, showExperts:e.target.checked}}))}/> Kişi Bazlı Tablo</label>)}<label style={{display:"inline-flex",alignItems:"center",gap:8,marginRight:12}}><input type="checkbox" checked={uiPrefs.dashboard.showAttendance} onChange={e=> setUiPrefs(p=>({...p, dashboard:{...p.dashboard, showAttendance:e.target.checked}}))}/> Puantaj Özeti</label><label style={{display:"inline-flex",alignItems:"center",gap:8,marginRight:12}}><input type="checkbox" checked={uiPrefs.dashboard.showMonthCompare} onChange={e=> setUiPrefs(p=>({...p, dashboard:{...p.dashboard, showMonthCompare:e.target.checked}}))}/> Ay vs Ay Karşılaştırma</label></div>)}</div>
           Evrak türleri admin panelinden tanımlanır. Tarih girince bitiş tarihi otomatik hesaplanır; yaklaşınca uyarı görünür.
         </div>
 
