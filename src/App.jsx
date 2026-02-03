@@ -1649,31 +1649,38 @@ for(const emp of (next.employees || [])){
 }
 
   function approveItem(projectId, catKey, itemId) {
+  // Önce state'den gerekli bilgileri al
   const cat = state.categories.find((c) => c.key === catKey);
+  const p = state.projects.find((pp) => pp.id === projectId);
+  const it0 = p?.itemsByCategory?.[catKey]?.find((x) => x.id === itemId);
+  const requestedBy = it0?.requestedBy;
+  const itemName = it0?.name;
 
   updateState((d) => {
     const it = findItem(d, projectId, catKey, itemId);
     if (!it) return;
     it.approved = true;
     it.approvedAt = new Date().toISOString();
-    it.approvedBy = auth.username;
+    it.approvedBy = auth?.username || "admin";
   });
 
   // İstek atan kullanıcıya bildirim (best effort)
-  const p = state.projects.find((pp) => pp.id === projectId);
-  const it0 = p?.itemsByCategory?.[catKey]?.find((x) => x.id === itemId);
-  if (it0?.requestedBy) {
+  if (requestedBy) {
     pushNotification({
-      to: it0.requestedBy,
+      to: requestedBy,
       title: `${cat?.itemLabel || "Kayıt"} Onaylandı`,
-      body: `${p?.name || ""} • ${cat?.itemLabel || "Kayıt"}: ${it0.name}`,
+      body: `${p?.name || ""} • ${cat?.itemLabel || "Kayıt"}: ${itemName}`,
       level: "ok",
     });
   }
+  
+  pushToast(`${cat?.itemLabel || "Kayıt"} onaylandı.`, "ok");
 }
 
   function rejectItem(projectId, catKey, itemId){
     if(!confirm("Talep reddedilsin mi? (silinir)")) return;
+    
+    // Önce state'den gerekli bilgileri al
     const p0 = state.projects.find(pp => pp.id === projectId);
     const it0 = p0?.itemsByCategory?.[catKey]?.find(x => x.id === itemId);
     const req = it0?.requestedBy;
@@ -1694,6 +1701,8 @@ for(const emp of (next.employees || [])){
         level: "danger"
       });
     }
+    
+    pushToast(`${cat?.itemLabel || "Kayıt"} reddedildi.`, "warn");
   }
 
   /* ===== MONTHLY EDIT / SUBMIT / APPROVE ===== */
@@ -1792,10 +1801,12 @@ for(const emp of (next.employees || [])){
   }
 
   function approveMonth(projectId, catKey, itemId){
+    // Önce state'den gerekli bilgileri al
     const cat = state.categories.find(c => c.key === catKey);
     const p0 = state.projects.find(pp => pp.id === projectId);
     const it0 = p0?.itemsByCategory?.[catKey]?.find(x => x.id === itemId);
     const req = it0?.months?.[monthKey]?.submittedBy || it0?.requestedBy;
+    const itemName = it0?.name;
 
     updateState(d => {
       const it = findItem(d, projectId, catKey, itemId);
@@ -1804,7 +1815,7 @@ for(const emp of (next.employees || [])){
 
       it.months[monthKey].approved = true;
       it.months[monthKey].approvedAt = new Date().toISOString();
-      it.months[monthKey].approvedBy = auth.username;
+      it.months[monthKey].approvedBy = auth?.username || "admin";
       it.months[monthKey].submitted = false;
     });
 
@@ -1812,17 +1823,21 @@ for(const emp of (next.employees || [])){
       pushNotification({
         to: req,
         title: `Aylık Veri Onaylandı`,
-        body: `${p0?.name} • ${cat?.itemLabel || "Kayıt"}: ${it0?.name || "-"} • Ay: ${monthKey}`,
+        body: `${p0?.name} • ${cat?.itemLabel || "Kayıt"}: ${itemName || "-"} • Ay: ${monthKey}`,
         level: "ok"
       });
     }
+    
+    pushToast("Aylık veri onaylandı.", "ok");
   }
 
   function rejectMonth(projectId, catKey, itemId){
+    // Önce state'den gerekli bilgileri al
     const cat = state.categories.find(c => c.key === catKey);
     const p0 = state.projects.find(pp => pp.id === projectId);
     const it0 = p0?.itemsByCategory?.[catKey]?.find(x => x.id === itemId);
     const req = it0?.months?.[monthKey]?.submittedBy || it0?.requestedBy;
+    const itemName = it0?.name;
 
     updateState(d => {
       const it = findItem(d, projectId, catKey, itemId);
@@ -1839,10 +1854,12 @@ for(const emp of (next.employees || [])){
       pushNotification({
         to: req,
         title: `Aylık Veri Reddedildi`,
-        body: `${p0?.name} • ${cat?.itemLabel || "Kayıt"}: ${it0?.name || "-"} • Ay: ${monthKey}`,
+        body: `${p0?.name} • ${cat?.itemLabel || "Kayıt"}: ${itemName || "-"} • Ay: ${monthKey}`,
         level: "danger"
       });
     }
+    
+    pushToast("Aylık veri reddedildi.", "warn");
   }
 
   /* ===== CONTACT ===== */
@@ -1947,7 +1964,10 @@ for(const emp of (next.employees || [])){
   function adminAddCategory(){
     const name = (catName || "").trim();
     const itemLabel = (catItemLabel || "").trim() || "Kayıt";
-    if(!name) return;
+    if(!name){
+      pushToast("Kategori adı zorunlu.", "warn");
+      return;
+    }
 
     const keyBase = slugKey(name);
     let key = keyBase;
@@ -1978,7 +1998,7 @@ for(const emp of (next.employees || [])){
     setCatName("");
     setCatItemLabel("");
     setCategoryKey(key);
-    pushToast("Kategori eklendi.", "danger");
+    pushToast("Kategori eklendi.", "ok");
   }
 
   // ===== ADMIN: PROJE EKLE / KATEGORİ YETKİSİ =====
@@ -1988,11 +2008,15 @@ for(const emp of (next.employees || [])){
       pushToast("Proje adı zorunlu.", "warn");
       return;
     }
+    
+    // Duplicate check
+    if(state.projects.some(p => canonProj(p.name) === canonProj(name))){
+      pushToast("Bu proje zaten var.", "warn");
+      return;
+    }
+    
     updateState(next => {
       next.projects = Array.isArray(next.projects) ? next.projects : [];
-      if(next.projects.some(p => canonProj(p.name) === canonProj(name))){
-        pushToast("Bu proje zaten var.", "warn"); return;
-      }
       const cats = Array.isArray(next.categories) ? next.categories : [];
       const itemsByCategory = cats.reduce((acc, c) => {
         acc[c.key] = [];
