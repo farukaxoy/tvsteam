@@ -1401,6 +1401,12 @@ const [categoryKey, setCategoryKey] = useState("experts");
   
   /* admin dashboard: project filter */
   const [dashProjectId, setDashProjectId] = useState("ALL");
+  
+  /* Dashboard Comparison & Analytics */
+  const [showComparison, setShowComparison] = useState(false);
+  const [comparisonMode, setComparisonMode] = useState("month"); // "month" | "employee"
+  const [selectedEmployeeForTrend, setSelectedEmployeeForTrend] = useState("");
+  
 /* contact */
   const [contactText, setContactText] = useState("");
 
@@ -3411,6 +3417,72 @@ for(const emp of (next.employees || [])){
                 <div className="small" style={{ marginTop: 10 }}>
                   Bu filtreler, dashboard görünümünü ve hesaplamaları etkiler.
                 </div>
+                
+                {/* Analiz Toggle Butonları */}
+                <div style={{ marginTop: 16, paddingTop: 16, borderTop: "1px solid rgba(0,0,0,0.1)" }}>
+                  <div className="cardTitleRow" style={{ marginBottom: 12 }}>
+                    <h4 style={{ margin: 0, fontSize: 15 }}>📊 Analiz & Karşılaştırma</h4>
+                  </div>
+                  
+                  <div className="row" style={{ gap: 8, flexWrap: "wrap" }}>
+                    <button 
+                      className={`btn ${showComparison ? "primary" : ""}`}
+                      onClick={() => setShowComparison(!showComparison)}
+                      style={{ fontSize: 13 }}
+                    >
+                      {showComparison ? "✓ Karşılaştırma Aktif" : "Karşılaştırma Göster"}
+                    </button>
+                    
+                    {showComparison && (
+                      <>
+                        <button 
+                          className={`btn ${comparisonMode === "month" ? "primary" : ""}`}
+                          onClick={() => setComparisonMode("month")}
+                          style={{ fontSize: 13 }}
+                        >
+                          📅 Bu Ay vs Geçen Ay
+                        </button>
+                        
+                        <button 
+                          className={`btn ${comparisonMode === "employee" ? "primary" : ""}`}
+                          onClick={() => setComparisonMode("employee")}
+                          style={{ fontSize: 13 }}
+                        >
+                          👤 Personel Bazlı Trend
+                        </button>
+                        
+                        {comparisonMode === "employee" && (
+                          <select
+                            className="input sm"
+                            value={selectedEmployeeForTrend}
+                            onChange={(e) => setSelectedEmployeeForTrend(e.target.value)}
+                            style={{ minWidth: 180 }}
+                          >
+                            <option value="">Personel Seçin...</option>
+                            {(state.employees || [])
+                              .filter(emp => !emp.deleted)
+                              .sort((a, b) => a.name.localeCompare(b.name))
+                              .map((emp) => (
+                                <option key={emp.id} value={emp.id}>{emp.name}</option>
+                              ))
+                            }
+                          </select>
+                        )}
+                      </>
+                    )}
+                  </div>
+                  
+                  <div className="small" style={{ marginTop: 8, opacity: 0.7 }}>
+                    {showComparison 
+                      ? comparisonMode === "month" 
+                        ? "Seçili ay ile bir önceki ayın karşılaştırması gösterilecek"
+                        : selectedEmployeeForTrend 
+                          ? "Seçili personelin son 6 aylık trendi gösterilecek"
+                          : "Lütfen bir personel seçin"
+                      : "Detaylı analiz için karşılaştırma modunu aktifleştirin"
+                    }
+                  </div>
+                </div>
               </div>
 
               <DashboardView
@@ -3423,6 +3495,12 @@ for(const emp of (next.employees || [])){
                 actions={state.actions}
                 isAdmin={isAdmin}
                 attendance={state.attendance}
+                showComparison={showComparison}
+                comparisonMode={comparisonMode}
+                selectedEmployeeForTrend={selectedEmployeeForTrend}
+                activeYear={activeYear}
+                activeMonth={activeMonth}
+                state={state}
               />
             </>
           )}
@@ -3708,7 +3786,23 @@ for(const emp of (next.employees || [])){
 
 /* ===================== VIEWS ===================== */
 
-function DashboardView({ monthKey, category, rows, projects, employees, actions, categories, isAdmin, attendance }){
+function DashboardView({ 
+  monthKey, 
+  category, 
+  rows, 
+  projects, 
+  employees, 
+  actions, 
+  categories, 
+  isAdmin, 
+  attendance,
+  showComparison,
+  comparisonMode,
+  selectedEmployeeForTrend,
+  activeYear,
+  activeMonth,
+  state
+}){
   const totals = useMemo(() => {
     const t = { itemsApproved:0, monthApproved:0, sums:{}, mealsSum:0 };
     for(const f of (category?.fields || [])){
@@ -3725,6 +3819,158 @@ function DashboardView({ monthKey, category, rows, projects, employees, actions,
     }
     return t;
   }, [rows, category]);
+  
+  // Karşılaştırma verileri - Geçen ay hesaplaması
+  const comparisonData = useMemo(() => {
+    if (!showComparison || !state) return null;
+    
+    if (comparisonMode === "month") {
+      // Geçen ayın verilerini hesapla
+      const currentMonth = parseInt(activeMonth);
+      const currentYear = parseInt(activeYear);
+      
+      let prevMonth = currentMonth - 1;
+      let prevYear = currentYear;
+      if (prevMonth < 1) {
+        prevMonth = 12;
+        prevYear = currentYear - 1;
+      }
+      
+      const prevMonthKey = `${prevYear}-${String(prevMonth).padStart(2, '0')}`;
+      
+      // Geçen ayın verilerini hesapla (mevcut rows mantığını kullanarak)
+      const prevTotals = { itemsApproved:0, monthApproved:0, sums:{}, mealsSum:0 };
+      for(const f of (category?.fields || [])){
+        if(f.type === "number") prevTotals.sums[f.key] = 0;
+      }
+      
+      // State'ten geçen aya ait verileri filtrele
+      const catData = state.categories?.find(c => c.key === category?.key)?.data || [];
+      
+      for (const item of catData) {
+        const monthData = item.months?.[prevMonthKey];
+        if (monthData?.approved) {
+          prevTotals.itemsApproved += 1;
+          prevTotals.monthApproved += 1;
+          
+          for (const field of (category?.fields || [])) {
+            if (field.type === "number" && monthData[field.key] !== undefined) {
+              prevTotals.sums[field.key] = safeNum(prevTotals.sums[field.key]) + safeNum(monthData[field.key]);
+            }
+          }
+          
+          if (monthData.mealCount) {
+            prevTotals.mealsSum += safeNum(monthData.mealCount);
+          }
+        }
+      }
+      
+      return {
+        mode: "month",
+        current: totals,
+        previous: prevTotals,
+        currentLabel: monthKey,
+        previousLabel: prevMonthKey,
+        percentageChanges: calculatePercentageChanges(totals, prevTotals)
+      };
+    } else if (comparisonMode === "employee" && selectedEmployeeForTrend) {
+      // Personel bazlı 6 aylık trend
+      const employee = employees?.find(e => e.id === selectedEmployeeForTrend);
+      if (!employee) return null;
+      
+      const currentMonth = parseInt(activeMonth);
+      const currentYear = parseInt(activeYear);
+      
+      const last6Months = [];
+      for (let i = 5; i >= 0; i--) {
+        let m = currentMonth - i;
+        let y = currentYear;
+        while (m < 1) {
+          m += 12;
+          y -= 1;
+        }
+        last6Months.push({
+          key: `${y}-${String(m).padStart(2, '0')}`,
+          label: `${String(m).padStart(2, '0')}/${y}`
+        });
+      }
+      
+      // Her ay için verileri topla
+      const trendData = last6Months.map(month => {
+        const monthTotals = { sums: {}, mealsSum: 0, approved: 0 };
+        
+        for(const f of (category?.fields || [])){
+          if(f.type === "number") monthTotals.sums[f.key] = 0;
+        }
+        
+        // Attendance verilerinden personelin o aydaki performansını al
+        const attendanceRecords = (attendance || []).filter(a => 
+          a.employee === employee.name && a.month === month.key
+        );
+        
+        // Kategori verilerinden personele ait kayıtları bul
+        const catData = state.categories?.find(c => c.key === category?.key)?.data || [];
+        
+        for (const item of catData) {
+          // Eğer item'ın sahibi bu personelse
+          if (item.owner === employee.name || item.assignedTo === employee.id) {
+            const monthData = item.months?.[month.key];
+            if (monthData?.approved) {
+              monthTotals.approved += 1;
+              
+              for (const field of (category?.fields || [])) {
+                if (field.type === "number" && monthData[field.key] !== undefined) {
+                  monthTotals.sums[field.key] = safeNum(monthTotals.sums[field.key]) + safeNum(monthData[field.key]);
+                }
+              }
+              
+              if (monthData.mealCount) {
+                monthTotals.mealsSum += safeNum(monthData.mealCount);
+              }
+            }
+          }
+        }
+        
+        return {
+          month: month.key,
+          label: month.label,
+          data: monthTotals
+        };
+      });
+      
+      return {
+        mode: "employee",
+        employee: employee,
+        trendData: trendData
+      };
+    }
+    
+    return null;
+  }, [showComparison, comparisonMode, selectedEmployeeForTrend, totals, state, category, activeYear, activeMonth, employees, attendance]);
+  
+  // Yüzde değişim hesaplama yardımcı fonksiyonu
+  function calculatePercentageChanges(current, previous) {
+    const changes = {};
+    
+    changes.itemsApproved = calculateChange(current.itemsApproved, previous.itemsApproved);
+    changes.monthApproved = calculateChange(current.monthApproved, previous.monthApproved);
+    changes.mealsSum = calculateChange(current.mealsSum, previous.mealsSum);
+    
+    changes.sums = {};
+    for (const key in current.sums) {
+      changes.sums[key] = calculateChange(current.sums[key], previous.sums[key]);
+    }
+    
+    return changes;
+  }
+  
+  function calculateChange(current, previous) {
+    if (previous === 0) {
+      return current > 0 ? 100 : 0;
+    }
+    return ((current - previous) / previous * 100).toFixed(1);
+  }
+  }, [rows, category]);
 
   return (
     <div className="card">
@@ -3739,6 +3985,24 @@ function DashboardView({ monthKey, category, rows, projects, employees, actions,
       <div className="small" style={{marginTop:6}}>
         Bu ekranda sadece <b>admin onaylı</b> aylık veriler hesaplanır.
       </div>
+      
+      {/* Karşılaştırma & Analiz Bölümü */}
+      {showComparison && comparisonData && (
+        <>
+          <hr className="sep" />
+          {comparisonData.mode === "month" ? (
+            <MonthComparisonView 
+              comparisonData={comparisonData}
+              category={category}
+            />
+          ) : comparisonData.mode === "employee" ? (
+            <EmployeeTrendView 
+              comparisonData={comparisonData}
+              category={category}
+            />
+          ) : null}
+        </>
+      )}
 
       {/* Proje Aksiyon Sayıları */}
 <hr className="sep" />
@@ -4205,6 +4469,347 @@ function BarChart({ title, data }){
             </div>
           );
         })}
+      </div>
+    </div>
+  );
+}
+
+// Aylık Karşılaştırma Bileşeni
+function MonthComparisonView({ comparisonData, category }) {
+  const { current, previous, currentLabel, previousLabel, percentageChanges } = comparisonData;
+  
+  const getChangeColor = (value) => {
+    const num = parseFloat(value);
+    if (num > 0) return "#10b981"; // Yeşil - artış
+    if (num < 0) return "#ef4444"; // Kırmızı - azalış
+    return "#6b7280"; // Gri - değişim yok
+  };
+  
+  const getChangeIcon = (value) => {
+    const num = parseFloat(value);
+    if (num > 0) return "↗";
+    if (num < 0) return "↘";
+    return "→";
+  };
+  
+  return (
+    <div>
+      <div className="cardTitleRow">
+        <h3>📊 Aylık Karşılaştırma Analizi</h3>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          <Badge kind="info">{currentLabel}</Badge>
+          <Badge>{previousLabel}</Badge>
+        </div>
+      </div>
+      
+      <div className="small" style={{ marginTop: 6, marginBottom: 16 }}>
+        Bu ay ile geçen ayın karşılaştırması. Yeşil ↗ artış, kırmızı ↘ azalış gösterir.
+      </div>
+      
+      {/* Ana Metrikler */}
+      <div style={{
+        display: "grid",
+        gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+        gap: 12,
+        marginBottom: 16
+      }}>
+        <ComparisonCard
+          label={`Onaylı ${category?.itemLabel || "Kayıt"}`}
+          currentValue={current.itemsApproved}
+          previousValue={previous.itemsApproved}
+          change={percentageChanges.itemsApproved}
+          getChangeColor={getChangeColor}
+          getChangeIcon={getChangeIcon}
+        />
+        
+        <ComparisonCard
+          label="Onaylı Aylık Kayıt"
+          currentValue={current.monthApproved}
+          previousValue={previous.monthApproved}
+          change={percentageChanges.monthApproved}
+          getChangeColor={getChangeColor}
+          getChangeIcon={getChangeIcon}
+        />
+        
+        {current.mealsSum > 0 && (
+          <ComparisonCard
+            label="Yemek"
+            currentValue={current.mealsSum}
+            previousValue={previous.mealsSum}
+            change={percentageChanges.mealsSum}
+            getChangeColor={getChangeColor}
+            getChangeIcon={getChangeIcon}
+          />
+        )}
+      </div>
+      
+      {/* Field Bazlı Karşılaştırma */}
+      {Object.keys(current.sums || {}).length > 0 && (
+        <>
+          <div style={{
+            fontSize: 14,
+            fontWeight: 700,
+            marginTop: 16,
+            marginBottom: 12,
+            opacity: 0.8
+          }}>
+            Detaylı Metrikler
+          </div>
+          
+          <div style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+            gap: 10
+          }}>
+            {Object.keys(current.sums).map(key => {
+              const field = category?.fields?.find(f => f.key === key);
+              if (!field || key === "mealCount") return null;
+              
+              return (
+                <ComparisonCard
+                  key={key}
+                  label={field.label}
+                  currentValue={current.sums[key]}
+                  previousValue={previous.sums[key]}
+                  change={percentageChanges.sums[key]}
+                  getChangeColor={getChangeColor}
+                  getChangeIcon={getChangeIcon}
+                  small
+                />
+              );
+            })}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+// Personel Trend Bileşeni
+function EmployeeTrendView({ comparisonData, category }) {
+  const { employee, trendData } = comparisonData;
+  
+  // En yüksek değeri bul (grafik skalası için)
+  const maxValue = Math.max(
+    ...trendData.map(t => t.data.approved),
+    ...trendData.flatMap(t => Object.values(t.data.sums || {})),
+    1
+  );
+  
+  return (
+    <div>
+      <div className="cardTitleRow">
+        <h3>📈 Personel Trend Analizi</h3>
+        <Badge kind="info">{employee.name}</Badge>
+      </div>
+      
+      <div className="small" style={{ marginTop: 6, marginBottom: 16 }}>
+        Son 6 aylık performans trendi. Her ay için onaylı kayıt sayısı ve metrikler.
+      </div>
+      
+      {/* Onaylı Kayıt Trendi */}
+      <div style={{ marginBottom: 20 }}>
+        <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 10 }}>
+          Onaylı Kayıt Trendi
+        </div>
+        
+        <div style={{
+          display: "grid",
+          gridTemplateColumns: `repeat(${trendData.length}, 1fr)`,
+          gap: 8,
+          alignItems: "end",
+          height: 150,
+          borderBottom: "2px solid rgba(0,0,0,0.1)",
+          paddingBottom: 8
+        }}>
+          {trendData.map((month, idx) => {
+            const height = maxValue > 0 ? (month.data.approved / maxValue) * 100 : 0;
+            const isCurrentMonth = idx === trendData.length - 1;
+            
+            return (
+              <div key={month.month} style={{ 
+                display: "flex", 
+                flexDirection: "column", 
+                alignItems: "center",
+                gap: 4
+              }}>
+                <div style={{
+                  fontSize: 13,
+                  fontWeight: 700,
+                  color: isCurrentMonth ? "#3b82f6" : "#6b7280",
+                  marginBottom: 4
+                }}>
+                  {month.data.approved}
+                </div>
+                
+                <div style={{
+                  width: "100%",
+                  height: `${height}%`,
+                  minHeight: month.data.approved > 0 ? "10px" : "0",
+                  background: isCurrentMonth 
+                    ? "linear-gradient(180deg, #3b82f6, #2563eb)"
+                    : "linear-gradient(180deg, #10b981, #059669)",
+                  borderRadius: "4px 4px 0 0",
+                  transition: "height 0.3s ease"
+                }} />
+                
+                <div style={{
+                  fontSize: 11,
+                  fontWeight: 600,
+                  color: isCurrentMonth ? "#3b82f6" : "#6b7280",
+                  marginTop: 4,
+                  textAlign: "center"
+                }}>
+                  {month.label}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+      
+      {/* Metrik Trendleri */}
+      {category?.fields?.filter(f => f.type === "number" && f.key !== "mealCount").length > 0 && (
+        <div>
+          <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 12 }}>
+            Metrik Detayları
+          </div>
+          
+          <div style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))",
+            gap: 12
+          }}>
+            {category.fields
+              .filter(f => f.type === "number" && f.key !== "mealCount")
+              .map(field => (
+                <div key={field.key} className="card" style={{
+                  padding: 12,
+                  background: "rgba(0,0,0,0.02)",
+                  marginBottom: 0
+                }}>
+                  <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 8 }}>
+                    {field.label}
+                  </div>
+                  
+                  <div style={{
+                    display: "flex",
+                    gap: 6,
+                    alignItems: "end",
+                    height: 60
+                  }}>
+                    {trendData.map((month, idx) => {
+                      const value = month.data.sums[field.key] || 0;
+                      const maxFieldValue = Math.max(
+                        ...trendData.map(t => t.data.sums[field.key] || 0),
+                        1
+                      );
+                      const height = (value / maxFieldValue) * 100;
+                      const isCurrentMonth = idx === trendData.length - 1;
+                      
+                      return (
+                        <div key={month.month} style={{
+                          flex: 1,
+                          display: "flex",
+                          flexDirection: "column",
+                          alignItems: "center",
+                          gap: 2
+                        }}>
+                          <div style={{
+                            fontSize: 10,
+                            fontWeight: 600,
+                            color: "#6b7280"
+                          }}>
+                            {value}
+                          </div>
+                          
+                          <div style={{
+                            width: "100%",
+                            height: `${height}%`,
+                            minHeight: value > 0 ? "4px" : "0",
+                            background: isCurrentMonth ? "#3b82f6" : "#10b981",
+                            borderRadius: "2px 2px 0 0"
+                          }} />
+                        </div>
+                      );
+                    })}
+                  </div>
+                  
+                  <div style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    marginTop: 8,
+                    paddingTop: 8,
+                    borderTop: "1px solid rgba(0,0,0,0.1)",
+                    fontSize: 11,
+                    color: "#6b7280"
+                  }}>
+                    <span>Toplam: {trendData.reduce((sum, m) => sum + (m.data.sums[field.key] || 0), 0)}</span>
+                    <span>Ort: {(trendData.reduce((sum, m) => sum + (m.data.sums[field.key] || 0), 0) / trendData.length).toFixed(1)}</span>
+                  </div>
+                </div>
+              ))
+            }
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Karşılaştırma Kartı Bileşeni
+function ComparisonCard({ label, currentValue, previousValue, change, getChangeColor, getChangeIcon, small }) {
+  return (
+    <div className="card" style={{
+      padding: small ? 10 : 14,
+      background: "rgba(0,0,0,0.02)",
+      marginBottom: 0
+    }}>
+      <div style={{
+        fontSize: small ? 12 : 13,
+        fontWeight: 700,
+        marginBottom: 8,
+        opacity: 0.8
+      }}>
+        {label}
+      </div>
+      
+      <div style={{
+        display: "flex",
+        alignItems: "baseline",
+        gap: 8,
+        marginBottom: 6
+      }}>
+        <div style={{
+          fontSize: small ? 20 : 24,
+          fontWeight: 800,
+          color: "#1f2937"
+        }}>
+          {currentValue}
+        </div>
+        
+        <div style={{
+          fontSize: small ? 11 : 12,
+          color: "#6b7280"
+        }}>
+          / {previousValue}
+        </div>
+      </div>
+      
+      <div style={{
+        display: "flex",
+        alignItems: "center",
+        gap: 6,
+        fontSize: small ? 12 : 13,
+        fontWeight: 700,
+        color: getChangeColor(change)
+      }}>
+        <span style={{ fontSize: small ? 16 : 18 }}>
+          {getChangeIcon(change)}
+        </span>
+        <span>
+          {Math.abs(parseFloat(change))}%
+        </span>
       </div>
     </div>
   );
