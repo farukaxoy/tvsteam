@@ -7816,7 +7816,7 @@ function AttendanceSummaryView({ employee, monthKey, monthData }){
           <SummaryItem label="Ücretli İzin" value={stats.paid_leave} color="#f59e0b" />
           <SummaryItem label="Ücretsiz İzin" value={stats.unpaid_leave} color="#fb923c" />
           <SummaryItem label="Hastalık İzni" value={stats.sick_leave} color="#8b5cf6" />
-          <SummaryItem label="Mazeret" value={stats.excuse} color="#6366f1" />
+          <SummaryItem label="Raporlu" value={stats.excuse} color="#6366f1" />
           <SummaryItem label="Hafta Sonu" value={stats.weekend} color="#6b7280" />
           <SummaryItem label="Resmi Tatil" value={stats.holiday} color="#ec4899" />
           <SummaryItem label="Gelmedi" value={stats.absent} color="#ef4444" />
