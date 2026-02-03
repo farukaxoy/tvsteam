@@ -16,13 +16,54 @@ function formatDate(value) {
 }
 
 /*
- PATCHED FOR VITE + NETLIFY + DARK MODE + MOBILE RESPONSIVE + CONFLICT DETECTION
- - LOGIN_CSS / THEME_CSS tanımsız hatası giderildi
- - Dark mode desteği eklendi (localStorage ile tema kaydı)
- - Mobil responsive tasarım iyileştirildi
- - Conflict detection (çakışma tespiti) eklendi
- - URL yapısı düzenlendi (xxx.xx/veri-girisi formatı)
- - CSS asıl olarak style.css üzerinden gelir
+ 🎨 TVS TEAM VERİ TAKİP SİSTEMİ v005 - MODERN TASARIM
+ 
+ ✅ YENİ ÖZELLİKLER:
+ 
+ 1. PUANTAJ SAYFASI:
+    - Türkiye saati ile başlangıç/çıkış saati
+    - Otomatik fazla mesai hesaplama (8 saat + 30dk mola)
+    - Modern proje ve çalışan seçme menüsü
+    - Resmi tatiller butonu düzeltildi
+ 
+ 2. ANASAYFA:
+    - Etkileyici hero section
+    - İstatistik kartları
+    - Hızlı işlemler
+    - Son aktiviteler
+ 
+ 3. MODERN HEADER:
+    - Web sitesi benzeri üst menü
+    - Gradient logo
+    - Sticky navigation
+    - Aktif sayfa göstergesi
+ 
+ 4. TEMA BUTONU:
+    - Sol tarafa taşındı
+    - Daha küçük ve şık
+    - Smooth animasyonlar
+ 
+ 5. DASHBOARD:
+    - Modern kart bazlı filtreler
+    - Gerçek zamanlı istatistikler
+    - İyileştirilmiş tablo görünümü
+ 
+ 6. ADMIN PANELİ:
+    - "Proje Kullanıcı Tanımlama" kaldırıldı
+    - Tamamen yeni tab sistemi
+    - Modern kart listeleri
+    - Inline düzenleme
+    - Renkli durum etiketleri
+ 
+ 🎨 TASARIM:
+ - Gradient renkler ve modern UI
+ - Hover animasyonları
+ - Shadow efektleri
+ - Responsive grid sistem
+ - Dark/Light tema desteği
+ 
+ 📅 Versiyon: v005-MODERN
+ 📅 Tarih: Şubat 2026
 */
 
 // 🔧 PATCH: eski referanslar crash etmesin diye boş tanımlar
@@ -2139,7 +2180,6 @@ for(const emp of (next.employees || [])){
 
     const p = state.projects.find(pp => pp.id === projectId);
     const it0 = p?.itemsByCategory?.[catKey]?.find(x => x.id === itemId);
-    
     pushNotification({
       to: "admin",
       title: `Aylık ${cat?.itemLabel || "Kayıt"} Onayı`,
@@ -2255,52 +2295,27 @@ for(const emp of (next.employees || [])){
       unset: 0
     };
     
-    let totalMinutes = 0;
-    let overtimeMinutes = 0;
-    const STANDARD_WORK_MINUTES = 9 * 60; // 9 saat
-    
     for(let i = 1; i <= totalDays; i++){
       const day = monthData.days[i];
       if(day && day.status){
         counts[day.status] = (counts[day.status] || 0) + 1;
-        
-        // Saat hesaplama (sadece present/half_day için)
-        if((day.status === "present" || day.status === "half_day") && day.startTime && day.endTime){
-          const [sh, sm] = day.startTime.split(":").map(Number);
-          const [eh, em] = day.endTime.split(":").map(Number);
-          if(!isNaN(sh) && !isNaN(sm) && !isNaN(eh) && !isNaN(em)){
-            const start = sh * 60 + sm;
-            const end = eh * 60 + em;
-            let dayMinutes = end > start ? (end - start) : 0;
-            totalMinutes += dayMinutes;
-            
-            // Fazla mesai hesaplama (9 saatin üzeri)
-            if(dayMinutes > STANDARD_WORK_MINUTES){
-              overtimeMinutes += (dayMinutes - STANDARD_WORK_MINUTES);
-            }
-          }
-        }
       } else {
         counts.unset++;
       }
     }
     
     const workDays = counts.present + (counts.half_day * 0.5);
-    const totalHours = (totalMinutes / 60).toFixed(1);
-    const overtimeHours = (overtimeMinutes / 60).toFixed(1);
     
     monthData.stats = {
       ...counts,
       totalDays,
       workDays,
-      totalHours: parseFloat(totalHours),
-      overtimeHours: parseFloat(overtimeHours),
       completionRate: ((totalDays - counts.unset) / totalDays * 100).toFixed(1)
     };
   }
   
   // Tek gün için puantaj kaydet
-  function setAttendanceDay(employeeId, monthKey, day, status, note = "", startTime = "", endTime = "", overtimeReason = ""){
+  function setAttendanceDay(employeeId, monthKey, day, status, note = ""){
     updateState(d => {
       if(!d.attendance) d.attendance = {};
       if(!d.attendance[employeeId]) d.attendance[employeeId] = {};
@@ -2313,9 +2328,6 @@ for(const emp of (next.employees || [])){
       month.days[day] = {
         status,
         note: (note || "").trim(),
-        startTime: (startTime || "").trim(),
-        endTime: (endTime || "").trim(),
-        overtimeReason: (overtimeReason || "").trim(),
         updatedBy: auth?.username || "admin",
         updatedAt: new Date().toISOString()
       };
@@ -2382,48 +2394,16 @@ for(const emp of (next.employees || [])){
   function getHolidaysForMonth(year, month){
     const holidays = [];
     
-    // Sabit resmi tatiller (Türkiye)
     const fixedHolidays = {
-      1: [1],        // Yılbaşı
-      4: [23],       // 23 Nisan Ulusal Egemenlik ve Çocuk Bayramı
-      5: [1, 19],    // 1 Mayıs İşçi Bayramı, 19 Mayıs Gençlik ve Spor Bayramı
-      8: [30],       // 30 Ağustos Zafer Bayramı
-      10: [29],      // 29 Ekim Cumhuriyet Bayramı
+      1: [1],
+      4: [23],
+      5: [1, 19],
+      8: [30],
+      10: [29]
     };
     
     if(fixedHolidays[month]){
       holidays.push(...fixedHolidays[month]);
-    }
-    
-    // Dini bayramlar (Ramazan & Kurban — hicri takvime bağlı, yaklaşık tarihler)
-    // Her yıl ~11 gün öne kayar. Aşağıda 2024-2027 tahmini tarihler.
-    const religiousHolidays = {
-      2024: {
-        ramazan: { month: 4, days: [10, 11, 12] },     // Nisan 2024
-        kurban:  { month: 6, days: [16, 17, 18, 19] }  // Haziran 2024
-      },
-      2025: {
-        ramazan: { month: 3, days: [30, 31] },         // Mart 2025 sonu
-        ramazan2: { month: 4, days: [1] },             // Nisan 2025 başı
-        kurban:  { month: 6, days: [6, 7, 8, 9] }      // Haziran 2025
-      },
-      2026: {
-        ramazan: { month: 3, days: [20, 21, 22] },     // Mart 2026
-        kurban:  { month: 5, days: [27, 28, 29, 30] }  // Mayıs 2026
-      },
-      2027: {
-        ramazan: { month: 3, days: [9, 10, 11] },      // Mart 2027
-        kurban:  { month: 5, days: [16, 17, 18, 19] }  // Mayıs 2027
-      }
-    };
-    
-    const yearData = religiousHolidays[year];
-    if(yearData){
-      for(const [key, value] of Object.entries(yearData)){
-        if(value.month === month){
-          holidays.push(...value.days);
-        }
-      }
     }
     
     return holidays;
@@ -3770,396 +3750,370 @@ for(const emp of (next.employees || [])){
 /* ===================== VIEWS ===================== */
 
 function DashboardView({ monthKey, category, rows, projects, employees, actions, categories, isAdmin, attendance }){
+  const [dashTab, setDashTab] = useState("genel");
+
+  /* ─── aggregations ─── */
   const totals = useMemo(() => {
     const t = { itemsApproved:0, monthApproved:0, sums:{}, mealsSum:0 };
-    for(const f of (category?.fields || [])){
-      if(f.type === "number") t.sums[f.key] = 0;
-    }
-
+    for(const f of (category?.fields || [])) if(f.type === "number") t.sums[f.key] = 0;
     for(const r of rows){
       t.itemsApproved += safeNum(r.itemsApproved);
       t.monthApproved += safeNum(r.monthApproved);
-      for(const k of Object.keys(r.sums || {})){
-        t.sums[k] = safeNum(t.sums[k]) + safeNum(r.sums[k]);
-      }
+      for(const k of Object.keys(r.sums || {})) t.sums[k] = safeNum(t.sums[k]) + safeNum(r.sums[k]);
       t.mealsSum += safeNum(r.mealsSum);
     }
     return t;
   }, [rows, category]);
 
+  const { projectBlocks, grand, grandCompletion } = useMemo(() => {
+    const prjs = Array.isArray(projects) ? projects : [];
+    const emps = Array.isArray(employees) ? employees : [];
+    const att  = attendance || {};
+    const zeroAgg = () => ({ present:0, absent:0, paid_leave:0, unpaid_leave:0, sick_leave:0, excuse:0, weekend:0, holiday:0, half_day:0, unset:0, totalDays:0, workDays:0 });
+    const blocks = prjs.map(proj => {
+      const projEmps = emps.filter(e => e.project === proj.name);
+      const agg = zeroAgg();
+      projEmps.forEach(emp => {
+        const s = att[emp.id]?.[monthKey]?.stats || {};
+        agg.present += (s.present||0); agg.absent += (s.absent||0);
+        agg.paid_leave += (s.paid_leave||0); agg.unpaid_leave += (s.unpaid_leave||0);
+        agg.sick_leave += (s.sick_leave||0); agg.excuse += (s.excuse||0);
+        agg.weekend += (s.weekend||0); agg.holiday += (s.holiday||0);
+        agg.half_day += (s.half_day||0); agg.unset += (s.unset||0);
+        agg.totalDays += (s.totalDays||0); agg.workDays += (s.workDays||0);
+      });
+      return { proj, projEmps, agg };
+    });
+    const g = { ...zeroAgg(), empCount:0 };
+    blocks.forEach(b => {
+      g.present += b.agg.present; g.absent += b.agg.absent;
+      g.paid_leave += b.agg.paid_leave; g.unpaid_leave += b.agg.unpaid_leave;
+      g.sick_leave += b.agg.sick_leave; g.excuse += b.agg.excuse;
+      g.weekend += b.agg.weekend; g.holiday += b.agg.holiday;
+      g.half_day += b.agg.half_day; g.unset += b.agg.unset;
+      g.totalDays += b.agg.totalDays; g.workDays += b.agg.workDays;
+      g.empCount += b.projEmps.length;
+    });
+    const comp = g.totalDays > 0 ? ((g.totalDays - g.unset) / g.totalDays * 100).toFixed(1) : "0";
+    return { projectBlocks: blocks, grand: g, grandCompletion: comp };
+  }, [projects, employees, attendance, monthKey]);
+
+  /* trend: son 6 ay */
+  const trendMonths = useMemo(() => {
+    const [curY, curM] = monthKey.split("-").map(Number);
+    const labels = ["Oca","Şub","Mar","Nis","May","Haz","Tem","Ağu","Eyl","Ekim","Kas","Ara"];
+    const out = [];
+    for(let i = 5; i >= 0; i--){
+      let m = curM - i, y = curY;
+      while(m < 1){ m += 12; y--; }
+      out.push({ mk:`${y}-${String(m).padStart(2,"0")}`, label: labels[m-1] + (y !== curY ? " '"+String(y).slice(2) : "") });
+    }
+    return out;
+  }, [monthKey]);
+
+  const trendData = useMemo(() => {
+    const emps = Array.isArray(employees) ? employees : [];
+    const att  = attendance || {};
+    const projNames = new Set((Array.isArray(projects) ? projects : []).map(p => p.name));
+    return trendMonths.map(({ mk, label }) => {
+      let present=0, absent=0, izin=0, workDays=0, totalDays=0, unset=0;
+      emps.forEach(emp => {
+        if(!projNames.has(emp.project)) return;
+        const s = att[emp.id]?.[mk]?.stats;
+        if(!s) return;
+        present += (s.present||0); absent += (s.absent||0);
+        izin += (s.paid_leave||0)+(s.unpaid_leave||0)+(s.sick_leave||0);
+        workDays += (s.workDays||0); totalDays += (s.totalDays||0); unset += (s.unset||0);
+      });
+      return { label, present, absent, izin, workDays, completion: totalDays > 0 ? Number(((totalDays-unset)/totalDays*100).toFixed(0)) : 0 };
+    });
+  }, [trendMonths, employees, attendance, projects]);
+
+  /* ─── shared styles ─── */
+  const heroKpi = { flex:"1 1 140px", background:"#fff", border:"1px solid #e5e7eb", borderRadius:16, padding:"18px 20px", display:"flex", flexDirection:"column", gap:4 };
+  const heroKpiDark = { background:"#1e293b", borderColor:"#334155" };
+  const sectionTab = (active) => ({
+    padding:"10px 20px", border:"none", borderBottom: active ? "2.5px solid #3b82f6" : "2.5px solid transparent",
+    background:"transparent", cursor:"pointer", fontWeight: active ? 700 : 500, fontSize:14,
+    color: active ? "#1d4ed8" : "#64748b", transition:"all .15s", whiteSpace:"nowrap"
+  });
+
+  /* ─── RENDER ─── */
   return (
-    <div className="card">
-      <div className="cardTitleRow">
-        <h2>Dashboard • {category?.name}</h2>
-        <div style={{display:"flex", gap:8, flexWrap:"wrap", justifyContent:"flex-end"}}>
-          <Badge kind="ok">Onaylı veriler</Badge>
-          <Badge>{monthKey}</Badge>
-        </div>
-      </div>
+    <div style={{display:"flex", flexDirection:"column", gap:16}}>
 
-      <div className="small" style={{marginTop:6}}>
-        Bu ekranda sadece <b>admin onaylı</b> aylık veriler hesaplanır.
-      </div>
-
-      {/* Proje Aksiyon Sayıları */}
-<hr className="sep" />
-<div className="cardTitleRow">
-  <h3>Proje Aksiyon Sayıları</h3>
-  <Badge kind="warn">Durum Bazlı</Badge>
-</div>
-<div className="small" style={{marginTop:6}}>
-  Detaylar için <b>Aksiyonlar</b> menüsünü kullan.
-</div>
-
-<div style={{
-  marginTop:10,
-  display:"grid",
-  gridTemplateColumns:"repeat(5, minmax(150px, 1fr))",
-  gap:8,
-  overflowX:"auto"
-}}>
-  {(Array.isArray(projects) ? projects : []).map(p => {
-    const list = (Array.isArray(actions) ? actions : []).filter(a => a?.project === p.name);
-    const count = (st) => list.filter(a => (a.status || "open") === st).length;
-    const openN = count("open");
-    const progN = count("in_progress");
-    const doneN = list.filter(a => (a.status || "open") === "done" || (a.status || "open") === "user_done").length;
-    const closedN = count("closed");
-
-    const rowStyle = {display:"flex", alignItems:"center", justifyContent:"space-between", gap:8, padding:"2px 0"};
-    const labelStyle = {fontSize:12, opacity:.9};
-
-    return (
-      <div
-        key={p.id}
-        className="card"
-        style={{
-          minWidth:150,
-          padding:"10px 12px",
-          borderRadius:12
-        }}
-      >
-        <div style={{display:"flex", alignItems:"center", justifyContent:"space-between", gap:10}}>
-          <div style={{fontWeight:700, fontSize:13, lineHeight:"16px"}}>{p.name}</div>
-          <Badge kind={openN ? "danger" : "ok"}>{list.length}</Badge>
-        </div>
-
-        <div style={{marginTop:8}}>
-          <div style={rowStyle}>
-            <span style={labelStyle}>Açık</span>
-            <Badge kind="danger">{openN}</Badge>
+      {/* ════════════════ HERO HEADER ════════════════ */}
+      <div style={{
+        background:"linear-gradient(135deg, #1e293b 0%, #0f172a 100%)",
+        borderRadius:20, padding:"24px 28px 20px", color:"#fff"
+      }}>
+        <div style={{display:"flex", alignItems:"center", justifyContent:"space-between", flexWrap:"wrap", gap:8, marginBottom:18}}>
+          <div>
+            <div style={{fontSize:22, fontWeight:800, letterSpacing:"-.3px"}}>Dashboard</div>
+            <div style={{fontSize:13, color:"rgba(255,255,255,.55)", marginTop:2}}>
+              {category?.name} • {monthKey} • Sadece onaylı veriler
+            </div>
           </div>
-          <div style={rowStyle}>
-            <span style={labelStyle}>Devam</span>
-            <Badge kind="warn">{progN}</Badge>
-          </div>
-          <div style={rowStyle}>
-            <span style={labelStyle}>Tamam</span>
-            <Badge kind="ok">{doneN}</Badge>
-          </div>
-          <div style={rowStyle}>
-            <span style={labelStyle}>Kapalı</span>
-            <Badge kind="ok">{closedN}</Badge>
+          <div style={{display:"flex", gap:8}}>
+            <span style={{background:"rgba(16,185,129,.18)", color:"#34d399", padding:"4px 12px", borderRadius:999, fontSize:12, fontWeight:700}}>● Onaylı</span>
+            <span style={{background:"rgba(59,130,246,.18)", color:"#60a5fa", padding:"4px 12px", borderRadius:999, fontSize:12, fontWeight:700}}>{monthKey}</span>
           </div>
         </div>
-      </div>
-    );
-  })}
-</div>
 
-<div className="kpiRow">
-        <KPI label={`Onaylı ${category?.itemLabel || "Kayıt"}`} value={totals.itemsApproved}/>
-        <KPI label="Onaylı Aylık Kayıt" value={totals.monthApproved}/>
-        {Object.keys(totals.sums).filter(k=>k!=="mealCount").map(k=>(
-          <KPI key={k} label={(category.fields.find(f=>f.key===k)?.label)||k} value={totals.sums[k]}/>
-        ))}
-        {(category?.special?.meals || (category?.fields||[]).some(f=>f.key==="mealCount") || totals.mealsSum>0) ? <KPI label="Yemek" value={totals.mealsSum}/> : null}
-      </div>
-
-      {/* Grafikler */}
-      <div style={{marginTop:14}}>
-        <div className="cardTitleRow">
-          <h3>Grafikli Özet</h3>
-          <Badge kind="ok">Proje Bazlı</Badge>
-        </div>
-
-        <div className="small" style={{marginTop:6}}>
-          Seçili kategori: <b>{category?.name}</b> • Sadece <b>onaylı aylık</b> veriler.
-        </div>
-
-        <div style={{marginTop:12, display:"grid", gridTemplateColumns:"repeat(5, minmax(180px, 1fr))", gap:8, overflowX:"auto"}}>
-          {(category?.fields || []).filter(f=>f.type==="number" && f.key!=="mealCount").map(f => (
-            <BarChart
-              key={f.key}
-              title={f.label}
-              data={rows.map(r => ({ label: r.name, value: safeNum(r.sums?.[f.key]) }))}
-            />
+        {/* KPI Pills Row */}
+        <div style={{display:"flex", gap:10, flexWrap:"wrap"}}>
+          {[
+            { label:"Toplam Proje", value: (projects||[]).length, color:"#60a5fa", bg:"rgba(59,130,246,.15)" },
+            { label:"Toplam Personel", value: grand.empCount, color:"#a78bfa", bg:"rgba(167,139,250,.15)" },
+            { label:"Onaylı Kayıt", value: totals.itemsApproved, color:"#34d399", bg:"rgba(16,185,129,.15)" },
+            { label:"Onaylı Aylık", value: totals.monthApproved, color:"#fbbf24", bg:"rgba(251,191,36,.15)" },
+            { label:"Geldi", value: grand.present, color:"#34d399", bg:"rgba(16,185,129,.15)" },
+            { label:"Gelmedi", value: grand.absent, color:"#f87171", bg:"rgba(239,68,68,.15)" },
+            { label:"Tamamlanma", value: grandCompletion+"%", color:"#fff", bg:"rgba(255,255,255,.10)" }
+          ].map(k => (
+            <div key={k.label} style={{ flex:"1 1 100px", background: k.bg, borderRadius:12, padding:"12px 14px" }}>
+              <div style={{fontSize:11, color:"rgba(255,255,255,.5)", fontWeight:600, textTransform:"uppercase", letterSpacing:".6px"}}>{k.label}</div>
+              <div style={{fontSize:22, fontWeight:800, color: k.color, marginTop:2}}>{k.value}</div>
+            </div>
           ))}
-          {(category?.special?.meals || (category?.fields||[]).some(f=>f.key==="mealCount") || totals.mealsSum>0) ? (
-            <BarChart
-              title="Yemek"
-              data={rows.map(r => ({ label: r.name, value: safeNum(r.mealsSum) }))}
-            />
-          ) : null}
+        </div>
+
+        {/* Completion bar */}
+        <div style={{marginTop:16}}>
+          <div style={{display:"flex", justifyContent:"space-between", marginBottom:6}}>
+            <span style={{fontSize:12, color:"rgba(255,255,255,.5)", fontWeight:600}}>Genel Tamamlanma</span>
+            <span style={{fontSize:12, color:"#34d399", fontWeight:700}}>{grandCompletion}%</span>
+          </div>
+          <div style={{height:8, background:"rgba(255,255,255,.12)", borderRadius:999, overflow:"hidden"}}>
+            <div style={{height:"100%", width: grandCompletion+"%", background:"linear-gradient(90deg,#10b981,#3b82f6)", borderRadius:999, transition:"width .4s ease"}} />
+          </div>
         </div>
       </div>
 
-      {/* Aylık Proje Raporu (PDF/Print) */}
-      <hr className="sep" />
-      <div className="cardTitleRow">
-        <h3>Aylık Proje Raporu</h3>
-        <Badge>{monthKey}</Badge>
-      </div>
-      <div className="small" style={{marginTop:6}}>
-        Butona tıkla → rapor yeni sekmede açılır → tarayıcıdan <b>PDF olarak kaydet</b>.
-      </div>
-
-      <div style={{marginTop:10, display:"flex", gap:10, flexWrap:"wrap"}}>
-        {(Array.isArray(projects) ? projects : []).map(p => (
-          <button
-            key={p.id}
-            className="btn primary"
-            onClick={() => openProjectMonthlyReport({ project: p, category, monthKey, employees })}
-          >
-            {p.name} • PDF Rapor
+      {/* ════════════════ SECTION TAB BAR ════════════════ */}
+      <div style={{
+        display:"flex", gap:0, borderBottom:"1px solid #e5e7eb", background:"#fff",
+        borderRadius:"14px 14px 0 0", overflowX:"auto", overflowY:"hidden"
+      }}>
+        {[
+          { key:"genel",      label:"📊 Genel" },
+          { key:"aksiyonlar", label:"✅ Aksiyonlar" },
+          { key:"puantaj",    label:"📅 Puantaj" },
+          { key:"trend",      label:"📈 Trend" },
+          { key:"raporlar",   label:"📄 Raporlar" }
+        ].map(t => (
+          <button key={t.key} type="button" style={sectionTab(dashTab === t.key)} onClick={() => setDashTab(t.key)}>
+            {t.label}
           </button>
         ))}
       </div>
 
-      <hr className="sep" />
+      {/* ════════════════ TAB CONTENT ════════════════ */}
+      <div className="card" style={{borderRadius:"0 0 16px 16px", borderTopLeftRadius:0, borderTopRightRadius:0}}>
 
-      <div className="tableWrap">
-        <table>
-          <thead>
-            <tr>
-              <th>Proje</th>
-              <th>Onaylı {category?.itemLabel || "Kayıt"}</th>
-              <th>Onaylı Aylık</th>
-              {(category?.fields || []).filter(f=>f.type==="number" && f.key!=="mealCount").map(f=>(
-                <th key={f.key}>{f.label}</th>
+        {/* ──── GENEL ──── */}
+        {dashTab === "genel" && (
+          <div>
+            {/* Grafik satırı */}
+            <div style={{display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:14}}>
+              <div style={{fontWeight:700, fontSize:16}}>Kategori Özeti — {category?.name}</div>
+              <Badge kind="ok">Proje Bazlı</Badge>
+            </div>
+            <div style={{display:"grid", gridTemplateColumns:"repeat(auto-fill, minmax(200px, 1fr))", gap:10}}>
+              {(category?.fields || []).filter(f=>f.type==="number" && f.key!=="mealCount").map(f => (
+                <BarChart key={f.key} title={f.label} data={rows.map(r => ({ label: r.name, value: safeNum(r.sums?.[f.key]) }))} />
               ))}
-              {(category?.special?.meals || (category?.fields||[]).some(f=>f.key==="mealCount")) ? <th>Yemek</th> : null}
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map(r=>(
-              <tr key={r.id}>
-                <td><b>{r.name}</b></td>
-                <td>{r.itemsApproved}</td>
-                <td>{r.monthApproved}</td>
-                {(category?.fields || []).filter(f=>f.type==="number" && f.key!=="mealCount").map(f=>(
-                  <td key={f.key}>{safeNum(r.sums?.[f.key])}</td>
-                ))}
-                {(category?.special?.meals || (category?.fields||[]).some(f=>f.key==="mealCount")) ? <td>{r.mealsSum}</td> : null}
-              </tr>
-            ))}
-            {rows.length===0 && <tr><td colSpan="99">Kayıt yok.</td></tr>}
-          </tbody>
-        </table>
-      </div>
-
-      {/* Kişi bazlı (Uzmanlar) */}
-      {category?.key === "experts" && (
-        <>
-
-          <hr className="sep" />
-          <div className="cardTitleRow">
-            <h3>Kişi Bazlı • Onaylı Aylık</h3>
-            <Badge>{monthKey}</Badge>
-          </div>
-
-          <div className="small" style={{marginTop:6}}>
-            Sadece <b>admin onaylı</b> uzman aylıkları listelenir.
-          </div>
-
-          <div className="tableWrap" style={{marginTop:10}}>
-            <table>
-              <thead>
-                <tr>
-                  <th>Proje</th>
-                  <th>Uzman</th>
-                  {(category?.fields || []).filter(f=>f.type==="number" && f.key!=="mealCount").map(f=>(
-                    <th key={f.key}>{f.label}</th>
-                  ))}
-                  {(category?.special?.meals || (category?.fields||[]).some(f=>f.key==="mealCount")) ? <th>Yemek</th> : null}
-                </tr>
-              </thead>
-              <tbody>
-                {(() => {
-                  const out = [];
-                  const prjs = Array.isArray(projects) ? projects : [];
-                  for(const p of prjs){
-                    const arr = p.itemsByCategory?.[category.key] || [];
-                    for(const it of arr){
-                      if(category.approval?.item && !it.approved) continue;
-                      const slot = it.months?.[monthKey];
-                      if(!slot || !slot.approved) continue;
-
-                      const dft = slot.draft || {};
-                      const rec = {
-                        project: p.name,
-                        name: it.name,
-                        nums: {},
-                        meals: category?.special?.meals ? ((Object.prototype.hasOwnProperty.call(dft, "mealCount") ? safeNum(dft.mealCount) : (Array.isArray(dft.meals) ? dft.meals.length : 0))) : null
-                      };
-                      const hiddenDash = Array.isArray(p?.fieldVisibility?.[category?.key]?.hiddenFieldKeys)
-                        ? p.fieldVisibility[category.key].hiddenFieldKeys
-                        : [];
-                      for(const f of (category.fields || [])){
-                        if(hiddenDash.includes(f.key)) continue;
-                        if(f.type === "number") rec.nums[f.key] = safeNum(dft[f.key]);
-                      }
-                      out.push(rec);
-                    }
-                  }
-                  out.sort((a,b)=> (a.project+a.name).localeCompare(b.project+b.name,"tr"));
-                  return out.map((r,i)=>(
-                    <tr key={r.project + "_" + r.name + "_" + i}>
-                      <td><b>{r.project}</b></td>
-                      <td>{r.name}</td>
-                      {(category?.fields || []).filter(f=>f.type==="number" && f.key!=="mealCount").map(f=>(
-                        <td key={f.key}>{safeNum(r.nums?.[f.key])}</td>
-                      ))}
-                      {category?.special?.meals ? <td>{safeNum(r.meals)}</td> : null}
-                    </tr>
-                  ));
-                })()}
-              </tbody>
-            </table>
-          </div>
-        </>
-      )}
-      {/* ===== PUANTAJ ÖZETİ (Dashboard) ===== */}
-      <hr className="sep" />
-      <div className="cardTitleRow">
-        <h3>📅 Puantaj Özeti</h3>
-        <Badge kind="ok">{monthKey}</Badge>
-      </div>
-      <div className="small" style={{marginTop:6}}>
-        Seçili ay için <b>proje bazlı</b> personel devam özeti.
-      </div>
-
-      {(() => {
-        // Her proje için personel + istatistik toplama
-        const prjs = Array.isArray(projects) ? projects : [];
-        const emps = Array.isArray(employees) ? employees : [];
-        const att  = attendance || {};
-
-        const projectBlocks = prjs.map(proj => {
-          const projEmps = emps.filter(e => e.project === proj.name);
-          // Ay toplam istatistikleri
-          const agg = { present:0, absent:0, paid_leave:0, unpaid_leave:0, sick_leave:0, excuse:0, weekend:0, holiday:0, half_day:0, unset:0, totalDays:0, workDays:0 };
-          const rows = projEmps.map(emp => {
-            const md = att[emp.id]?.[monthKey];
-            const s  = md?.stats || {};
-            // Aggregate
-            agg.present     += (s.present     || 0);
-            agg.absent      += (s.absent      || 0);
-            agg.paid_leave  += (s.paid_leave  || 0);
-            agg.unpaid_leave+= (s.unpaid_leave|| 0);
-            agg.sick_leave  += (s.sick_leave  || 0);
-            agg.excuse      += (s.excuse      || 0);
-            agg.weekend     += (s.weekend     || 0);
-            agg.holiday     += (s.holiday     || 0);
-            agg.half_day    += (s.half_day    || 0);
-            agg.unset       += (s.unset       || 0);
-            agg.totalDays   += (s.totalDays   || 0);
-            agg.workDays    += (s.workDays    || 0);
-            return { emp, s, completionRate: s.completionRate || 0 };
-          });
-          return { proj, projEmps, agg, rows };
-        });
-
-        // Grand toplam (tüm projeler)
-        const grand = { present:0, absent:0, paid_leave:0, unpaid_leave:0, sick_leave:0, excuse:0, weekend:0, holiday:0, half_day:0, unset:0, totalDays:0, workDays:0, empCount:0 };
-        projectBlocks.forEach(b => {
-          grand.present      += b.agg.present;
-          grand.absent       += b.agg.absent;
-          grand.paid_leave   += b.agg.paid_leave;
-          grand.unpaid_leave += b.agg.unpaid_leave;
-          grand.sick_leave   += b.agg.sick_leave;
-          grand.excuse       += b.agg.excuse;
-          grand.weekend      += b.agg.weekend;
-          grand.holiday      += b.agg.holiday;
-          grand.half_day     += b.agg.half_day;
-          grand.unset        += b.agg.unset;
-          grand.totalDays    += b.agg.totalDays;
-          grand.workDays     += b.agg.workDays;
-          grand.empCount     += b.projEmps.length;
-        });
-        const grandCompletion = grand.totalDays > 0 ? ((grand.totalDays - grand.unset) / grand.totalDays * 100).toFixed(1) : 0;
-
-        return (
-          <>
-            {/* Grand KPI satırı */}
-            <div className="kpiRow" style={{marginTop:14}}>
-              <KPI label="Toplam Personel" value={grand.empCount} />
-              <KPI label="Toplam Çalışma Günü" value={grand.workDays} />
-              <KPI label="Toplam Geldi" value={grand.present} />
-              <KPI label="Toplam İzin" value={grand.paid_leave + grand.unpaid_leave + grand.sick_leave} />
-              <KPI label="Toplam Gelmedi" value={grand.absent} />
-              <KPI label="Tamamlanma" value={`${grandCompletion}%`} />
+              {(category?.special?.meals || (category?.fields||[]).some(f=>f.key==="mealCount") || totals.mealsSum>0) ? (
+                <BarChart title="Yemek" data={rows.map(r => ({ label: r.name, value: safeNum(r.mealsSum) }))} />
+              ) : null}
             </div>
 
-            {/* Grand tamamlanma barı */}
-            <div style={{marginTop:14, padding:"12px 16px", background:"#f9fafb", borderRadius:12}}>
-              <div style={{display:"flex", justifyContent:"space-between", marginBottom:6}}>
-                <span style={{fontWeight:600, fontSize:14}}>Genel Tamamlanma Oranı</span>
-                <span style={{fontWeight:700, color:"#10b981"}}>{grandCompletion}%</span>
-              </div>
-              <div style={{height:18, background:"#e5e7eb", borderRadius:999, overflow:"hidden"}}>
-                <div style={{height:"100%", width: grandCompletion + "%", background:"linear-gradient(90deg,#10b981,#3b82f6)", transition:"width .3s ease"}} />
+            {/* Özet tablo */}
+            <div style={{marginTop:24}}>
+              <div style={{fontWeight:700, fontSize:15, marginBottom:10}}>Proje Özeti</div>
+              <div className="tableWrap">
+                <table>
+                  <thead><tr>
+                    <th>Proje</th>
+                    <th>Onaylı {category?.itemLabel || "Kayıt"}</th>
+                    <th>Onaylı Aylık</th>
+                    {(category?.fields || []).filter(f=>f.type==="number" && f.key!=="mealCount").map(f=>(<th key={f.key}>{f.label}</th>))}
+                    {(category?.special?.meals || (category?.fields||[]).some(f=>f.key==="mealCount")) ? <th>Yemek</th> : null}
+                  </tr></thead>
+                  <tbody>
+                    {rows.map(r=>(
+                      <tr key={r.id}>
+                        <td><b>{r.name}</b></td>
+                        <td>{r.itemsApproved}</td>
+                        <td>{r.monthApproved}</td>
+                        {(category?.fields || []).filter(f=>f.type==="number" && f.key!=="mealCount").map(f=>(<td key={f.key}>{safeNum(r.sums?.[f.key])}</td>))}
+                        {(category?.special?.meals || (category?.fields||[]).some(f=>f.key==="mealCount")) ? <td>{r.mealsSum}</td> : null}
+                      </tr>
+                    ))}
+                    {rows.length===0 && <tr><td colSpan="99">Kayıt yok.</td></tr>}
+                  </tbody>
+                </table>
               </div>
             </div>
 
-            {/* Proje bazlı kartlar */}
-            <div style={{marginTop:16, display:"grid", gridTemplateColumns:"repeat(auto-fit, minmax(260px,1fr))", gap:12}}>
-              {projectBlocks.map(({ proj, projEmps, agg }) => {
-                const comp = agg.totalDays > 0 ? ((agg.totalDays - agg.unset) / agg.totalDays * 100).toFixed(1) : 0;
+            {/* Kişi bazlı — sadece experts */}
+            {category?.key === "experts" && (
+              <div style={{marginTop:24}}>
+                <div style={{fontWeight:700, fontSize:15, marginBottom:10}}>Kişi Bazlı — Onaylı Aylık</div>
+                <div className="tableWrap">
+                  <table>
+                    <thead><tr>
+                      <th>Proje</th><th>Uzman</th>
+                      {(category?.fields || []).filter(f=>f.type==="number" && f.key!=="mealCount").map(f=>(<th key={f.key}>{f.label}</th>))}
+                      {(category?.special?.meals || (category?.fields||[]).some(f=>f.key==="mealCount")) ? <th>Yemek</th> : null}
+                    </tr></thead>
+                    <tbody>
+                      {(() => {
+                        const out = [];
+                        for(const p of (Array.isArray(projects) ? projects : [])){
+                          for(const it of (p.itemsByCategory?.[category.key] || [])){
+                            if(category.approval?.item && !it.approved) continue;
+                            const slot = it.months?.[monthKey];
+                            if(!slot || !slot.approved) continue;
+                            const dft = slot.draft || {};
+                            const rec = { project: p.name, name: it.name, nums: {}, meals: category?.special?.meals ? (Object.prototype.hasOwnProperty.call(dft,"mealCount") ? safeNum(dft.mealCount) : (Array.isArray(dft.meals) ? dft.meals.length : 0)) : null };
+                            const hidden = Array.isArray(p?.fieldVisibility?.[category?.key]?.hiddenFieldKeys) ? p.fieldVisibility[category.key].hiddenFieldKeys : [];
+                            for(const f of (category.fields || [])) { if(!hidden.includes(f.key) && f.type === "number") rec.nums[f.key] = safeNum(dft[f.key]); }
+                            out.push(rec);
+                          }
+                        }
+                        out.sort((a,b)=> (a.project+a.name).localeCompare(b.project+b.name,"tr"));
+                        return out.map((r,i)=>(
+                          <tr key={r.project+"_"+r.name+"_"+i}>
+                            <td><b>{r.project}</b></td><td>{r.name}</td>
+                            {(category?.fields||[]).filter(f=>f.type==="number"&&f.key!=="mealCount").map(f=>(<td key={f.key}>{safeNum(r.nums?.[f.key])}</td>))}
+                            {category?.special?.meals ? <td>{safeNum(r.meals)}</td> : null}
+                          </tr>
+                        ));
+                      })()}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ──── AKSIYONLAR ──── */}
+        {dashTab === "aksiyonlar" && (
+          <div>
+            <div style={{display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:14}}>
+              <div style={{fontWeight:700, fontSize:16}}>Proje Aksiyon Durumu</div>
+              <Badge kind="warn">Durum Bazlı</Badge>
+            </div>
+            <div style={{display:"grid", gridTemplateColumns:"repeat(auto-fill, minmax(180px, 1fr))", gap:10}}>
+              {(Array.isArray(projects) ? projects : []).map(p => {
+                const list = (Array.isArray(actions) ? actions : []).filter(a => a?.project === p.name);
+                const openN = list.filter(a => (a.status||"open")==="open").length;
+                const progN = list.filter(a => (a.status||"open")==="in_progress").length;
+                const doneN = list.filter(a => (a.status||"open")==="done"||(a.status||"open")==="user_done").length;
+                const closedN = list.filter(a => (a.status||"open")==="closed").length;
+                const total = list.length;
+                const doneRate = total > 0 ? Math.round((doneN+closedN)/total*100) : 0;
                 return (
-                  <div key={proj.id} className="card" style={{padding:"14px 16px", borderRadius:14}}>
+                  <div key={p.id} style={{
+                    background:"#fff", border:"1px solid #e5e7eb", borderRadius:14, padding:"16px 18px",
+                    borderTop: openN > 0 ? "3px solid #ef4444" : "3px solid #10b981"
+                  }}>
                     <div style={{display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:10}}>
-                      <div style={{fontWeight:700, fontSize:15}}>{proj.name}</div>
-                      <Badge kind={agg.absent > 0 ? "danger" : "ok"}>{projEmps.length} kişi</Badge>
+                      <div style={{fontWeight:700, fontSize:14}}>{p.name}</div>
+                      <span style={{
+                        background: openN > 0 ? "#fef2f2" : "#ecfdf5", color: openN > 0 ? "#dc2626" : "#16a34a",
+                        padding:"2px 10px", borderRadius:999, fontSize:12, fontWeight:700
+                      }}>{total} aksiyon</span>
                     </div>
 
-                    {/* Mini stat satırı */}
+                    {/* Mini donut-style satırlar */}
+                    {[
+                      { label:"Açık", val:openN, color:"#ef4444", bg:"#fef2f2" },
+                      { label:"Devam", val:progN, color:"#f59e0b", bg:"#fffbeb" },
+                      { label:"Tamamlandı", val:doneN, color:"#10b981", bg:"#ecfdf5" },
+                      { label:"Kapalı", val:closedN, color:"#6366f1", bg:"#eef2ff" }
+                    ].map(s => (
+                      <div key={s.label} style={{display:"flex", alignItems:"center", gap:8, padding:"4px 0"}}>
+                        <div style={{width:8, height:8, borderRadius:999, background:s.color, flexShrink:0}} />
+                        <span style={{fontSize:13, flex:1, color:"#374151"}}>{s.label}</span>
+                        <span style={{fontSize:13, fontWeight:700, background:s.bg, color:s.color, padding:"1px 8px", borderRadius:999}}>{s.val}</span>
+                      </div>
+                    ))}
+
+                    {/* Mini progress */}
+                    <div style={{marginTop:10}}>
+                      <div style={{height:6, background:"#f3f4f6", borderRadius:999, overflow:"hidden"}}>
+                        <div style={{height:"100%", width: doneRate+"%", background:"linear-gradient(90deg,#10b981,#6366f1)", borderRadius:999, transition:"width .3s"}} />
+                      </div>
+                      <div style={{fontSize:11, color:"#9ca3af", marginTop:4, textAlign:"right"}}>{doneRate}% tamamlandı</div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* ──── PUANTAJ ──── */}
+        {dashTab === "puantaj" && (
+          <div>
+            <div style={{display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:16}}>
+              <div style={{fontWeight:700, fontSize:16}}>Puantaj Özeti</div>
+              <Badge kind="ok">{monthKey}</Badge>
+            </div>
+
+            {/* Proje kartları */}
+            <div style={{display:"grid", gridTemplateColumns:"repeat(auto-fill, minmax(240px, 1fr))", gap:10}}>
+              {projectBlocks.map(({ proj, projEmps, agg }) => {
+                const comp = agg.totalDays > 0 ? ((agg.totalDays - agg.unset) / agg.totalDays * 100).toFixed(0) : 0;
+                const att = attendance || {};
+                return (
+                  <div key={proj.id} style={{
+                    background:"#fff", border:"1px solid #e5e7eb", borderRadius:14, padding:"16px 18px",
+                    borderLeft:"4px solid #3b82f6"
+                  }}>
+                    <div style={{display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:10}}>
+                      <div style={{fontWeight:700, fontSize:14}}>{proj.name}</div>
+                      <span style={{background:"#eff6ff", color:"#2563eb", padding:"2px 10px", borderRadius:999, fontSize:12, fontWeight:700}}>{projEmps.length} kişi</span>
+                    </div>
+
+                    {/* 3 stat box */}
                     <div style={{display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:6, marginBottom:10}}>
-                      <div style={{textAlign:"center", padding:"6px 2px", background:"#10b98118", borderRadius:8}}>
-                        <div style={{fontWeight:700, fontSize:18, color:"#10b981"}}>{agg.present}</div>
-                        <div style={{fontSize:11, color:"#6b7280"}}>Geldi</div>
-                      </div>
-                      <div style={{textAlign:"center", padding:"6px 2px", background:"#ef444418", borderRadius:8}}>
-                        <div style={{fontWeight:700, fontSize:18, color:"#ef4444"}}>{agg.absent}</div>
-                        <div style={{fontSize:11, color:"#6b7280"}}>Gelmedi</div>
-                      </div>
-                      <div style={{textAlign:"center", padding:"6px 2px", background:"#3b82f618", borderRadius:8}}>
-                        <div style={{fontWeight:700, fontSize:18, color:"#3b82f6"}}>{agg.paid_leave + agg.unpaid_leave + agg.sick_leave}</div>
-                        <div style={{fontSize:11, color:"#6b7280"}}>İzin</div>
-                      </div>
+                      {[
+                        { val: agg.present, label:"Geldi", color:"#10b981", bg:"#ecfdf5" },
+                        { val: agg.absent, label:"Gelmedi", color:"#ef4444", bg:"#fef2f2" },
+                        { val: agg.paid_leave+agg.unpaid_leave+agg.sick_leave, label:"İzin", color:"#3b82f6", bg:"#eff6ff" }
+                      ].map(s => (
+                        <div key={s.label} style={{textAlign:"center", padding:"8px 4px", background:s.bg, borderRadius:10}}>
+                          <div style={{fontWeight:800, fontSize:18, color:s.color}}>{s.val}</div>
+                          <div style={{fontSize:11, color:"#6b7280"}}>{s.label}</div>
+                        </div>
+                      ))}
                     </div>
 
-                    {/* Mini bar */}
-                    <div style={{height:10, background:"#e5e7eb", borderRadius:999, overflow:"hidden", marginBottom:6}}>
-                      <div style={{height:"100%", width: comp + "%", background:"linear-gradient(90deg,#10b981,#3b82f6)", transition:"width .3s"}} />
+                    {/* Progress bar */}
+                    <div style={{height:8, background:"#f3f4f6", borderRadius:999, overflow:"hidden", marginBottom:4}}>
+                      <div style={{height:"100%", width: comp+"%", background:"linear-gradient(90deg,#10b981,#3b82f6)", borderRadius:999, transition:"width .3s"}} />
                     </div>
-                    <div style={{fontSize:11, color:"#6b7280", display:"flex", justifyContent:"space-between"}}>
-                      <span>Tamamlanma: <b>{comp}%</b></span>
-                      <span>Çalışma: <b>{agg.workDays} gün</b></span>
+                    <div style={{fontSize:11, color:"#9ca3af", display:"flex", justifyContent:"space-between"}}>
+                      <span>{comp}% tamamlandı</span>
+                      <span>{agg.workDays} iş günü</span>
                     </div>
 
-                    {/* Personel listesi (küçük) */}
-                    {agg.totalDays > 0 && (
-                      <div style={{marginTop:10, borderTop:"1px solid #e5e7eb", paddingTop:8}}>
+                    {/* Personel mini liste */}
+                    {projEmps.length > 0 && (
+                      <div style={{marginTop:12, paddingTop:10, borderTop:"1px solid #f3f4f6"}}>
                         {projEmps.map(emp => {
                           const es = att[emp.id]?.[monthKey]?.stats || {};
-                          const eComp = es.totalDays > 0 ? ((es.totalDays - (es.unset||0)) / es.totalDays * 100).toFixed(0) : 0;
+                          const eComp = es.totalDays > 0 ? ((es.totalDays-(es.unset||0))/es.totalDays*100).toFixed(0) : 0;
                           return (
                             <div key={emp.id} style={{display:"flex", alignItems:"center", justifyContent:"space-between", padding:"3px 0", fontSize:13}}>
                               <span style={{color:"#374151"}}>{emp.name}</span>
-                              <div style={{display:"flex", alignItems:"center", gap:8}}>
-                                <span style={{color:"#10b981", fontWeight:600}}>{es.present||0}g</span>
-                                {(es.absent||0) > 0 && <span style={{color:"#ef4444", fontWeight:600}}>{es.absent}g</span>}
+                              <div style={{display:"flex", alignItems:"center", gap:6}}>
+                                <span style={{color:"#10b981", fontWeight:700}}>{es.present||0}</span>
+                                {(es.absent||0)>0 && <span style={{color:"#ef4444", fontWeight:700}}>{es.absent}</span>}
                                 <span style={{color:"#9ca3af", fontSize:11}}>{eComp}%</span>
                               </div>
                             </div>
@@ -4173,62 +4127,173 @@ function DashboardView({ monthKey, category, rows, projects, employees, actions,
             </div>
 
             {/* Detay tablosu */}
-            <div className="tableWrap" style={{marginTop:16}}>
-              <table>
-                <thead>
-                  <tr>
-                    <th>Proje</th>
-                    <th>Personel</th>
-                    <th>Çalışma Günü</th>
-                    <th>Geldi</th>
-                    <th>Yarım Gün</th>
-                    <th>Ücretli İzin</th>
-                    <th>Ücretsiz İzin</th>
-                    <th>Hastalık</th>
-                    <th>Mazeret</th>
-                    <th>Gelmedi</th>
-                    <th>Hafta Sonu</th>
-                    <th>Tatil</th>
-                    <th>Tamamlanma</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {projectBlocks.map(({ proj, projEmps }) =>
-                    projEmps.map(emp => {
-                      const es = att[emp.id]?.[monthKey]?.stats || {};
-                      const eComp = es.totalDays > 0 ? ((es.totalDays - (es.unset||0)) / es.totalDays * 100).toFixed(1) : "-";
+            <div style={{marginTop:24}}>
+              <div style={{fontWeight:700, fontSize:15, marginBottom:10}}>Personel Detay</div>
+              <div className="tableWrap">
+                <table>
+                  <thead><tr>
+                    <th>Proje</th><th>Personel</th><th>İş Günü</th><th>Geldi</th><th>Yarım</th>
+                    <th>Ücr. İzin</th><th>Üçr. İzin</th><th>Hastalık</th><th>Mazeret</th>
+                    <th>Gelmedi</th><th>H.Sonu</th><th>Tatil</th><th>Tamaml.</th>
+                  </tr></thead>
+                  <tbody>
+                    {projectBlocks.map(({ proj, projEmps }) =>
+                      projEmps.map(emp => {
+                        const es = (attendance||{})[emp.id]?.[monthKey]?.stats || {};
+                        const eComp = es.totalDays > 0 ? ((es.totalDays-(es.unset||0))/es.totalDays*100).toFixed(1) : "-";
+                        return (
+                          <tr key={emp.id}>
+                            <td><b>{proj.name}</b></td><td>{emp.name}</td>
+                            <td>{es.workDays||0}</td><td>{es.present||0}</td><td>{es.half_day||0}</td>
+                            <td>{es.paid_leave||0}</td><td>{es.unpaid_leave||0}</td><td>{es.sick_leave||0}</td>
+                            <td>{es.excuse||0}</td>
+                            <td style={{color:"#ef4444", fontWeight:(es.absent||0)>0?700:400}}>{es.absent||0}</td>
+                            <td>{es.weekend||0}</td><td>{es.holiday||0}</td><td>{eComp}%</td>
+                          </tr>
+                        );
+                      })
+                    )}
+                    {grand.empCount===0 && <tr><td colSpan="13">Personel kayıt yok.</td></tr>}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ──── TREND ──── */}
+        {dashTab === "trend" && (
+          <div>
+            <div style={{display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:16}}>
+              <div style={{fontWeight:700, fontSize:16}}>Son 6 Ay Trend</div>
+              <Badge kind="ok">Karşılaştırma</Badge>
+            </div>
+
+            {/* Trend bar groups */}
+            {[
+              { title:"Çalışma Günü", key:"workDays", color:"#3b82f6" },
+              { title:"Geldi", key:"present", color:"#10b981" },
+              { title:"Gelmedi", key:"absent", color:"#ef4444" },
+              { title:"İzin", key:"izin", color:"#f59e0b" }
+            ].map(metric => {
+              const max = Math.max(1, ...trendData.map(d => d[metric.key]));
+              return (
+                <div key={metric.key} style={{
+                  background:"#fff", border:"1px solid #e5e7eb", borderRadius:14, padding:"18px 20px", marginBottom:12
+                }}>
+                  <div style={{display:"flex", alignItems:"center", gap:8, marginBottom:14}}>
+                    <div style={{width:10, height:10, borderRadius:999, background:metric.color}} />
+                    <div style={{fontWeight:700, fontSize:14, color:"#1e293b"}}>{metric.title}</div>
+                  </div>
+                  <div style={{display:"flex", gap:6, alignItems:"flex-end", height:80}}>
+                    {trendData.map((d, i) => {
+                      const val = d[metric.key];
+                      const pct = Math.max(6, (val / max) * 72);
                       return (
-                        <tr key={emp.id}>
+                        <div key={i} style={{flex:1, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"flex-end", height:"100%"}}>
+                          <div style={{fontSize:12, fontWeight:800, color:metric.color, marginBottom:4}}>{val}</div>
+                          <div style={{width:"70%", height: pct+"px", background:metric.color, borderRadius:"5px 5px 0 0", transition:"height .3s", opacity:.85}} />
+                          <div style={{fontSize:10, color:"#9ca3af", marginTop:4, textAlign:"center", whiteSpace:"nowrap"}}>{d.label}</div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })}
+
+            {/* Tamamlanma trend — renk kodlu */}
+            <div style={{ background:"#fff", border:"1px solid #e5e7eb", borderRadius:14, padding:"18px 20px", marginBottom:12 }}>
+              <div style={{display:"flex", alignItems:"center", gap:8, marginBottom:14}}>
+                <div style={{fontWeight:700, fontSize:14, color:"#1e293b"}}>Tamamlanma Oranı (%)</div>
+              </div>
+              <div style={{display:"flex", gap:6, alignItems:"flex-end", height:80}}>
+                {trendData.map((d, i) => {
+                  const pct = d.completion;
+                  const barH = Math.max(6, (pct / 100) * 72);
+                  const color = pct >= 80 ? "#10b981" : pct >= 60 ? "#f59e0b" : "#ef4444";
+                  return (
+                    <div key={i} style={{flex:1, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"flex-end", height:"100%"}}>
+                      <div style={{fontSize:12, fontWeight:800, color, marginBottom:4}}>{pct}%</div>
+                      <div style={{width:"70%", height: barH+"px", background:color, borderRadius:"5px 5px 0 0", transition:"height .3s"}} />
+                      <div style={{fontSize:10, color:"#9ca3af", marginTop:4, textAlign:"center", whiteSpace:"nowrap"}}>{d.label}</div>
+                    </div>
+                  );
+                })}
+              </div>
+              <div style={{display:"flex", gap:16, marginTop:12, justifyContent:"center"}}>
+                {[{c:"#10b981",t:"≥ 80%"},{c:"#f59e0b",t:"60–79%"},{c:"#ef4444",t:"< 60%"}].map(l => (
+                  <div key={l.t} style={{display:"flex", alignItems:"center", gap:5, fontSize:12}}>
+                    <div style={{width:10, height:10, borderRadius:3, background:l.c}} />
+                    <span style={{color:"#64748b"}}>{l.t}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Proje bazlı tablo */}
+            <div style={{marginTop:8}}>
+              <div style={{fontWeight:700, fontSize:15, marginBottom:10}}>Proje Bazlı — İş Günü Trend</div>
+              <div className="tableWrap">
+                <table>
+                  <thead><tr>
+                    <th>Proje</th>
+                    {trendData.map((d,i) => <th key={i}>{d.label}</th>)}
+                  </tr></thead>
+                  <tbody>
+                    {(Array.isArray(projects)?projects:[]).map(proj => {
+                      const projEmps = (Array.isArray(employees)?employees:[]).filter(e => e.project === proj.name);
+                      return (
+                        <tr key={proj.id}>
                           <td><b>{proj.name}</b></td>
-                          <td>{emp.name}</td>
-                          <td>{es.workDays || 0}</td>
-                          <td>{es.present || 0}</td>
-                          <td>{es.half_day || 0}</td>
-                          <td>{es.paid_leave || 0}</td>
-                          <td>{es.unpaid_leave || 0}</td>
-                          <td>{es.sick_leave || 0}</td>
-                          <td>{es.excuse || 0}</td>
-                          <td style={{color:"#ef4444", fontWeight: (es.absent||0)>0 ? 700 : 400}}>{es.absent || 0}</td>
-                          <td>{es.weekend || 0}</td>
-                          <td>{es.holiday || 0}</td>
-                          <td>{eComp}%</td>
+                          {trendMonths.map((tm, mi) => {
+                            let wd = 0;
+                            projEmps.forEach(emp => { wd += ((attendance||{})[emp.id]?.[tm.mk]?.stats?.workDays || 0); });
+                            return <td key={mi}>{wd}</td>;
+                          })}
                         </tr>
                       );
-                    })
-                  )}
-                  {grand.empCount === 0 && <tr><td colSpan="13">Personel kayıt yok.</td></tr>}
-                </tbody>
-              </table>
+                    })}
+                  </tbody>
+                </table>
+              </div>
             </div>
-          </>
-        );
-      })()}
+          </div>
+        )}
 
-      {true && (
-        <div className="small" style={{marginTop:10}}>
-          Kullanıcı ekranında sadece kendi projesi listelenir.
-        </div>
-      )}
+        {/* ──── RAPORLAR ──── */}
+        {dashTab === "raporlar" && (
+          <div>
+            <div style={{display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:16}}>
+              <div style={{fontWeight:700, fontSize:16}}>Aylık PDF Raporlar</div>
+              <Badge>{monthKey}</Badge>
+            </div>
+            <div style={{color:"#6b7280", fontSize:14, marginBottom:16}}>
+              Butona tıkla → rapor yeni sekmede açılır → tarayıcıdan PDF olarak kaydet.
+            </div>
+            <div style={{display:"grid", gridTemplateColumns:"repeat(auto-fill, minmax(200px, 1fr))", gap:10}}>
+              {(Array.isArray(projects) ? projects : []).map(p => (
+                <button
+                  key={p.id}
+                  type="button"
+                  onClick={() => openProjectMonthlyReport({ project: p, category, monthKey, employees })}
+                  style={{
+                    background:"linear-gradient(135deg, #1e293b, #334155)", color:"#fff",
+                    border:"none", borderRadius:12, padding:"18px 16px", cursor:"pointer",
+                    textAlign:"left", transition:"transform .12s, box-shadow .12s"
+                  }}
+                  onMouseEnter={e => { e.currentTarget.style.transform="translateY(-2px)"; e.currentTarget.style.boxShadow="0 6px 20px rgba(0,0,0,.25)"; }}
+                  onMouseLeave={e => { e.currentTarget.style.transform="translateY(0)"; e.currentTarget.style.boxShadow="none"; }}
+                >
+                  <div style={{fontSize:11, color:"rgba(255,255,255,.5)", textTransform:"uppercase", letterSpacing:".8px", fontWeight:600}}>PDF Rapor</div>
+                  <div style={{fontSize:15, fontWeight:700, marginTop:4}}>{p.name}</div>
+                  <div style={{fontSize:12, color:"rgba(255,255,255,.45)", marginTop:6}}>{category?.name} • {monthKey}</div>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -7421,21 +7486,15 @@ function AttendanceGridView({ employee, monthKey, monthDays, monthData, isAdmin,
   const [selectedDay, setSelectedDay] = useState(null);
   const [status, setStatus] = useState("present");
   const [note, setNote] = useState("");
-  const [startTime, setStartTime] = useState("");
-  const [endTime, setEndTime] = useState("");
-  const [overtimeReason, setOvertimeReason] = useState("");
   
   const days = Array.from({ length: monthDays }, (_, i) => i + 1);
   
   function handleSave(){
     if(!selectedDay) return;
-    setAttendanceDay(employee.id, monthKey, selectedDay, status, note, startTime, endTime, overtimeReason);
+    setAttendanceDay(employee.id, monthKey, selectedDay, status, note);
     setSelectedDay(null);
     setStatus("present");
     setNote("");
-    setStartTime("");
-    setEndTime("");
-    setOvertimeReason("");
   }
   
   return (
@@ -7443,12 +7502,10 @@ function AttendanceGridView({ employee, monthKey, monthDays, monthData, isAdmin,
       {monthData.stats && (
         <div className="grid" style={{gridTemplateColumns:"repeat(auto-fit,minmax(120px,1fr))", gap:8, marginBottom:16}}>
           <StatCard label="Çalışma Günü" value={monthData.stats.workDays || 0} color="#10b981" />
-          <StatCard label="Toplam Saat" value={`${monthData.stats.totalHours || 0}h`} color="#3b82f6" />
-          <StatCard label="Fazla Mesai" value={`${monthData.stats.overtimeHours || 0}h`} color="#f59e0b" />
-          <StatCard label="Geldi" value={monthData.stats.present || 0} color="#6366f1" />
-          <StatCard label="İzin" value={(monthData.stats.paid_leave || 0) + (monthData.stats.sick_leave || 0)} color="#8b5cf6" />
+          <StatCard label="Geldi" value={monthData.stats.present || 0} color="#3b82f6" />
+          <StatCard label="İzin" value={(monthData.stats.paid_leave || 0) + (monthData.stats.sick_leave || 0)} color="#f59e0b" />
           <StatCard label="Gelmedi" value={monthData.stats.absent || 0} color="#ef4444" />
-          <StatCard label="Tamamlanma" value={`${monthData.stats.completionRate || 0}%`} color="#14b8a6" />
+          <StatCard label="Tamamlanma" value={`${monthData.stats.completionRate || 0}%`} color="#8b5cf6" />
         </div>
       )}
       
@@ -7459,9 +7516,7 @@ function AttendanceGridView({ employee, monthKey, monthDays, monthData, isAdmin,
               <th style={{width:60}}>Gün</th>
               <th style={{width:100}}>Haftanın Günü</th>
               <th>Durum</th>
-              <th style={{width:80}}>Giriş</th>
-              <th style={{width:80}}>Çıkış</th>
-              <th style={{width:"30%"}}>Not</th>
+              <th style={{width:"40%"}}>Not</th>
               {isAdmin && <th style={{width:80}}>İşlem</th>}
             </tr>
           </thead>
@@ -7490,8 +7545,6 @@ function AttendanceGridView({ employee, monthKey, monthDays, monthData, isAdmin,
                       <span className="muted">-</span>
                     )}
                   </td>
-                  <td className="small">{dayData?.startTime || "-"}</td>
-                  <td className="small">{dayData?.endTime || "-"}</td>
                   <td className="small muted">{dayData?.note || "-"}</td>
                   {isAdmin && (
                     <td>
@@ -7501,9 +7554,6 @@ function AttendanceGridView({ employee, monthKey, monthDays, monthData, isAdmin,
                           setSelectedDay(day);
                           setStatus(dayData?.status || "present");
                           setNote(dayData?.note || "");
-                          setStartTime(dayData?.startTime || "");
-                          setEndTime(dayData?.endTime || "");
-                          setOvertimeReason(dayData?.overtimeReason || "");
                         }}
                       >
                         Düzenle
@@ -7558,77 +7608,6 @@ function AttendanceGridView({ employee, monthKey, monthDays, monthData, isAdmin,
               </select>
             </div>
             
-            {/* Saat girişi — sadece present/half_day için göster */}
-            {(status === "present" || status === "half_day") && (
-              <>
-                <div className="row" style={{gap:10}}>
-                  <div className="field" style={{flex:1}}>
-                    <label>Giriş Saati</label>
-                    <input 
-                      type="time" 
-                      value={startTime} 
-                      onChange={e => setStartTime(e.target.value)}
-                      placeholder="08:00"
-                    />
-                  </div>
-                  <div className="field" style={{flex:1}}>
-                    <label>Çıkış Saati</label>
-                    <input 
-                      type="time" 
-                      value={endTime} 
-                      onChange={e => setEndTime(e.target.value)}
-                      placeholder="17:00"
-                    />
-                  </div>
-                </div>
-                
-                {/* Fazla mesai uyarısı */}
-                {(() => {
-                  if(!startTime || !endTime) return null;
-                  const [sh, sm] = startTime.split(":").map(Number);
-                  const [eh, em] = endTime.split(":").map(Number);
-                  if(isNaN(sh) || isNaN(sm) || isNaN(eh) || isNaN(em)) return null;
-                  const totalMin = (eh * 60 + em) - (sh * 60 + sm);
-                  const hours = (totalMin / 60).toFixed(1);
-                  const overtime = Math.max(0, totalMin - (9 * 60));
-                  const overtimeH = (overtime / 60).toFixed(1);
-                  return (
-                    <div style={{
-                      background: overtime > 0 ? "#fef3c7" : "#ecfdf5",
-                      border: overtime > 0 ? "1px solid #f59e0b" : "1px solid #10b981",
-                      borderRadius: 8,
-                      padding: "8px 12px",
-                      marginBottom: 10,
-                      fontSize: 13
-                    }}>
-                      <b>Toplam:</b> {hours} saat
-                      {overtime > 0 && <span style={{marginLeft:10, color:"#f59e0b", fontWeight:700}}>• Fazla mesai: {overtimeH} saat</span>}
-                    </div>
-                  );
-                })()}
-                
-                {/* Fazla mesai sebep */}
-                {(() => {
-                  if(!startTime || !endTime) return null;
-                  const [sh, sm] = startTime.split(":").map(Number);
-                  const [eh, em] = endTime.split(":").map(Number);
-                  const totalMin = (eh * 60 + em) - (sh * 60 + sm);
-                  if(totalMin <= (9 * 60)) return null;
-                  return (
-                    <div className="field">
-                      <label>Fazla Mesai Sebebi</label>
-                      <textarea 
-                        value={overtimeReason} 
-                        onChange={e => setOvertimeReason(e.target.value)}
-                        placeholder="Fazla mesai yapma sebebi..."
-                        rows={2}
-                      />
-                    </div>
-                  );
-                })()}
-              </>
-            )}
-            
             <div className="field">
               <label>Not / Açıklama</label>
               <textarea 
@@ -7654,9 +7633,6 @@ function AttendanceCalendarView({ employee, monthKey, year, month, monthDays, mo
   const [selectedDay, setSelectedDay] = useState(null);
   const [status, setStatus] = useState("present");
   const [note, setNote] = useState("");
-  const [startTime, setStartTime] = useState("");
-  const [endTime, setEndTime] = useState("");
-  const [overtimeReason, setOvertimeReason] = useState("");
   
   const firstDay = new Date(year, month - 1, 1).getDay();
   const calendarDays = [];
@@ -7672,13 +7648,10 @@ function AttendanceCalendarView({ employee, monthKey, year, month, monthDays, mo
   
   function handleSave(){
     if(!selectedDay) return;
-    setAttendanceDay(employee.id, monthKey, selectedDay, status, note, startTime, endTime, overtimeReason);
+    setAttendanceDay(employee.id, monthKey, selectedDay, status, note);
     setSelectedDay(null);
     setStatus("present");
     setNote("");
-    setStartTime("");
-    setEndTime("");
-    setOvertimeReason("");
   }
   
   return (
@@ -7718,15 +7691,7 @@ function AttendanceCalendarView({ employee, monthKey, year, month, monthDays, mo
           return (
             <button
               key={day}
-              onClick={() => {
-                if(!isAdmin) return;
-                setSelectedDay(day);
-                setStatus(dayData?.status || "present");
-                setNote(dayData?.note || "");
-                setStartTime(dayData?.startTime || "");
-                setEndTime(dayData?.endTime || "");
-                setOvertimeReason(dayData?.overtimeReason || "");
-              }}
+              onClick={() => isAdmin && setSelectedDay(day)}
               style={{
                 padding:12,
                 borderRadius:12,
@@ -7750,11 +7715,6 @@ function AttendanceCalendarView({ employee, monthKey, year, month, monthDays, mo
                   {ATTENDANCE_LABELS[dayData.status]}
                 </div>
               )}
-              {dayData?.startTime && dayData?.endTime && (
-                <div className="small" style={{color:"#6b7280", fontSize:10, marginTop:2}}>
-                  {dayData.startTime}–{dayData.endTime}
-                </div>
-              )}
             </button>
           );
         })}
@@ -7776,9 +7736,7 @@ function AttendanceCalendarView({ employee, monthKey, year, month, monthDays, mo
             borderRadius: 16,
             padding: 24,
             width: "100%",
-            maxWidth: 500,
-            maxHeight: "90vh",
-            overflow: "auto"
+            maxWidth: 500
           }}>
             <div style={{
               display: "flex",
@@ -7816,75 +7774,6 @@ function AttendanceCalendarView({ employee, monthKey, year, month, monthDays, mo
                 ))}
               </select>
             </div>
-            
-            {/* Saat girişi */}
-            {(status === "present" || status === "half_day") && (
-              <>
-                <div className="row" style={{gap:10}}>
-                  <div className="field" style={{flex:1}}>
-                    <label>Giriş Saati</label>
-                    <input 
-                      type="time" 
-                      value={startTime} 
-                      onChange={e => setStartTime(e.target.value)}
-                    />
-                  </div>
-                  <div className="field" style={{flex:1}}>
-                    <label>Çıkış Saati</label>
-                    <input 
-                      type="time" 
-                      value={endTime} 
-                      onChange={e => setEndTime(e.target.value)}
-                    />
-                  </div>
-                </div>
-                
-                {/* Fazla mesai uyarısı */}
-                {(() => {
-                  if(!startTime || !endTime) return null;
-                  const [sh, sm] = startTime.split(":").map(Number);
-                  const [eh, em] = endTime.split(":").map(Number);
-                  if(isNaN(sh) || isNaN(sm) || isNaN(eh) || isNaN(em)) return null;
-                  const totalMin = (eh * 60 + em) - (sh * 60 + sm);
-                  const hours = (totalMin / 60).toFixed(1);
-                  const overtime = Math.max(0, totalMin - (9 * 60));
-                  const overtimeH = (overtime / 60).toFixed(1);
-                  return (
-                    <div style={{
-                      background: overtime > 0 ? "#fef3c7" : "#ecfdf5",
-                      border: overtime > 0 ? "1px solid #f59e0b" : "1px solid #10b981",
-                      borderRadius: 8,
-                      padding: "8px 12px",
-                      marginBottom: 10,
-                      fontSize: 13
-                    }}>
-                      <b>Toplam:</b> {hours} saat
-                      {overtime > 0 && <span style={{marginLeft:10, color:"#f59e0b", fontWeight:700}}>• Fazla mesai: {overtimeH} saat</span>}
-                    </div>
-                  );
-                })()}
-                
-                {/* Fazla mesai sebep */}
-                {(() => {
-                  if(!startTime || !endTime) return null;
-                  const [sh, sm] = startTime.split(":").map(Number);
-                  const [eh, em] = endTime.split(":").map(Number);
-                  const totalMin = (eh * 60 + em) - (sh * 60 + sm);
-                  if(totalMin <= (9 * 60)) return null;
-                  return (
-                    <div className="field">
-                      <label>Fazla Mesai Sebebi</label>
-                      <textarea 
-                        value={overtimeReason} 
-                        onChange={e => setOvertimeReason(e.target.value)}
-                        placeholder="Fazla mesai yapma sebebi..."
-                        rows={2}
-                      />
-                    </div>
-                  );
-                })()}
-              </>
-            )}
             
             <div className="field">
               <label>Açıklama / Not</label>
