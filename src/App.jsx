@@ -455,6 +455,43 @@ const MONTHLY_CHECK_ITEMS = [
 
 const MONTHLY_CAT_KEY = "monthly_controls";
 
+/* ===================== PUANTAJ DURUM TANIMLARI ===================== */
+const ATTENDANCE_STATUS = {
+  PRESENT: "present",
+  ABSENT: "absent",
+  PAID_LEAVE: "paid_leave",
+  UNPAID_LEAVE: "unpaid_leave",
+  SICK_LEAVE: "sick_leave",
+  EXCUSE: "excuse",
+  WEEKEND: "weekend",
+  HOLIDAY: "holiday",
+  HALF_DAY: "half_day"
+};
+
+const ATTENDANCE_LABELS = {
+  present: "Çalıştı",
+  absent: "Gelmedi",
+  paid_leave: "Ücretli İzin",
+  unpaid_leave: "Ücretsiz İzin",
+  sick_leave: "Hastalık İzni",
+  excuse: "Mazeret",
+  weekend: "Hafta Sonu",
+  holiday: "Resmi Tatil",
+  half_day: "Yarım Gün"
+};
+
+const ATTENDANCE_COLORS = {
+  present: "#10b981",
+  absent: "#ef4444",
+  paid_leave: "#3b82f6",
+  unpaid_leave: "#f59e0b",
+  sick_leave: "#8b5cf6",
+  excuse: "#6366f1",
+  weekend: "#6b7280",
+  holiday: "#ec4899",
+  half_day: "#14b8a6"
+};
+
 /* ===================== HELPERS ===================== */
 
 const uid = (p="id") => `${p}_${Math.random().toString(16).slice(2)}_${Date.now()}`;
@@ -672,6 +709,7 @@ function seedState(){
   return {
     categories,
     employees: [], // 👷 ÇALIŞANLAR
+    attendance: {}, // 📅 PUANTAJ: { [employeeId]: { [monthKey]: { days: {...}, stats: {...} } } }
     docTemplates: defaultDocTemplates(), // 📄 İmzalı evrak şablonları
     employeeDocs: {}, // { [employeeId]: { [docKey]: { signed, signedAt } } }
     docRegisterTypes: defaultDocRegisterTypes(), // 🗂️ Evrak Takip türleri (geçerlilik)
@@ -1257,6 +1295,7 @@ next.projects = (next.projects || []).filter(p => {
 });
 
     next.employees ||= [];
+    next.attendance ||= {}; // 📅 PUANTAJ
 
     // documents
     const defaultTmpl = defaultDocTemplates();
@@ -1886,6 +1925,183 @@ for(const emp of (next.employees || [])){
 
     setContactText("");
     alert("Mesaj gönderildi (sadece admin görür).");
+  }
+
+  /* ===== PUANTAJ YÖNETİMİ ===== */
+  
+  // Puantaj istatistiklerini yeniden hesapla
+  function recalculateAttendanceStats(monthData, totalDays){
+    const counts = {
+      present: 0,
+      absent: 0,
+      paid_leave: 0,
+      unpaid_leave: 0,
+      sick_leave: 0,
+      excuse: 0,
+      weekend: 0,
+      holiday: 0,
+      half_day: 0,
+      unset: 0
+    };
+    
+    for(let i = 1; i <= totalDays; i++){
+      const day = monthData.days[i];
+      if(day && day.status){
+        counts[day.status] = (counts[day.status] || 0) + 1;
+      } else {
+        counts.unset++;
+      }
+    }
+    
+    const workDays = counts.present + (counts.half_day * 0.5);
+    
+    monthData.stats = {
+      ...counts,
+      totalDays,
+      workDays,
+      completionRate: ((totalDays - counts.unset) / totalDays * 100).toFixed(1)
+    };
+  }
+  
+  // Tek gün için puantaj kaydet
+  function setAttendanceDay(employeeId, monthKey, day, status, note = ""){
+    updateState(d => {
+      if(!d.attendance) d.attendance = {};
+      if(!d.attendance[employeeId]) d.attendance[employeeId] = {};
+      if(!d.attendance[employeeId][monthKey]){
+        d.attendance[employeeId][monthKey] = { days: {}, stats: {} };
+      }
+      
+      const month = d.attendance[employeeId][monthKey];
+      
+      month.days[day] = {
+        status,
+        note: (note || "").trim(),
+        updatedBy: auth?.username || "admin",
+        updatedAt: new Date().toISOString()
+      };
+      
+      recalculateAttendanceStats(month, monthDays);
+    });
+    
+    pushToast("Puantaj kaydedildi.", "ok");
+  }
+  
+  // Toplu puantaj kayıt (örn: tüm hafta sonları)
+  function bulkSetAttendance(employeeId, monthKey, days, status){
+    updateState(d => {
+      if(!d.attendance) d.attendance = {};
+      if(!d.attendance[employeeId]) d.attendance[employeeId] = {};
+      if(!d.attendance[employeeId][monthKey]){
+        d.attendance[employeeId][monthKey] = { days: {}, stats: {} };
+      }
+      
+      const month = d.attendance[employeeId][monthKey];
+      
+      days.forEach(day => {
+        month.days[day] = {
+          status,
+          note: "",
+          updatedBy: auth?.username || "admin",
+          updatedAt: new Date().toISOString()
+        };
+      });
+      
+      recalculateAttendanceStats(month, monthDays);
+    });
+    
+    pushToast(`${days.length} gün toplu kaydedildi.`, "ok");
+  }
+  
+  // Hafta sonlarını otomatik işaretle
+  function autoMarkWeekends(employeeId, monthKey, year, month){
+    const weekends = [];
+    const daysInMonth = new Date(year, month, 0).getDate();
+    
+    for(let day = 1; day <= daysInMonth; day++){
+      const date = new Date(year, month - 1, day);
+      const dayOfWeek = date.getDay();
+      if(dayOfWeek === 0 || dayOfWeek === 6){
+        weekends.push(day);
+      }
+    }
+    
+    if(weekends.length > 0){
+      bulkSetAttendance(employeeId, monthKey, weekends, "weekend");
+    }
+  }
+  
+  // Resmi tatilleri işaretle
+  function autoMarkHolidays(employeeId, monthKey, year, month){
+    const holidays = getHolidaysForMonth(year, month);
+    if(holidays.length > 0){
+      bulkSetAttendance(employeeId, monthKey, holidays, "holiday");
+    }
+  }
+  
+  // Türkiye resmi tatilleri
+  function getHolidaysForMonth(year, month){
+    const holidays = [];
+    
+    const fixedHolidays = {
+      1: [1],
+      4: [23],
+      5: [1, 19],
+      8: [30],
+      10: [29]
+    };
+    
+    if(fixedHolidays[month]){
+      holidays.push(...fixedHolidays[month]);
+    }
+    
+    return holidays;
+  }
+  
+  // Puantaj excel export
+  function exportAttendanceToExcel(employeeId, monthKey){
+    const employee = state.employees.find(e => e.id === employeeId);
+    const monthData = state.attendance?.[employeeId]?.[monthKey];
+    
+    if(!employee || !monthData) {
+      pushToast("Veri bulunamadı.", "warn");
+      return;
+    }
+    
+    const [year, month] = monthKey.split("-").map(Number);
+    const daysInMonth = new Date(year, month, 0).getDate();
+    
+    let csv = "Gün,Tarih,Durum,Not\n";
+    
+    for(let day = 1; day <= daysInMonth; day++){
+      const date = new Date(year, month - 1, day);
+      const dateStr = date.toLocaleDateString("tr-TR");
+      const dayData = monthData.days[day];
+      const status = dayData?.status ? ATTENDANCE_LABELS[dayData.status] : "-";
+      const note = (dayData?.note || "").replace(/,/g, ";");
+      
+      csv += `${day},${dateStr},${status},${note}\n`;
+    }
+    
+    csv += "\n\nİSTATİSTİKLER\n";
+    csv += `Toplam Gün,${monthData.stats?.totalDays || 0}\n`;
+    csv += `Çalışma Günü,${monthData.stats?.workDays || 0}\n`;
+    csv += `Tam Gün Çalıştı,${monthData.stats?.present || 0}\n`;
+    csv += `Ücretli İzin,${monthData.stats?.paid_leave || 0}\n`;
+    csv += `Hastalık İzni,${monthData.stats?.sick_leave || 0}\n`;
+    csv += `Gelmedi,${monthData.stats?.absent || 0}\n`;
+    
+    const blob = new Blob(["\ufeff" + csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${employee.name}_${monthKey}_puantaj.csv`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+    
+    pushToast("Puantaj raporu indirildi.", "ok");
   }
 
   // 📣 Duyuru yayınla (admin)
@@ -2531,6 +2747,7 @@ for(const emp of (next.employees || [])){
           <button className={"navBtn " + (tab === "entry" ? "active" : "")} type="button" onClick={() => setTab("entry")}>Veri Girişi</button>
           <button className={"navBtn " + (tab === "docs" ? "active" : "")} type="button" onClick={() => setTab("docs")}>Dokümanlar</button>
           <button className={"navBtn " + (tab === "docTrack" ? "active" : "")} type="button" onClick={() => setTab("docTrack")}>Evrak Takip</button>
+          <button className={"navBtn " + (tab === "attendance" ? "active" : "")} type="button" onClick={() => setTab("attendance")}>Puantaj</button>
           <button className={"navBtn " + (tab === "actions" ? "active" : "")} type="button" onClick={() => setTab("actions")}>Aksiyonlar</button>
           <button className={"navBtn " + (tab === "announcements" ? "active" : "")} type="button" onClick={() => setTab("announcements")}>Duyurular</button>
           <button className={"navBtn " + (tab === "contact" ? "active" : "")} type="button" onClick={() => setTab("contact")}>İletişim</button>
@@ -3118,6 +3335,23 @@ for(const emp of (next.employees || [])){
               announcements={state.announcements}
               projects={PROJECT_NAMES}
               addAnnouncement={addAnnouncement}
+            />
+          )}
+
+          {tab === "attendance" && (
+            <AttendanceView
+              isAdmin={isAdmin}
+              auth={auth}
+              employees={state.employees}
+              projects={visibleProjects}
+              monthKey={monthKey}
+              monthDays={monthDays}
+              attendance={state.attendance}
+              setAttendanceDay={setAttendanceDay}
+              bulkSetAttendance={bulkSetAttendance}
+              autoMarkWeekends={autoMarkWeekends}
+              autoMarkHolidays={autoMarkHolidays}
+              exportAttendanceToExcel={exportAttendanceToExcel}
             />
           )}
 
@@ -6450,6 +6684,567 @@ function EditableText({ value, onSave }) {
     </div>
   );
 }
+
+/* ===================== PUANTAJ GÖRÜNÜMLERİ ===================== */
+
+function AttendanceView({ 
+  isAdmin, 
+  auth, 
+  employees, 
+  projects, 
+  monthKey, 
+  monthDays,
+  attendance,
+  setAttendanceDay,
+  bulkSetAttendance,
+  autoMarkWeekends,
+  autoMarkHolidays,
+  exportAttendanceToExcel
+}) {
+  const [selectedProject, setSelectedProject] = useState("");
+  const [selectedEmployee, setSelectedEmployee] = useState("");
+  const [viewMode, setViewMode] = useState("grid");
+  
+  const projectEmployees = useMemo(() => {
+    if(!selectedProject) return employees || [];
+    return (employees || []).filter(e => e.projectId === selectedProject);
+  }, [employees, selectedProject]);
+  
+  const employee = useMemo(() => {
+    return (employees || []).find(e => e.id === selectedEmployee) || null;
+  }, [employees, selectedEmployee]);
+  
+  const monthData = useMemo(() => {
+    if(!selectedEmployee) return null;
+    return attendance?.[selectedEmployee]?.[monthKey] || { days: {}, stats: {} };
+  }, [attendance, selectedEmployee, monthKey]);
+  
+  const [year, month] = monthKey.split("-").map(Number);
+  
+  return (
+    <div className="card">
+      <div className="cardHeader">
+        <div>
+          <div className="h2">📅 Aylık Puantaj Takibi</div>
+          <div className="muted">
+            Personel devam durumu ve izin takibi - {monthKey}
+          </div>
+        </div>
+      </div>
+      
+      <div className="grid" style={{gridTemplateColumns:"repeat(auto-fit,minmax(200px,1fr))", gap:10, marginTop:12}}>
+        {isAdmin && (
+          <div className="field">
+            <label>Proje</label>
+            <select value={selectedProject} onChange={e => setSelectedProject(e.target.value)}>
+              <option value="">Tüm Projeler</option>
+              {(projects || []).map(p => (
+                <option key={p.id} value={p.id}>{p.name}</option>
+              ))}
+            </select>
+          </div>
+        )}
+        
+        <div className="field">
+          <label>Personel</label>
+          <select value={selectedEmployee} onChange={e => setSelectedEmployee(e.target.value)}>
+            <option value="">Personel Seçin</option>
+            {projectEmployees.map(e => (
+              <option key={e.id} value={e.id}>
+                {e.name} ({e.title || "Personel"})
+              </option>
+            ))}
+          </select>
+        </div>
+        
+        <div className="field">
+          <label>Görünüm</label>
+          <select value={viewMode} onChange={e => setViewMode(e.target.value)}>
+            <option value="grid">Tablo Görünümü</option>
+            <option value="calendar">Takvim Görünümü</option>
+            <option value="summary">Özet Rapor</option>
+          </select>
+        </div>
+      </div>
+      
+      {!selectedEmployee ? (
+        <div className="muted" style={{marginTop:20, padding:20, textAlign:"center"}}>
+          👆 Yukarıdan personel seçin
+        </div>
+      ) : (
+        <>
+          {isAdmin && (
+            <div className="row" style={{gap:8, marginTop:12, flexWrap:"wrap"}}>
+              <button 
+                className="btn" 
+                onClick={() => autoMarkWeekends(selectedEmployee, monthKey, year, month)}
+              >
+                🗓️ Hafta Sonlarını İşaretle
+              </button>
+              <button 
+                className="btn" 
+                onClick={() => autoMarkHolidays(selectedEmployee, monthKey, year, month)}
+              >
+                🎉 Resmi Tatilleri İşaretle
+              </button>
+              <button 
+                className="btn primary" 
+                onClick={() => exportAttendanceToExcel(selectedEmployee, monthKey)}
+              >
+                📥 Excel İndir
+              </button>
+            </div>
+          )}
+          
+          {viewMode === "grid" && (
+            <AttendanceGridView
+              employee={employee}
+              monthKey={monthKey}
+              monthDays={monthDays}
+              monthData={monthData}
+              isAdmin={isAdmin}
+              setAttendanceDay={setAttendanceDay}
+            />
+          )}
+          
+          {viewMode === "calendar" && (
+            <AttendanceCalendarView
+              employee={employee}
+              monthKey={monthKey}
+              year={year}
+              month={month}
+              monthDays={monthDays}
+              monthData={monthData}
+              isAdmin={isAdmin}
+              setAttendanceDay={setAttendanceDay}
+            />
+          )}
+          
+          {viewMode === "summary" && (
+            <AttendanceSummaryView
+              employee={employee}
+              monthKey={monthKey}
+              monthData={monthData}
+            />
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
+function AttendanceGridView({ employee, monthKey, monthDays, monthData, isAdmin, setAttendanceDay }) {
+  const [selectedDay, setSelectedDay] = useState(null);
+  const [status, setStatus] = useState("present");
+  const [note, setNote] = useState("");
+  
+  const days = Array.from({ length: monthDays }, (_, i) => i + 1);
+  
+  function handleSave(){
+    if(!selectedDay) return;
+    setAttendanceDay(employee.id, monthKey, selectedDay, status, note);
+    setSelectedDay(null);
+    setStatus("present");
+    setNote("");
+  }
+  
+  return (
+    <div style={{marginTop:16}}>
+      {monthData.stats && (
+        <div className="grid" style={{gridTemplateColumns:"repeat(auto-fit,minmax(120px,1fr))", gap:8, marginBottom:16}}>
+          <StatCard label="Çalışma Günü" value={monthData.stats.workDays || 0} color="#10b981" />
+          <StatCard label="Geldi" value={monthData.stats.present || 0} color="#3b82f6" />
+          <StatCard label="İzin" value={(monthData.stats.paid_leave || 0) + (monthData.stats.sick_leave || 0)} color="#f59e0b" />
+          <StatCard label="Gelmedi" value={monthData.stats.absent || 0} color="#ef4444" />
+          <StatCard label="Tamamlanma" value={`${monthData.stats.completionRate || 0}%`} color="#8b5cf6" />
+        </div>
+      )}
+      
+      <div className="tableWrap">
+        <table className="table">
+          <thead>
+            <tr>
+              <th style={{width:60}}>Gün</th>
+              <th style={{width:100}}>Haftanın Günü</th>
+              <th>Durum</th>
+              <th style={{width:"40%"}}>Not</th>
+              {isAdmin && <th style={{width:80}}>İşlem</th>}
+            </tr>
+          </thead>
+          <tbody>
+            {days.map(day => {
+              const dayData = monthData.days?.[day];
+              const [year, month] = monthKey.split("-").map(Number);
+              const date = new Date(year, month - 1, day);
+              const dayName = date.toLocaleDateString("tr-TR", { weekday: "short" });
+              
+              return (
+                <tr key={day} style={{
+                  background: dayData?.status ? ATTENDANCE_COLORS[dayData.status] + "15" : "transparent"
+                }}>
+                  <td style={{fontWeight:600}}>{day}</td>
+                  <td className="small">{dayName}</td>
+                  <td>
+                    {dayData?.status ? (
+                      <span className="pill" style={{
+                        background: ATTENDANCE_COLORS[dayData.status],
+                        color: "#fff"
+                      }}>
+                        {ATTENDANCE_LABELS[dayData.status]}
+                      </span>
+                    ) : (
+                      <span className="muted">-</span>
+                    )}
+                  </td>
+                  <td className="small muted">{dayData?.note || "-"}</td>
+                  {isAdmin && (
+                    <td>
+                      <button 
+                        className="btn" 
+                        onClick={() => {
+                          setSelectedDay(day);
+                          setStatus(dayData?.status || "present");
+                          setNote(dayData?.note || "");
+                        }}
+                      >
+                        Düzenle
+                      </button>
+                    </td>
+                  )}
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+      
+      {isAdmin && selectedDay && (
+        <div style={{
+          position: "fixed",
+          inset: 0,
+          background: "rgba(0,0,0,0.5)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          zIndex: 1000,
+          padding: 20
+        }}>
+          <div style={{
+            background: "#fff",
+            borderRadius: 16,
+            padding: 24,
+            width: "100%",
+            maxWidth: 500,
+            maxHeight: "90vh",
+            overflow: "auto"
+          }}>
+            <div style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              marginBottom: 20,
+              paddingBottom: 16,
+              borderBottom: "2px solid #e5e7eb"
+            }}>
+              <h3 style={{margin:0}}>{employee.name} - {selectedDay} {monthKey}</h3>
+              <button className="btn" onClick={() => setSelectedDay(null)}>✕</button>
+            </div>
+            
+            <div className="field">
+              <label>Durum</label>
+              <select value={status} onChange={e => setStatus(e.target.value)}>
+                {Object.entries(ATTENDANCE_LABELS).map(([key, label]) => (
+                  <option key={key} value={key}>{label}</option>
+                ))}
+              </select>
+            </div>
+            
+            <div className="field">
+              <label>Not / Açıklama</label>
+              <textarea 
+                value={note} 
+                onChange={e => setNote(e.target.value)}
+                placeholder="İsteğe bağlı açıklama..."
+                rows={3}
+              />
+            </div>
+            
+            <div className="row" style={{gap:8, marginTop:16}}>
+              <button className="btn primary" onClick={handleSave}>Kaydet</button>
+              <button className="btn" onClick={() => setSelectedDay(null)}>İptal</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function AttendanceCalendarView({ employee, monthKey, year, month, monthDays, monthData, isAdmin, setAttendanceDay }) {
+  const [selectedDay, setSelectedDay] = useState(null);
+  const [status, setStatus] = useState("present");
+  const [note, setNote] = useState("");
+  
+  const firstDay = new Date(year, month - 1, 1).getDay();
+  const calendarDays = [];
+  const startOffset = firstDay === 0 ? 6 : firstDay - 1;
+  
+  for(let i = 0; i < startOffset; i++){
+    calendarDays.push(null);
+  }
+  
+  for(let i = 1; i <= monthDays; i++){
+    calendarDays.push(i);
+  }
+  
+  function handleSave(){
+    if(!selectedDay) return;
+    setAttendanceDay(employee.id, monthKey, selectedDay, status, note);
+    setSelectedDay(null);
+    setStatus("present");
+    setNote("");
+  }
+  
+  return (
+    <div style={{marginTop:16}}>
+      <div style={{
+        display:"grid",
+        gridTemplateColumns:"repeat(7, 1fr)",
+        gap:8,
+        marginBottom:8
+      }}>
+        {["Pzt", "Sal", "Çar", "Per", "Cum", "Cmt", "Paz"].map(d => (
+          <div key={d} style={{
+            textAlign:"center",
+            fontWeight:700,
+            fontSize:14,
+            color:"#6b7280",
+            padding:"8px 0"
+          }}>
+            {d}
+          </div>
+        ))}
+      </div>
+      
+      <div style={{
+        display:"grid",
+        gridTemplateColumns:"repeat(7, 1fr)",
+        gap:8
+      }}>
+        {calendarDays.map((day, idx) => {
+          if(!day) {
+            return <div key={`empty-${idx}`} />;
+          }
+          
+          const dayData = monthData.days?.[day];
+          const bgColor = dayData?.status ? ATTENDANCE_COLORS[dayData.status] : "#f3f4f6";
+          
+          return (
+            <button
+              key={day}
+              onClick={() => isAdmin && setSelectedDay(day)}
+              style={{
+                padding:12,
+                borderRadius:12,
+                border:"2px solid " + (dayData?.status ? bgColor : "#e5e7eb"),
+                background: dayData?.status ? bgColor + "20" : "#fff",
+                cursor: isAdmin ? "pointer" : "default",
+                textAlign:"center",
+                minHeight:80,
+                display:"flex",
+                flexDirection:"column",
+                justifyContent:"space-between"
+              }}
+            >
+              <div style={{fontWeight:700, fontSize:18}}>{day}</div>
+              {dayData?.status && (
+                <div className="small" style={{
+                  color: bgColor,
+                  fontWeight:600,
+                  marginTop:4
+                }}>
+                  {ATTENDANCE_LABELS[dayData.status]}
+                </div>
+              )}
+            </button>
+          );
+        })}
+      </div>
+      
+      {isAdmin && selectedDay && (
+        <div style={{
+          position: "fixed",
+          inset: 0,
+          background: "rgba(0,0,0,0.5)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          zIndex: 1000,
+          padding: 20
+        }}>
+          <div style={{
+            background: "#fff",
+            borderRadius: 16,
+            padding: 24,
+            width: "100%",
+            maxWidth: 500
+          }}>
+            <div style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              marginBottom: 20
+            }}>
+              <h3 style={{margin:0}}>{employee.name} - {selectedDay} {monthKey}</h3>
+              <button className="btn" onClick={() => setSelectedDay(null)}>✕</button>
+            </div>
+            
+            <div className="grid" style={{gridTemplateColumns:"repeat(3, 1fr)", gap:8}}>
+              {Object.entries(ATTENDANCE_LABELS).slice(0, 6).map(([key, label]) => (
+                <button
+                  key={key}
+                  className="btn"
+                  style={{
+                    background: status === key ? ATTENDANCE_COLORS[key] : "transparent",
+                    color: status === key ? "#fff" : ATTENDANCE_COLORS[key],
+                    border: `2px solid ${ATTENDANCE_COLORS[key]}`,
+                    fontWeight: status === key ? 700 : 400
+                  }}
+                  onClick={() => setStatus(key)}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+            
+            <div className="field" style={{marginTop:12}}>
+              <label>Tüm Durumlar</label>
+              <select value={status} onChange={e => setStatus(e.target.value)}>
+                {Object.entries(ATTENDANCE_LABELS).map(([key, label]) => (
+                  <option key={key} value={key}>{label}</option>
+                ))}
+              </select>
+            </div>
+            
+            <div className="field">
+              <label>Açıklama / Not</label>
+              <textarea 
+                value={note} 
+                onChange={e => setNote(e.target.value)}
+                placeholder="İsteğe bağlı..."
+                rows={3}
+              />
+            </div>
+            
+            <div className="row" style={{gap:8, marginTop:16}}>
+              <button className="btn primary" onClick={handleSave}>Kaydet</button>
+              <button className="btn" onClick={() => setSelectedDay(null)}>İptal</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function AttendanceSummaryView({ employee, monthKey, monthData }){
+  if(!monthData.stats){
+    return <div className="muted" style={{marginTop:20}}>İstatistik hesaplanmadı.</div>;
+  }
+  
+  const stats = monthData.stats;
+  
+  return (
+    <div style={{marginTop:16}}>
+      <div className="card" style={{background:"#f9fafb"}}>
+        <h3>{employee.name} - {monthKey} Özet Raporu</h3>
+        
+        <div className="grid" style={{gridTemplateColumns:"repeat(auto-fit,minmax(140px,1fr))", gap:12, marginTop:16}}>
+          <SummaryItem label="Toplam Gün" value={stats.totalDays} />
+          <SummaryItem label="Çalışma Günü" value={stats.workDays} color="#10b981" />
+          <SummaryItem label="Tam Gün Çalıştı" value={stats.present} color="#3b82f6" />
+          <SummaryItem label="Yarım Gün" value={stats.half_day} color="#14b8a6" />
+          <SummaryItem label="Ücretli İzin" value={stats.paid_leave} color="#f59e0b" />
+          <SummaryItem label="Ücretsiz İzin" value={stats.unpaid_leave} color="#fb923c" />
+          <SummaryItem label="Hastalık İzni" value={stats.sick_leave} color="#8b5cf6" />
+          <SummaryItem label="Mazeret" value={stats.excuse} color="#6366f1" />
+          <SummaryItem label="Hafta Sonu" value={stats.weekend} color="#6b7280" />
+          <SummaryItem label="Resmi Tatil" value={stats.holiday} color="#ec4899" />
+          <SummaryItem label="Gelmedi" value={stats.absent} color="#ef4444" />
+          <SummaryItem label="Girilmemiş" value={stats.unset} color="#9ca3af" />
+        </div>
+        
+        <div style={{marginTop:20, padding:16, background:"#fff", borderRadius:12}}>
+          <div style={{fontSize:18, fontWeight:700, marginBottom:8}}>
+            Tamamlanma Oranı
+          </div>
+          <div style={{
+            height:40,
+            background:"#e5e7eb",
+            borderRadius:999,
+            overflow:"hidden",
+            position:"relative"
+          }}>
+            <div style={{
+              height:"100%",
+              width: stats.completionRate + "%",
+              background:"linear-gradient(90deg, #10b981, #3b82f6)",
+              transition:"width 0.3s ease"
+            }} />
+            <div style={{
+              position:"absolute",
+              inset:0,
+              display:"flex",
+              alignItems:"center",
+              justifyContent:"center",
+              fontWeight:700,
+              color:"#1f2937"
+            }}>
+              {stats.completionRate}%
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function SummaryItem({ label, value, color }){
+  return (
+    <div style={{
+      padding:16,
+      background:"#fff",
+      borderRadius:12,
+      border:"2px solid " + (color ? color + "20" : "#e5e7eb")
+    }}>
+      <div style={{
+        fontSize:28,
+        fontWeight:800,
+        color: color || "#1f2937"
+      }}>
+        {value}
+      </div>
+      <div className="small muted" style={{marginTop:4}}>{label}</div>
+    </div>
+  );
+}
+
+function StatCard({ label, value, color }){
+  return (
+    <div style={{
+      padding:"12px 16px",
+      borderRadius:12,
+      border:`2px solid ${color}20`,
+      background:`${color}08`,
+      textAlign:"center"
+    }}>
+      <div style={{fontSize:24, fontWeight:800, color}}>{value}</div>
+      <div className="small muted">{label}</div>
+    </div>
+  );
+}
+
+// Simple ErrorBoundary to avoid blank screen on runtime errors
 
 class ErrorBoundary extends React.Component{
   constructor(props){ super(props); this.state={error:null}; }
