@@ -616,68 +616,6 @@ body {
     grid-template-columns: repeat(2, 1fr) !important;
   }
 }
-
-/* ===== Dashboard Widget Toggle ===== */
-.dash-widget-bar {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  flex-wrap: wrap;
-  padding: 8px 0 4px;
-}
-.dash-widget-btn {
-  font-size: 13px;
-  font-weight: 600;
-  padding: 5px 12px;
-  border-radius: 20px;
-  border: 1.5px solid #cbd5e1;
-  background: #fff;
-  color: #475569;
-  cursor: pointer;
-  transition: all .15s;
-  user-select: none;
-}
-.dash-widget-btn:hover { border-color: #94a3b8; background: #f1f5f9; }
-.dash-widget-btn.active {
-  background: #3b82f6;
-  color: #fff;
-  border-color: #3b82f6;
-}
-[data-theme="dark"] .dash-widget-btn {
-  background: #1e293b;
-  color: #cbd5e1;
-  border-color: #334155;
-}
-[data-theme="dark"] .dash-widget-btn:hover { background: #293548; border-color: #475569; }
-[data-theme="dark"] .dash-widget-btn.active {
-  background: #2563eb;
-  color: #fff;
-  border-color: #2563eb;
-}
-
-/* ===== Trend Chart ===== */
-.trend-block { margin-top: 14px; }
-.trend-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 5px 0;
-  font-size: 13px;
-}
-.trend-label { width: 80px; flex-shrink: 0; color: #64748b; font-weight: 600; text-align: right; }
-.trend-bars { flex: 1; display: flex; gap: 4px; align-items: flex-end; height: 36px; }
-.trend-bar-wrap { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; }
-.trend-bar {
-  width: 100%;
-  border-radius: 4px 4px 0 0;
-  min-height: 4px;
-  transition: height .3s;
-}
-.trend-bar-val { font-size: 11px; font-weight: 700; color: #334155; margin-bottom: 2px; }
-.trend-month-label { font-size: 10px; color: #94a3b8; margin-top: 3px; text-align: center; }
-[data-theme="dark"] .trend-label { color: #94a3b8; }
-[data-theme="dark"] .trend-bar-val { color: #cbd5e1; }
-[data-theme="dark"] .trend-month-label { color: #64748b; }
 `;
 
 // ===================== AUTH MODE =====================
@@ -3771,616 +3709,549 @@ for(const emp of (next.employees || [])){
 /* ===================== VIEWS ===================== */
 
 function DashboardView({ monthKey, category, rows, projects, employees, actions, categories, isAdmin, attendance }){
-  // ===== Widget toggle state =====
-  const WIDGETS = [
-    { key:"aksiyonlar", label:"Aksiyonlar" },
-    { key:"kpi",        label:"KPI Özet" },
-    { key:"grafik",     label:"Grafik" },
-    { key:"rapor",      label:"PDF Rapor" },
-    { key:"tablo",      label:"Detay Tablo" },
-    { key:"puantaj",    label:"Puantaj" },
-    { key:"trend",      label:"Trend Analiz" }
-  ];
-  const [visWidgets, setVisWidgets] = useState(() => {
-    try{ const s = localStorage.getItem("dash_widgets_v1"); if(s) return JSON.parse(s); }catch(e){}
-    return { aksiyonlar:true, kpi:true, grafik:true, rapor:true, tablo:true, puantaj:true, trend:true };
-  });
-  useEffect(()=>{ try{ localStorage.setItem("dash_widgets_v1", JSON.stringify(visWidgets)); }catch(e){} }, [visWidgets]);
-  const toggleWidget = (k) => setVisWidgets(prev => ({...prev, [k]: !prev[k]}));
+  const [dashTab, setDashTab] = useState("genel");
 
-  // ===== KPI totals =====
+  /* ─── aggregations ─── */
   const totals = useMemo(() => {
     const t = { itemsApproved:0, monthApproved:0, sums:{}, mealsSum:0 };
-    for(const f of (category?.fields || [])){
-      if(f.type === "number") t.sums[f.key] = 0;
-    }
+    for(const f of (category?.fields || [])) if(f.type === "number") t.sums[f.key] = 0;
     for(const r of rows){
       t.itemsApproved += safeNum(r.itemsApproved);
       t.monthApproved += safeNum(r.monthApproved);
-      for(const k of Object.keys(r.sums || {})){
-        t.sums[k] = safeNum(t.sums[k]) + safeNum(r.sums[k]);
-      }
+      for(const k of Object.keys(r.sums || {})) t.sums[k] = safeNum(t.sums[k]) + safeNum(r.sums[k]);
       t.mealsSum += safeNum(r.mealsSum);
     }
     return t;
   }, [rows, category]);
 
-  // ===== Trend data: son 6 ay puantaj aggregation =====
-  const trendData = useMemo(() => {
-    const [curY, curM] = monthKey.split("-").map(Number);
-    const months = [];
-    for(let i = 5; i >= 0; i--){
-      let m = curM - i;
-      let y = curY;
-      while(m < 1){ m += 12; y--; }
-      while(m > 12){ m -= 12; y++; }
-      const mk = `${y}-${String(m).padStart(2,"0")}`;
-      const label = ["Oca","Şub","Mar","Nis","May","Haz","Tem","Ağu","Eyl","Ekim","Kas","Ara"][m-1];
-      months.push({ mk, label: label + (y !== curY ? " '"+String(y).slice(2) : "") });
-    }
+  const { projectBlocks, grand, grandCompletion } = useMemo(() => {
+    const prjs = Array.isArray(projects) ? projects : [];
     const emps = Array.isArray(employees) ? employees : [];
     const att  = attendance || {};
-    // Filter to visible projects only
-    const projNames = new Set((Array.isArray(projects) ? projects : []).map(p => p.name));
+    const zeroAgg = () => ({ present:0, absent:0, paid_leave:0, unpaid_leave:0, sick_leave:0, excuse:0, weekend:0, holiday:0, half_day:0, unset:0, totalDays:0, workDays:0 });
+    const blocks = prjs.map(proj => {
+      const projEmps = emps.filter(e => e.project === proj.name);
+      const agg = zeroAgg();
+      projEmps.forEach(emp => {
+        const s = att[emp.id]?.[monthKey]?.stats || {};
+        agg.present += (s.present||0); agg.absent += (s.absent||0);
+        agg.paid_leave += (s.paid_leave||0); agg.unpaid_leave += (s.unpaid_leave||0);
+        agg.sick_leave += (s.sick_leave||0); agg.excuse += (s.excuse||0);
+        agg.weekend += (s.weekend||0); agg.holiday += (s.holiday||0);
+        agg.half_day += (s.half_day||0); agg.unset += (s.unset||0);
+        agg.totalDays += (s.totalDays||0); agg.workDays += (s.workDays||0);
+      });
+      return { proj, projEmps, agg };
+    });
+    const g = { ...zeroAgg(), empCount:0 };
+    blocks.forEach(b => {
+      g.present += b.agg.present; g.absent += b.agg.absent;
+      g.paid_leave += b.agg.paid_leave; g.unpaid_leave += b.agg.unpaid_leave;
+      g.sick_leave += b.agg.sick_leave; g.excuse += b.agg.excuse;
+      g.weekend += b.agg.weekend; g.holiday += b.agg.holiday;
+      g.half_day += b.agg.half_day; g.unset += b.agg.unset;
+      g.totalDays += b.agg.totalDays; g.workDays += b.agg.workDays;
+      g.empCount += b.projEmps.length;
+    });
+    const comp = g.totalDays > 0 ? ((g.totalDays - g.unset) / g.totalDays * 100).toFixed(1) : "0";
+    return { projectBlocks: blocks, grand: g, grandCompletion: comp };
+  }, [projects, employees, attendance, monthKey]);
 
-    return months.map(({ mk, label }) => {
+  /* trend: son 6 ay */
+  const trendMonths = useMemo(() => {
+    const [curY, curM] = monthKey.split("-").map(Number);
+    const labels = ["Oca","Şub","Mar","Nis","May","Haz","Tem","Ağu","Eyl","Ekim","Kas","Ara"];
+    const out = [];
+    for(let i = 5; i >= 0; i--){
+      let m = curM - i, y = curY;
+      while(m < 1){ m += 12; y--; }
+      out.push({ mk:`${y}-${String(m).padStart(2,"0")}`, label: labels[m-1] + (y !== curY ? " '"+String(y).slice(2) : "") });
+    }
+    return out;
+  }, [monthKey]);
+
+  const trendData = useMemo(() => {
+    const emps = Array.isArray(employees) ? employees : [];
+    const att  = attendance || {};
+    const projNames = new Set((Array.isArray(projects) ? projects : []).map(p => p.name));
+    return trendMonths.map(({ mk, label }) => {
       let present=0, absent=0, izin=0, workDays=0, totalDays=0, unset=0;
       emps.forEach(emp => {
         if(!projNames.has(emp.project)) return;
         const s = att[emp.id]?.[mk]?.stats;
         if(!s) return;
-        present   += (s.present || 0);
-        absent    += (s.absent  || 0);
-        izin      += (s.paid_leave||0)+(s.unpaid_leave||0)+(s.sick_leave||0);
-        workDays  += (s.workDays || 0);
-        totalDays += (s.totalDays || 0);
-        unset     += (s.unset || 0);
+        present += (s.present||0); absent += (s.absent||0);
+        izin += (s.paid_leave||0)+(s.unpaid_leave||0)+(s.sick_leave||0);
+        workDays += (s.workDays||0); totalDays += (s.totalDays||0); unset += (s.unset||0);
       });
-      const completion = totalDays > 0 ? ((totalDays - unset) / totalDays * 100).toFixed(0) : 0;
-      return { label, present, absent, izin, workDays, completion: Number(completion) };
+      return { label, present, absent, izin, workDays, completion: totalDays > 0 ? Number(((totalDays-unset)/totalDays*100).toFixed(0)) : 0 };
     });
-  }, [monthKey, employees, attendance, projects]);
+  }, [trendMonths, employees, attendance, projects]);
 
+  /* ─── shared styles ─── */
+  const heroKpi = { flex:"1 1 140px", background:"#fff", border:"1px solid #e5e7eb", borderRadius:16, padding:"18px 20px", display:"flex", flexDirection:"column", gap:4 };
+  const heroKpiDark = { background:"#1e293b", borderColor:"#334155" };
+  const sectionTab = (active) => ({
+    padding:"10px 20px", border:"none", borderBottom: active ? "2.5px solid #3b82f6" : "2.5px solid transparent",
+    background:"transparent", cursor:"pointer", fontWeight: active ? 700 : 500, fontSize:14,
+    color: active ? "#1d4ed8" : "#64748b", transition:"all .15s", whiteSpace:"nowrap"
+  });
+
+  /* ─── RENDER ─── */
   return (
-    <div className="card">
-      <div className="cardTitleRow">
-        <h2>Dashboard • {category?.name}</h2>
-        <div style={{display:"flex", gap:8, flexWrap:"wrap", justifyContent:"flex-end"}}>
-          <Badge kind="ok">Onaylı veriler</Badge>
-          <Badge>{monthKey}</Badge>
+    <div style={{display:"flex", flexDirection:"column", gap:16}}>
+
+      {/* ════════════════ HERO HEADER ════════════════ */}
+      <div style={{
+        background:"linear-gradient(135deg, #1e293b 0%, #0f172a 100%)",
+        borderRadius:20, padding:"24px 28px 20px", color:"#fff"
+      }}>
+        <div style={{display:"flex", alignItems:"center", justifyContent:"space-between", flexWrap:"wrap", gap:8, marginBottom:18}}>
+          <div>
+            <div style={{fontSize:22, fontWeight:800, letterSpacing:"-.3px"}}>Dashboard</div>
+            <div style={{fontSize:13, color:"rgba(255,255,255,.55)", marginTop:2}}>
+              {category?.name} • {monthKey} • Sadece onaylı veriler
+            </div>
+          </div>
+          <div style={{display:"flex", gap:8}}>
+            <span style={{background:"rgba(16,185,129,.18)", color:"#34d399", padding:"4px 12px", borderRadius:999, fontSize:12, fontWeight:700}}>● Onaylı</span>
+            <span style={{background:"rgba(59,130,246,.18)", color:"#60a5fa", padding:"4px 12px", borderRadius:999, fontSize:12, fontWeight:700}}>{monthKey}</span>
+          </div>
+        </div>
+
+        {/* KPI Pills Row */}
+        <div style={{display:"flex", gap:10, flexWrap:"wrap"}}>
+          {[
+            { label:"Toplam Proje", value: (projects||[]).length, color:"#60a5fa", bg:"rgba(59,130,246,.15)" },
+            { label:"Toplam Personel", value: grand.empCount, color:"#a78bfa", bg:"rgba(167,139,250,.15)" },
+            { label:"Onaylı Kayıt", value: totals.itemsApproved, color:"#34d399", bg:"rgba(16,185,129,.15)" },
+            { label:"Onaylı Aylık", value: totals.monthApproved, color:"#fbbf24", bg:"rgba(251,191,36,.15)" },
+            { label:"Geldi", value: grand.present, color:"#34d399", bg:"rgba(16,185,129,.15)" },
+            { label:"Gelmedi", value: grand.absent, color:"#f87171", bg:"rgba(239,68,68,.15)" },
+            { label:"Tamamlanma", value: grandCompletion+"%", color:"#fff", bg:"rgba(255,255,255,.10)" }
+          ].map(k => (
+            <div key={k.label} style={{ flex:"1 1 100px", background: k.bg, borderRadius:12, padding:"12px 14px" }}>
+              <div style={{fontSize:11, color:"rgba(255,255,255,.5)", fontWeight:600, textTransform:"uppercase", letterSpacing:".6px"}}>{k.label}</div>
+              <div style={{fontSize:22, fontWeight:800, color: k.color, marginTop:2}}>{k.value}</div>
+            </div>
+          ))}
+        </div>
+
+        {/* Completion bar */}
+        <div style={{marginTop:16}}>
+          <div style={{display:"flex", justifyContent:"space-between", marginBottom:6}}>
+            <span style={{fontSize:12, color:"rgba(255,255,255,.5)", fontWeight:600}}>Genel Tamamlanma</span>
+            <span style={{fontSize:12, color:"#34d399", fontWeight:700}}>{grandCompletion}%</span>
+          </div>
+          <div style={{height:8, background:"rgba(255,255,255,.12)", borderRadius:999, overflow:"hidden"}}>
+            <div style={{height:"100%", width: grandCompletion+"%", background:"linear-gradient(90deg,#10b981,#3b82f6)", borderRadius:999, transition:"width .4s ease"}} />
+          </div>
         </div>
       </div>
 
-      <div className="small" style={{marginTop:6}}>
-        Bu ekranda sadece <b>admin onaylı</b> aylık veriler hesaplanır.
-      </div>
-
-      {/* ===== Widget Toggle Bar ===== */}
-      <div className="dash-widget-bar" style={{marginTop:12}}>
-        <span style={{fontSize:12, color:"#64748b", fontWeight:600, marginRight:4}}>Göster:</span>
-        {WIDGETS.map(w => (
-          <button
-            key={w.key}
-            type="button"
-            className={"dash-widget-btn" + (visWidgets[w.key] ? " active" : "")}
-            onClick={() => toggleWidget(w.key)}
-          >
-            {w.label}
+      {/* ════════════════ SECTION TAB BAR ════════════════ */}
+      <div style={{
+        display:"flex", gap:0, borderBottom:"1px solid #e5e7eb", background:"#fff",
+        borderRadius:"14px 14px 0 0", overflowX:"auto", overflowY:"hidden"
+      }}>
+        {[
+          { key:"genel",      label:"📊 Genel" },
+          { key:"aksiyonlar", label:"✅ Aksiyonlar" },
+          { key:"puantaj",    label:"📅 Puantaj" },
+          { key:"trend",      label:"📈 Trend" },
+          { key:"raporlar",   label:"📄 Raporlar" }
+        ].map(t => (
+          <button key={t.key} type="button" style={sectionTab(dashTab === t.key)} onClick={() => setDashTab(t.key)}>
+            {t.label}
           </button>
         ))}
       </div>
 
-      {/* ===== AKSIYONLAR ===== */}
-      {visWidgets.aksiyonlar && (
-        <>
-          <hr className="sep" />
-          <div className="cardTitleRow">
-            <h3>Proje Aksiyon Sayıları</h3>
-            <Badge kind="warn">Durum Bazlı</Badge>
-          </div>
-          <div className="small" style={{marginTop:6}}>
-            Detaylar için <b>Aksiyonlar</b> menüsünü kullan.
-          </div>
-          <div style={{
-            marginTop:10,
-            display:"grid",
-            gridTemplateColumns:"repeat(auto-fill, minmax(150px, 1fr))",
-            gap:8
-          }}>
-            {(Array.isArray(projects) ? projects : []).map(p => {
-              const list = (Array.isArray(actions) ? actions : []).filter(a => a?.project === p.name);
-              const count = (st) => list.filter(a => (a.status || "open") === st).length;
-              const openN = count("open");
-              const progN = count("in_progress");
-              const doneN = list.filter(a => (a.status || "open") === "done" || (a.status || "open") === "user_done").length;
-              const closedN = count("closed");
-              const rowStyle = {display:"flex", alignItems:"center", justifyContent:"space-between", gap:8, padding:"2px 0"};
-              const labelStyle = {fontSize:12, opacity:.9};
-              return (
-                <div key={p.id} className="card" style={{ padding:"10px 12px", borderRadius:12 }}>
-                  <div style={{display:"flex", alignItems:"center", justifyContent:"space-between", gap:10}}>
-                    <div style={{fontWeight:700, fontSize:13, lineHeight:"16px"}}>{p.name}</div>
-                    <Badge kind={openN ? "danger" : "ok"}>{list.length}</Badge>
-                  </div>
-                  <div style={{marginTop:8}}>
-                    <div style={rowStyle}><span style={labelStyle}>Açık</span><Badge kind="danger">{openN}</Badge></div>
-                    <div style={rowStyle}><span style={labelStyle}>Devam</span><Badge kind="warn">{progN}</Badge></div>
-                    <div style={rowStyle}><span style={labelStyle}>Tamam</span><Badge kind="ok">{doneN}</Badge></div>
-                    <div style={rowStyle}><span style={labelStyle}>Kapalı</span><Badge kind="ok">{closedN}</Badge></div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </>
-      )}
+      {/* ════════════════ TAB CONTENT ════════════════ */}
+      <div className="card" style={{borderRadius:"0 0 16px 16px", borderTopLeftRadius:0, borderTopRightRadius:0}}>
 
-      {/* ===== KPI ===== */}
-      {visWidgets.kpi && (
-        <>
-          <hr className="sep" />
-          <div className="cardTitleRow">
-            <h3>KPI Özet</h3>
-            <Badge kind="ok">Kategori Bazlı</Badge>
-          </div>
-          <div className="kpiRow" style={{marginTop:10}}>
-            <KPI label={`Onaylı ${category?.itemLabel || "Kayıt"}`} value={totals.itemsApproved}/>
-            <KPI label="Onaylı Aylık Kayıt" value={totals.monthApproved}/>
-            {Object.keys(totals.sums).filter(k=>k!=="mealCount").map(k=>(
-              <KPI key={k} label={(category.fields.find(f=>f.key===k)?.label)||k} value={totals.sums[k]}/>
-            ))}
-            {(category?.special?.meals || (category?.fields||[]).some(f=>f.key==="mealCount") || totals.mealsSum>0) ? <KPI label="Yemek" value={totals.mealsSum}/> : null}
-          </div>
-        </>
-      )}
+        {/* ──── GENEL ──── */}
+        {dashTab === "genel" && (
+          <div>
+            {/* Grafik satırı */}
+            <div style={{display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:14}}>
+              <div style={{fontWeight:700, fontSize:16}}>Kategori Özeti — {category?.name}</div>
+              <Badge kind="ok">Proje Bazlı</Badge>
+            </div>
+            <div style={{display:"grid", gridTemplateColumns:"repeat(auto-fill, minmax(200px, 1fr))", gap:10}}>
+              {(category?.fields || []).filter(f=>f.type==="number" && f.key!=="mealCount").map(f => (
+                <BarChart key={f.key} title={f.label} data={rows.map(r => ({ label: r.name, value: safeNum(r.sums?.[f.key]) }))} />
+              ))}
+              {(category?.special?.meals || (category?.fields||[]).some(f=>f.key==="mealCount") || totals.mealsSum>0) ? (
+                <BarChart title="Yemek" data={rows.map(r => ({ label: r.name, value: safeNum(r.mealsSum) }))} />
+              ) : null}
+            </div>
 
-      {/* ===== GRAFİK ===== */}
-      {visWidgets.grafik && (
-        <>
-          <hr className="sep" />
-          <div className="cardTitleRow">
-            <h3>Grafikli Özet</h3>
-            <Badge kind="ok">Proje Bazlı</Badge>
-          </div>
-          <div className="small" style={{marginTop:6}}>
-            Seçili kategori: <b>{category?.name}</b> • Sadece <b>onaylı aylık</b> veriler.
-          </div>
-          <div style={{marginTop:12, display:"grid", gridTemplateColumns:"repeat(auto-fill, minmax(180px, 1fr))", gap:8}}>
-            {(category?.fields || []).filter(f=>f.type==="number" && f.key!=="mealCount").map(f => (
-              <BarChart
-                key={f.key}
-                title={f.label}
-                data={rows.map(r => ({ label: r.name, value: safeNum(r.sums?.[f.key]) }))}
-              />
-            ))}
-            {(category?.special?.meals || (category?.fields||[]).some(f=>f.key==="mealCount") || totals.mealsSum>0) ? (
-              <BarChart title="Yemek" data={rows.map(r => ({ label: r.name, value: safeNum(r.mealsSum) }))} />
-            ) : null}
-          </div>
-        </>
-      )}
-
-      {/* ===== PDF RAPOR ===== */}
-      {visWidgets.rapor && (
-        <>
-          <hr className="sep" />
-          <div className="cardTitleRow">
-            <h3>Aylık Proje Raporu</h3>
-            <Badge>{monthKey}</Badge>
-          </div>
-          <div className="small" style={{marginTop:6}}>
-            Butona tıkla → rapor yeni sekmede açılır → tarayıcıdan <b>PDF olarak kaydet</b>.
-          </div>
-          <div style={{marginTop:10, display:"flex", gap:10, flexWrap:"wrap"}}>
-            {(Array.isArray(projects) ? projects : []).map(p => (
-              <button key={p.id} className="btn primary" onClick={() => openProjectMonthlyReport({ project: p, category, monthKey, employees })}>
-                {p.name} • PDF Rapor
-              </button>
-            ))}
-          </div>
-        </>
-      )}
-
-      {/* ===== DETAY TABLO ===== */}
-      {visWidgets.tablo && (
-        <>
-          <hr className="sep" />
-          <div className="cardTitleRow">
-            <h3>Detay Tablo</h3>
-            <Badge>{monthKey}</Badge>
-          </div>
-          <div className="tableWrap" style={{marginTop:10}}>
-            <table>
-              <thead>
-                <tr>
-                  <th>Proje</th>
-                  <th>Onaylı {category?.itemLabel || "Kayıt"}</th>
-                  <th>Onaylı Aylık</th>
-                  {(category?.fields || []).filter(f=>f.type==="number" && f.key!=="mealCount").map(f=>(
-                    <th key={f.key}>{f.label}</th>
-                  ))}
-                  {(category?.special?.meals || (category?.fields||[]).some(f=>f.key==="mealCount")) ? <th>Yemek</th> : null}
-                </tr>
-              </thead>
-              <tbody>
-                {rows.map(r=>(
-                  <tr key={r.id}>
-                    <td><b>{r.name}</b></td>
-                    <td>{r.itemsApproved}</td>
-                    <td>{r.monthApproved}</td>
-                    {(category?.fields || []).filter(f=>f.type==="number" && f.key!=="mealCount").map(f=>(
-                      <td key={f.key}>{safeNum(r.sums?.[f.key])}</td>
-                    ))}
-                    {(category?.special?.meals || (category?.fields||[]).some(f=>f.key==="mealCount")) ? <td>{r.mealsSum}</td> : null}
-                  </tr>
-                ))}
-                {rows.length===0 && <tr><td colSpan="99">Kayıt yok.</td></tr>}
-              </tbody>
-            </table>
-          </div>
-
-          {/* Kişi bazlı (Uzmanlar) */}
-          {category?.key === "experts" && (
-            <>
-              <div className="cardTitleRow" style={{marginTop:16}}>
-                <h3>Kişi Bazlı • Onaylı Aylık</h3>
-                <Badge>{monthKey}</Badge>
-              </div>
-              <div className="small" style={{marginTop:6}}>
-                Sadece <b>admin onaylı</b> uzman aylıkları listelenir.
-              </div>
-              <div className="tableWrap" style={{marginTop:10}}>
+            {/* Özet tablo */}
+            <div style={{marginTop:24}}>
+              <div style={{fontWeight:700, fontSize:15, marginBottom:10}}>Proje Özeti</div>
+              <div className="tableWrap">
                 <table>
-                  <thead>
-                    <tr>
-                      <th>Proje</th>
-                      <th>Uzman</th>
-                      {(category?.fields || []).filter(f=>f.type==="number" && f.key!=="mealCount").map(f=>(
-                        <th key={f.key}>{f.label}</th>
-                      ))}
-                      {(category?.special?.meals || (category?.fields||[]).some(f=>f.key==="mealCount")) ? <th>Yemek</th> : null}
-                    </tr>
-                  </thead>
+                  <thead><tr>
+                    <th>Proje</th>
+                    <th>Onaylı {category?.itemLabel || "Kayıt"}</th>
+                    <th>Onaylı Aylık</th>
+                    {(category?.fields || []).filter(f=>f.type==="number" && f.key!=="mealCount").map(f=>(<th key={f.key}>{f.label}</th>))}
+                    {(category?.special?.meals || (category?.fields||[]).some(f=>f.key==="mealCount")) ? <th>Yemek</th> : null}
+                  </tr></thead>
                   <tbody>
-                    {(() => {
-                      const out = [];
-                      const prjs = Array.isArray(projects) ? projects : [];
-                      for(const p of prjs){
-                        const arr = p.itemsByCategory?.[category.key] || [];
-                        for(const it of arr){
-                          if(category.approval?.item && !it.approved) continue;
-                          const slot = it.months?.[monthKey];
-                          if(!slot || !slot.approved) continue;
-                          const dft = slot.draft || {};
-                          const rec = {
-                            project: p.name,
-                            name: it.name,
-                            nums: {},
-                            meals: category?.special?.meals ? ((Object.prototype.hasOwnProperty.call(dft, "mealCount") ? safeNum(dft.mealCount) : (Array.isArray(dft.meals) ? dft.meals.length : 0))) : null
-                          };
-                          const hiddenDash = Array.isArray(p?.fieldVisibility?.[category?.key]?.hiddenFieldKeys)
-                            ? p.fieldVisibility[category.key].hiddenFieldKeys : [];
-                          for(const f of (category.fields || [])){
-                            if(hiddenDash.includes(f.key)) continue;
-                            if(f.type === "number") rec.nums[f.key] = safeNum(dft[f.key]);
-                          }
-                          out.push(rec);
-                        }
-                      }
-                      out.sort((a,b)=> (a.project+a.name).localeCompare(b.project+b.name,"tr"));
-                      return out.map((r,i)=>(
-                        <tr key={r.project + "_" + r.name + "_" + i}>
-                          <td><b>{r.project}</b></td>
-                          <td>{r.name}</td>
-                          {(category?.fields || []).filter(f=>f.type==="number" && f.key!=="mealCount").map(f=>(
-                            <td key={f.key}>{safeNum(r.nums?.[f.key])}</td>
-                          ))}
-                          {category?.special?.meals ? <td>{safeNum(r.meals)}</td> : null}
-                        </tr>
-                      ));
-                    })()}
+                    {rows.map(r=>(
+                      <tr key={r.id}>
+                        <td><b>{r.name}</b></td>
+                        <td>{r.itemsApproved}</td>
+                        <td>{r.monthApproved}</td>
+                        {(category?.fields || []).filter(f=>f.type==="number" && f.key!=="mealCount").map(f=>(<td key={f.key}>{safeNum(r.sums?.[f.key])}</td>))}
+                        {(category?.special?.meals || (category?.fields||[]).some(f=>f.key==="mealCount")) ? <td>{r.mealsSum}</td> : null}
+                      </tr>
+                    ))}
+                    {rows.length===0 && <tr><td colSpan="99">Kayıt yok.</td></tr>}
                   </tbody>
                 </table>
               </div>
-            </>
-          )}
-        </>
-      )}
+            </div>
 
-      {/* ===== PUANTAJ ÖZETİ ===== */}
-      {visWidgets.puantaj && (
-        <>
-          <hr className="sep" />
-          <div className="cardTitleRow">
-            <h3>📅 Puantaj Özeti</h3>
-            <Badge kind="ok">{monthKey}</Badge>
-          </div>
-          <div className="small" style={{marginTop:6}}>
-            Seçili ay için <b>proje bazlı</b> personel devam özeti.
-          </div>
-          {(() => {
-            const prjs = Array.isArray(projects) ? projects : [];
-            const emps = Array.isArray(employees) ? employees : [];
-            const att  = attendance || {};
-            const projectBlocks = prjs.map(proj => {
-              const projEmps = emps.filter(e => e.project === proj.name);
-              const agg = { present:0, absent:0, paid_leave:0, unpaid_leave:0, sick_leave:0, excuse:0, weekend:0, holiday:0, half_day:0, unset:0, totalDays:0, workDays:0 };
-              projEmps.forEach(emp => {
-                const s = att[emp.id]?.[monthKey]?.stats || {};
-                agg.present     += (s.present     || 0);
-                agg.absent      += (s.absent      || 0);
-                agg.paid_leave  += (s.paid_leave  || 0);
-                agg.unpaid_leave+= (s.unpaid_leave|| 0);
-                agg.sick_leave  += (s.sick_leave  || 0);
-                agg.excuse      += (s.excuse      || 0);
-                agg.weekend     += (s.weekend     || 0);
-                agg.holiday     += (s.holiday     || 0);
-                agg.half_day    += (s.half_day    || 0);
-                agg.unset       += (s.unset       || 0);
-                agg.totalDays   += (s.totalDays   || 0);
-                agg.workDays    += (s.workDays    || 0);
-              });
-              return { proj, projEmps, agg };
-            });
-            const grand = { present:0, absent:0, paid_leave:0, unpaid_leave:0, sick_leave:0, totalDays:0, workDays:0, unset:0, empCount:0 };
-            projectBlocks.forEach(b => {
-              grand.present      += b.agg.present;
-              grand.absent       += b.agg.absent;
-              grand.paid_leave   += b.agg.paid_leave;
-              grand.unpaid_leave += b.agg.unpaid_leave;
-              grand.sick_leave   += b.agg.sick_leave;
-              grand.totalDays    += b.agg.totalDays;
-              grand.workDays     += b.agg.workDays;
-              grand.unset        += b.agg.unset;
-              grand.empCount     += b.projEmps.length;
-            });
-            const grandCompletion = grand.totalDays > 0 ? ((grand.totalDays - grand.unset) / grand.totalDays * 100).toFixed(1) : 0;
-            return (
-              <>
-                <div className="kpiRow" style={{marginTop:14}}>
-                  <KPI label="Toplam Personel" value={grand.empCount} />
-                  <KPI label="Toplam Çalışma Günü" value={grand.workDays} />
-                  <KPI label="Toplam Geldi" value={grand.present} />
-                  <KPI label="Toplam İzin" value={grand.paid_leave + grand.unpaid_leave + grand.sick_leave} />
-                  <KPI label="Toplam Gelmedi" value={grand.absent} />
-                  <KPI label="Tamamlanma" value={`${grandCompletion}%`} />
-                </div>
-                <div style={{marginTop:14, padding:"12px 16px", background:"#f9fafb", borderRadius:12}}>
-                  <div style={{display:"flex", justifyContent:"space-between", marginBottom:6}}>
-                    <span style={{fontWeight:600, fontSize:14}}>Genel Tamamlanma Oranı</span>
-                    <span style={{fontWeight:700, color:"#10b981"}}>{grandCompletion}%</span>
-                  </div>
-                  <div style={{height:18, background:"#e5e7eb", borderRadius:999, overflow:"hidden"}}>
-                    <div style={{height:"100%", width: grandCompletion + "%", background:"linear-gradient(90deg,#10b981,#3b82f6)", transition:"width .3s ease"}} />
-                  </div>
-                </div>
-                <div style={{marginTop:16, display:"grid", gridTemplateColumns:"repeat(auto-fit, minmax(260px,1fr))", gap:12}}>
-                  {projectBlocks.map(({ proj, projEmps, agg }) => {
-                    const comp = agg.totalDays > 0 ? ((agg.totalDays - agg.unset) / agg.totalDays * 100).toFixed(1) : 0;
-                    return (
-                      <div key={proj.id} className="card" style={{padding:"14px 16px", borderRadius:14}}>
-                        <div style={{display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:10}}>
-                          <div style={{fontWeight:700, fontSize:15}}>{proj.name}</div>
-                          <Badge kind={agg.absent > 0 ? "danger" : "ok"}>{projEmps.length} kişi</Badge>
-                        </div>
-                        <div style={{display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:6, marginBottom:10}}>
-                          <div style={{textAlign:"center", padding:"6px 2px", background:"#10b98118", borderRadius:8}}>
-                            <div style={{fontWeight:700, fontSize:18, color:"#10b981"}}>{agg.present}</div>
-                            <div style={{fontSize:11, color:"#6b7280"}}>Geldi</div>
-                          </div>
-                          <div style={{textAlign:"center", padding:"6px 2px", background:"#ef444418", borderRadius:8}}>
-                            <div style={{fontWeight:700, fontSize:18, color:"#ef4444"}}>{agg.absent}</div>
-                            <div style={{fontSize:11, color:"#6b7280"}}>Gelmedi</div>
-                          </div>
-                          <div style={{textAlign:"center", padding:"6px 2px", background:"#3b82f618", borderRadius:8}}>
-                            <div style={{fontWeight:700, fontSize:18, color:"#3b82f6"}}>{agg.paid_leave + agg.unpaid_leave + agg.sick_leave}</div>
-                            <div style={{fontSize:11, color:"#6b7280"}}>İzin</div>
-                          </div>
-                        </div>
-                        <div style={{height:10, background:"#e5e7eb", borderRadius:999, overflow:"hidden", marginBottom:6}}>
-                          <div style={{height:"100%", width: comp + "%", background:"linear-gradient(90deg,#10b981,#3b82f6)", transition:"width .3s"}} />
-                        </div>
-                        <div style={{fontSize:11, color:"#6b7280", display:"flex", justifyContent:"space-between"}}>
-                          <span>Tamamlanma: <b>{comp}%</b></span>
-                          <span>Çalışma: <b>{agg.workDays} gün</b></span>
-                        </div>
-                        {agg.totalDays > 0 && (
-                          <div style={{marginTop:10, borderTop:"1px solid #e5e7eb", paddingTop:8}}>
-                            {projEmps.map(emp => {
-                              const es = att[emp.id]?.[monthKey]?.stats || {};
-                              const eComp = es.totalDays > 0 ? ((es.totalDays - (es.unset||0)) / es.totalDays * 100).toFixed(0) : 0;
-                              return (
-                                <div key={emp.id} style={{display:"flex", alignItems:"center", justifyContent:"space-between", padding:"3px 0", fontSize:13}}>
-                                  <span style={{color:"#374151"}}>{emp.name}</span>
-                                  <div style={{display:"flex", alignItems:"center", gap:8}}>
-                                    <span style={{color:"#10b981", fontWeight:600}}>{es.present||0}g</span>
-                                    {(es.absent||0) > 0 && <span style={{color:"#ef4444", fontWeight:600}}>{es.absent}g</span>}
-                                    <span style={{color:"#9ca3af", fontSize:11}}>{eComp}%</span>
-                                  </div>
-                                </div>
-                              );
-                            })}
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-                <div className="tableWrap" style={{marginTop:16}}>
+            {/* Kişi bazlı — sadece experts */}
+            {category?.key === "experts" && (
+              <div style={{marginTop:24}}>
+                <div style={{fontWeight:700, fontSize:15, marginBottom:10}}>Kişi Bazlı — Onaylı Aylık</div>
+                <div className="tableWrap">
                   <table>
-                    <thead>
-                      <tr>
-                        <th>Proje</th><th>Personel</th><th>Çalışma Günü</th><th>Geldi</th><th>Yarım Gün</th>
-                        <th>Ücretli İzin</th><th>Ücretsiz İzin</th><th>Hastalık</th><th>Mazeret</th>
-                        <th>Gelmedi</th><th>Hafta Sonu</th><th>Tatil</th><th>Tamamlanma</th>
-                      </tr>
-                    </thead>
+                    <thead><tr>
+                      <th>Proje</th><th>Uzman</th>
+                      {(category?.fields || []).filter(f=>f.type==="number" && f.key!=="mealCount").map(f=>(<th key={f.key}>{f.label}</th>))}
+                      {(category?.special?.meals || (category?.fields||[]).some(f=>f.key==="mealCount")) ? <th>Yemek</th> : null}
+                    </tr></thead>
                     <tbody>
-                      {projectBlocks.map(({ proj, projEmps }) =>
-                        projEmps.map(emp => {
-                          const es = att[emp.id]?.[monthKey]?.stats || {};
-                          const eComp = es.totalDays > 0 ? ((es.totalDays - (es.unset||0)) / es.totalDays * 100).toFixed(1) : "-";
-                          return (
-                            <tr key={emp.id}>
-                              <td><b>{proj.name}</b></td><td>{emp.name}</td>
-                              <td>{es.workDays || 0}</td><td>{es.present || 0}</td><td>{es.half_day || 0}</td>
-                              <td>{es.paid_leave || 0}</td><td>{es.unpaid_leave || 0}</td><td>{es.sick_leave || 0}</td>
-                              <td>{es.excuse || 0}</td>
-                              <td style={{color:"#ef4444", fontWeight: (es.absent||0)>0 ? 700 : 400}}>{es.absent || 0}</td>
-                              <td>{es.weekend || 0}</td><td>{es.holiday || 0}</td><td>{eComp}%</td>
-                            </tr>
-                          );
-                        })
-                      )}
-                      {grand.empCount === 0 && <tr><td colSpan="13">Personel kayıt yok.</td></tr>}
+                      {(() => {
+                        const out = [];
+                        for(const p of (Array.isArray(projects) ? projects : [])){
+                          for(const it of (p.itemsByCategory?.[category.key] || [])){
+                            if(category.approval?.item && !it.approved) continue;
+                            const slot = it.months?.[monthKey];
+                            if(!slot || !slot.approved) continue;
+                            const dft = slot.draft || {};
+                            const rec = { project: p.name, name: it.name, nums: {}, meals: category?.special?.meals ? (Object.prototype.hasOwnProperty.call(dft,"mealCount") ? safeNum(dft.mealCount) : (Array.isArray(dft.meals) ? dft.meals.length : 0)) : null };
+                            const hidden = Array.isArray(p?.fieldVisibility?.[category?.key]?.hiddenFieldKeys) ? p.fieldVisibility[category.key].hiddenFieldKeys : [];
+                            for(const f of (category.fields || [])) { if(!hidden.includes(f.key) && f.type === "number") rec.nums[f.key] = safeNum(dft[f.key]); }
+                            out.push(rec);
+                          }
+                        }
+                        out.sort((a,b)=> (a.project+a.name).localeCompare(b.project+b.name,"tr"));
+                        return out.map((r,i)=>(
+                          <tr key={r.project+"_"+r.name+"_"+i}>
+                            <td><b>{r.project}</b></td><td>{r.name}</td>
+                            {(category?.fields||[]).filter(f=>f.type==="number"&&f.key!=="mealCount").map(f=>(<td key={f.key}>{safeNum(r.nums?.[f.key])}</td>))}
+                            {category?.special?.meals ? <td>{safeNum(r.meals)}</td> : null}
+                          </tr>
+                        ));
+                      })()}
                     </tbody>
                   </table>
                 </div>
-              </>
-            );
-          })()}
-        </>
-      )}
-
-      {/* ===== TREND ANALİZ (Son 6 ay) ===== */}
-      {visWidgets.trend && (
-        <>
-          <hr className="sep" />
-          <div className="cardTitleRow">
-            <h3>📈 Trend Analizi</h3>
-            <Badge kind="ok">Son 6 Ay</Badge>
+              </div>
+            )}
           </div>
-          <div className="small" style={{marginTop:6}}>
-            Seçili projeler için son 6 aylık puantaj trendleri. Veri olmayan aylar sıfır gösterilir.
-          </div>
+        )}
 
-          {/* Trend: Çalışma Günü */}
-          <div className="trend-block">
-            <div style={{fontWeight:600, fontSize:13, color:"#374151", marginBottom:6}}>Çalışma Günü (Ay Bazlı)</div>
-            <div className="trend-row">
-              <div className="trend-label">Çalışma</div>
-              <div className="trend-bars">
-                {(() => {
-                  const max = Math.max(...trendData.map(d => d.workDays), 1);
-                  return trendData.map((d, i) => (
-                    <div key={i} className="trend-bar-wrap">
-                      <div className="trend-bar-val">{d.workDays}</div>
-                      <div className="trend-bar" style={{ height: (d.workDays / max * 100) + "%", background:"#3b82f6" }} />
-                      <div className="trend-month-label">{d.label}</div>
+        {/* ──── AKSIYONLAR ──── */}
+        {dashTab === "aksiyonlar" && (
+          <div>
+            <div style={{display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:14}}>
+              <div style={{fontWeight:700, fontSize:16}}>Proje Aksiyon Durumu</div>
+              <Badge kind="warn">Durum Bazlı</Badge>
+            </div>
+            <div style={{display:"grid", gridTemplateColumns:"repeat(auto-fill, minmax(180px, 1fr))", gap:10}}>
+              {(Array.isArray(projects) ? projects : []).map(p => {
+                const list = (Array.isArray(actions) ? actions : []).filter(a => a?.project === p.name);
+                const openN = list.filter(a => (a.status||"open")==="open").length;
+                const progN = list.filter(a => (a.status||"open")==="in_progress").length;
+                const doneN = list.filter(a => (a.status||"open")==="done"||(a.status||"open")==="user_done").length;
+                const closedN = list.filter(a => (a.status||"open")==="closed").length;
+                const total = list.length;
+                const doneRate = total > 0 ? Math.round((doneN+closedN)/total*100) : 0;
+                return (
+                  <div key={p.id} style={{
+                    background:"#fff", border:"1px solid #e5e7eb", borderRadius:14, padding:"16px 18px",
+                    borderTop: openN > 0 ? "3px solid #ef4444" : "3px solid #10b981"
+                  }}>
+                    <div style={{display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:10}}>
+                      <div style={{fontWeight:700, fontSize:14}}>{p.name}</div>
+                      <span style={{
+                        background: openN > 0 ? "#fef2f2" : "#ecfdf5", color: openN > 0 ? "#dc2626" : "#16a34a",
+                        padding:"2px 10px", borderRadius:999, fontSize:12, fontWeight:700
+                      }}>{total} aksiyon</span>
                     </div>
-                  ));
-                })()}
+
+                    {/* Mini donut-style satırlar */}
+                    {[
+                      { label:"Açık", val:openN, color:"#ef4444", bg:"#fef2f2" },
+                      { label:"Devam", val:progN, color:"#f59e0b", bg:"#fffbeb" },
+                      { label:"Tamamlandı", val:doneN, color:"#10b981", bg:"#ecfdf5" },
+                      { label:"Kapalı", val:closedN, color:"#6366f1", bg:"#eef2ff" }
+                    ].map(s => (
+                      <div key={s.label} style={{display:"flex", alignItems:"center", gap:8, padding:"4px 0"}}>
+                        <div style={{width:8, height:8, borderRadius:999, background:s.color, flexShrink:0}} />
+                        <span style={{fontSize:13, flex:1, color:"#374151"}}>{s.label}</span>
+                        <span style={{fontSize:13, fontWeight:700, background:s.bg, color:s.color, padding:"1px 8px", borderRadius:999}}>{s.val}</span>
+                      </div>
+                    ))}
+
+                    {/* Mini progress */}
+                    <div style={{marginTop:10}}>
+                      <div style={{height:6, background:"#f3f4f6", borderRadius:999, overflow:"hidden"}}>
+                        <div style={{height:"100%", width: doneRate+"%", background:"linear-gradient(90deg,#10b981,#6366f1)", borderRadius:999, transition:"width .3s"}} />
+                      </div>
+                      <div style={{fontSize:11, color:"#9ca3af", marginTop:4, textAlign:"right"}}>{doneRate}% tamamlandı</div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* ──── PUANTAJ ──── */}
+        {dashTab === "puantaj" && (
+          <div>
+            <div style={{display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:16}}>
+              <div style={{fontWeight:700, fontSize:16}}>Puantaj Özeti</div>
+              <Badge kind="ok">{monthKey}</Badge>
+            </div>
+
+            {/* Proje kartları */}
+            <div style={{display:"grid", gridTemplateColumns:"repeat(auto-fill, minmax(240px, 1fr))", gap:10}}>
+              {projectBlocks.map(({ proj, projEmps, agg }) => {
+                const comp = agg.totalDays > 0 ? ((agg.totalDays - agg.unset) / agg.totalDays * 100).toFixed(0) : 0;
+                const att = attendance || {};
+                return (
+                  <div key={proj.id} style={{
+                    background:"#fff", border:"1px solid #e5e7eb", borderRadius:14, padding:"16px 18px",
+                    borderLeft:"4px solid #3b82f6"
+                  }}>
+                    <div style={{display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:10}}>
+                      <div style={{fontWeight:700, fontSize:14}}>{proj.name}</div>
+                      <span style={{background:"#eff6ff", color:"#2563eb", padding:"2px 10px", borderRadius:999, fontSize:12, fontWeight:700}}>{projEmps.length} kişi</span>
+                    </div>
+
+                    {/* 3 stat box */}
+                    <div style={{display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:6, marginBottom:10}}>
+                      {[
+                        { val: agg.present, label:"Geldi", color:"#10b981", bg:"#ecfdf5" },
+                        { val: agg.absent, label:"Gelmedi", color:"#ef4444", bg:"#fef2f2" },
+                        { val: agg.paid_leave+agg.unpaid_leave+agg.sick_leave, label:"İzin", color:"#3b82f6", bg:"#eff6ff" }
+                      ].map(s => (
+                        <div key={s.label} style={{textAlign:"center", padding:"8px 4px", background:s.bg, borderRadius:10}}>
+                          <div style={{fontWeight:800, fontSize:18, color:s.color}}>{s.val}</div>
+                          <div style={{fontSize:11, color:"#6b7280"}}>{s.label}</div>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Progress bar */}
+                    <div style={{height:8, background:"#f3f4f6", borderRadius:999, overflow:"hidden", marginBottom:4}}>
+                      <div style={{height:"100%", width: comp+"%", background:"linear-gradient(90deg,#10b981,#3b82f6)", borderRadius:999, transition:"width .3s"}} />
+                    </div>
+                    <div style={{fontSize:11, color:"#9ca3af", display:"flex", justifyContent:"space-between"}}>
+                      <span>{comp}% tamamlandı</span>
+                      <span>{agg.workDays} iş günü</span>
+                    </div>
+
+                    {/* Personel mini liste */}
+                    {projEmps.length > 0 && (
+                      <div style={{marginTop:12, paddingTop:10, borderTop:"1px solid #f3f4f6"}}>
+                        {projEmps.map(emp => {
+                          const es = att[emp.id]?.[monthKey]?.stats || {};
+                          const eComp = es.totalDays > 0 ? ((es.totalDays-(es.unset||0))/es.totalDays*100).toFixed(0) : 0;
+                          return (
+                            <div key={emp.id} style={{display:"flex", alignItems:"center", justifyContent:"space-between", padding:"3px 0", fontSize:13}}>
+                              <span style={{color:"#374151"}}>{emp.name}</span>
+                              <div style={{display:"flex", alignItems:"center", gap:6}}>
+                                <span style={{color:"#10b981", fontWeight:700}}>{es.present||0}</span>
+                                {(es.absent||0)>0 && <span style={{color:"#ef4444", fontWeight:700}}>{es.absent}</span>}
+                                <span style={{color:"#9ca3af", fontSize:11}}>{eComp}%</span>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Detay tablosu */}
+            <div style={{marginTop:24}}>
+              <div style={{fontWeight:700, fontSize:15, marginBottom:10}}>Personel Detay</div>
+              <div className="tableWrap">
+                <table>
+                  <thead><tr>
+                    <th>Proje</th><th>Personel</th><th>İş Günü</th><th>Geldi</th><th>Yarım</th>
+                    <th>Ücr. İzin</th><th>Üçr. İzin</th><th>Hastalık</th><th>Mazeret</th>
+                    <th>Gelmedi</th><th>H.Sonu</th><th>Tatil</th><th>Tamaml.</th>
+                  </tr></thead>
+                  <tbody>
+                    {projectBlocks.map(({ proj, projEmps }) =>
+                      projEmps.map(emp => {
+                        const es = (attendance||{})[emp.id]?.[monthKey]?.stats || {};
+                        const eComp = es.totalDays > 0 ? ((es.totalDays-(es.unset||0))/es.totalDays*100).toFixed(1) : "-";
+                        return (
+                          <tr key={emp.id}>
+                            <td><b>{proj.name}</b></td><td>{emp.name}</td>
+                            <td>{es.workDays||0}</td><td>{es.present||0}</td><td>{es.half_day||0}</td>
+                            <td>{es.paid_leave||0}</td><td>{es.unpaid_leave||0}</td><td>{es.sick_leave||0}</td>
+                            <td>{es.excuse||0}</td>
+                            <td style={{color:"#ef4444", fontWeight:(es.absent||0)>0?700:400}}>{es.absent||0}</td>
+                            <td>{es.weekend||0}</td><td>{es.holiday||0}</td><td>{eComp}%</td>
+                          </tr>
+                        );
+                      })
+                    )}
+                    {grand.empCount===0 && <tr><td colSpan="13">Personel kayıt yok.</td></tr>}
+                  </tbody>
+                </table>
               </div>
             </div>
           </div>
+        )}
 
-          {/* Trend: Geldi / Gelmedi / İzin — grouped */}
-          <div className="trend-block" style={{marginTop:20}}>
-            <div style={{fontWeight:600, fontSize:13, color:"#374151", marginBottom:6}}>Geldi / Gelmedi / İzin Karşılaştırma</div>
-            {["present","absent","izin"].map(metric => {
-              const colors = { present:"#10b981", absent:"#ef4444", izin:"#f59e0b" };
-              const labels = { present:"Geldi", absent:"Gelmedi", izin:"İzin" };
-              const max = Math.max(...trendData.map(d => d[metric]), 1);
+        {/* ──── TREND ──── */}
+        {dashTab === "trend" && (
+          <div>
+            <div style={{display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:16}}>
+              <div style={{fontWeight:700, fontSize:16}}>Son 6 Ay Trend</div>
+              <Badge kind="ok">Karşılaştırma</Badge>
+            </div>
+
+            {/* Trend bar groups */}
+            {[
+              { title:"Çalışma Günü", key:"workDays", color:"#3b82f6" },
+              { title:"Geldi", key:"present", color:"#10b981" },
+              { title:"Gelmedi", key:"absent", color:"#ef4444" },
+              { title:"İzin", key:"izin", color:"#f59e0b" }
+            ].map(metric => {
+              const max = Math.max(1, ...trendData.map(d => d[metric.key]));
               return (
-                <div key={metric} className="trend-row">
-                  <div className="trend-label" style={{color: colors[metric]}}>{labels[metric]}</div>
-                  <div className="trend-bars">
-                    {trendData.map((d, i) => (
-                      <div key={i} className="trend-bar-wrap">
-                        <div className="trend-bar-val">{d[metric]}</div>
-                        <div className="trend-bar" style={{ height: (d[metric] / max * 100) + "%", background: colors[metric] }} />
-                        {metric === "izin" && <div className="trend-month-label">{d.label}</div>}
-                      </div>
-                    ))}
+                <div key={metric.key} style={{
+                  background:"#fff", border:"1px solid #e5e7eb", borderRadius:14, padding:"18px 20px", marginBottom:12
+                }}>
+                  <div style={{display:"flex", alignItems:"center", gap:8, marginBottom:14}}>
+                    <div style={{width:10, height:10, borderRadius:999, background:metric.color}} />
+                    <div style={{fontWeight:700, fontSize:14, color:"#1e293b"}}>{metric.title}</div>
+                  </div>
+                  <div style={{display:"flex", gap:6, alignItems:"flex-end", height:80}}>
+                    {trendData.map((d, i) => {
+                      const val = d[metric.key];
+                      const pct = Math.max(6, (val / max) * 72);
+                      return (
+                        <div key={i} style={{flex:1, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"flex-end", height:"100%"}}>
+                          <div style={{fontSize:12, fontWeight:800, color:metric.color, marginBottom:4}}>{val}</div>
+                          <div style={{width:"70%", height: pct+"px", background:metric.color, borderRadius:"5px 5px 0 0", transition:"height .3s", opacity:.85}} />
+                          <div style={{fontSize:10, color:"#9ca3af", marginTop:4, textAlign:"center", whiteSpace:"nowrap"}}>{d.label}</div>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               );
             })}
-          </div>
 
-          {/* Trend: Tamamlanma Oranı — line-style with dots */}
-          <div className="trend-block" style={{marginTop:20}}>
-            <div style={{fontWeight:600, fontSize:13, color:"#374151", marginBottom:8}}>Tamamlanma Oranı (%)</div>
-            <div style={{display:"flex", alignItems:"flex-end", gap:0, height:70, padding:"0 4px"}}>
-              {(() => {
-                const max = 100;
-                return trendData.map((d, i) => {
+            {/* Tamamlanma trend — renk kodlu */}
+            <div style={{ background:"#fff", border:"1px solid #e5e7eb", borderRadius:14, padding:"18px 20px", marginBottom:12 }}>
+              <div style={{display:"flex", alignItems:"center", gap:8, marginBottom:14}}>
+                <div style={{fontWeight:700, fontSize:14, color:"#1e293b"}}>Tamamlanma Oranı (%)</div>
+              </div>
+              <div style={{display:"flex", gap:6, alignItems:"flex-end", height:80}}>
+                {trendData.map((d, i) => {
                   const pct = d.completion;
-                  const barH = (pct / max * 56);
+                  const barH = Math.max(6, (pct / 100) * 72);
                   const color = pct >= 80 ? "#10b981" : pct >= 60 ? "#f59e0b" : "#ef4444";
                   return (
                     <div key={i} style={{flex:1, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"flex-end", height:"100%"}}>
-                      <div style={{fontSize:11, fontWeight:700, color, marginBottom:2}}>{pct}%</div>
-                      <div style={{width:"60%", height: barH + "px", background: color, borderRadius:"4px 4px 0 0", minHeight:3, transition:"height .3s"}} />
-                      <div style={{fontSize:10, color:"#94a3b8", marginTop:3, textAlign:"center"}}>{d.label}</div>
+                      <div style={{fontSize:12, fontWeight:800, color, marginBottom:4}}>{pct}%</div>
+                      <div style={{width:"70%", height: barH+"px", background:color, borderRadius:"5px 5px 0 0", transition:"height .3s"}} />
+                      <div style={{fontSize:10, color:"#9ca3af", marginTop:4, textAlign:"center", whiteSpace:"nowrap"}}>{d.label}</div>
                     </div>
                   );
-                });
-              })()}
-            </div>
-            {/* Renkli legend */}
-            <div style={{display:"flex", gap:16, marginTop:10, justifyContent:"center"}}>
-              <div style={{display:"flex", alignItems:"center", gap:4, fontSize:12}}>
-                <div style={{width:12, height:12, borderRadius:3, background:"#10b981"}} />
-                <span style={{color:"#374151"}}>≥ 80%</span>
+                })}
               </div>
-              <div style={{display:"flex", alignItems:"center", gap:4, fontSize:12}}>
-                <div style={{width:12, height:12, borderRadius:3, background:"#f59e0b"}} />
-                <span style={{color:"#374151"}}>60–79%</span>
-              </div>
-              <div style={{display:"flex", alignItems:"center", gap:4, fontSize:12}}>
-                <div style={{width:12, height:12, borderRadius:3, background:"#ef4444"}} />
-                <span style={{color:"#374151"}}>&lt; 60%</span>
+              <div style={{display:"flex", gap:16, marginTop:12, justifyContent:"center"}}>
+                {[{c:"#10b981",t:"≥ 80%"},{c:"#f59e0b",t:"60–79%"},{c:"#ef4444",t:"< 60%"}].map(l => (
+                  <div key={l.t} style={{display:"flex", alignItems:"center", gap:5, fontSize:12}}>
+                    <div style={{width:10, height:10, borderRadius:3, background:l.c}} />
+                    <span style={{color:"#64748b"}}>{l.t}</span>
+                  </div>
+                ))}
               </div>
             </div>
-          </div>
 
-          {/* Trend: Proje bazlı karşılaştırma tablosu */}
-          <div style={{marginTop:18}}>
-            <div style={{fontWeight:600, fontSize:13, color:"#374151", marginBottom:8}}>Proje Bazlı Son 6 Ay Özet</div>
-            <div className="tableWrap">
-              <table>
-                <thead>
-                  <tr>
+            {/* Proje bazlı tablo */}
+            <div style={{marginTop:8}}>
+              <div style={{fontWeight:700, fontSize:15, marginBottom:10}}>Proje Bazlı — İş Günü Trend</div>
+              <div className="tableWrap">
+                <table>
+                  <thead><tr>
                     <th>Proje</th>
                     {trendData.map((d,i) => <th key={i}>{d.label}</th>)}
-                  </tr>
-                </thead>
-                <tbody>
-                  {(() => {
-                    const prjs = Array.isArray(projects) ? projects : [];
-                    const emps = Array.isArray(employees) ? employees : [];
-                    const att  = attendance || {};
-                    const [curY, curM] = monthKey.split("-").map(Number);
-                    const months = [];
-                    for(let i = 5; i >= 0; i--){
-                      let m = curM - i; let y = curY;
-                      while(m < 1){ m += 12; y--; }
-                      months.push(`${y}-${String(m).padStart(2,"0")}`);
-                    }
-                    return prjs.map(proj => {
-                      const projEmps = emps.filter(e => e.project === proj.name);
+                  </tr></thead>
+                  <tbody>
+                    {(Array.isArray(projects)?projects:[]).map(proj => {
+                      const projEmps = (Array.isArray(employees)?employees:[]).filter(e => e.project === proj.name);
                       return (
                         <tr key={proj.id}>
                           <td><b>{proj.name}</b></td>
-                          {months.map((mk, mi) => {
+                          {trendMonths.map((tm, mi) => {
                             let wd = 0;
-                            projEmps.forEach(emp => { wd += (att[emp.id]?.[mk]?.stats?.workDays || 0); });
+                            projEmps.forEach(emp => { wd += ((attendance||{})[emp.id]?.[tm.mk]?.stats?.workDays || 0); });
                             return <td key={mi}>{wd}</td>;
                           })}
                         </tr>
                       );
-                    });
-                  })()}
-                </tbody>
-              </table>
+                    })}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
-        </>
-      )}
+        )}
 
-      <div className="small" style={{marginTop:14}}>
-        Kullanıcı ekranında sadece kendi projesi listelenir.
+        {/* ──── RAPORLAR ──── */}
+        {dashTab === "raporlar" && (
+          <div>
+            <div style={{display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:16}}>
+              <div style={{fontWeight:700, fontSize:16}}>Aylık PDF Raporlar</div>
+              <Badge>{monthKey}</Badge>
+            </div>
+            <div style={{color:"#6b7280", fontSize:14, marginBottom:16}}>
+              Butona tıkla → rapor yeni sekmede açılır → tarayıcıdan PDF olarak kaydet.
+            </div>
+            <div style={{display:"grid", gridTemplateColumns:"repeat(auto-fill, minmax(200px, 1fr))", gap:10}}>
+              {(Array.isArray(projects) ? projects : []).map(p => (
+                <button
+                  key={p.id}
+                  type="button"
+                  onClick={() => openProjectMonthlyReport({ project: p, category, monthKey, employees })}
+                  style={{
+                    background:"linear-gradient(135deg, #1e293b, #334155)", color:"#fff",
+                    border:"none", borderRadius:12, padding:"18px 16px", cursor:"pointer",
+                    textAlign:"left", transition:"transform .12s, box-shadow .12s"
+                  }}
+                  onMouseEnter={e => { e.currentTarget.style.transform="translateY(-2px)"; e.currentTarget.style.boxShadow="0 6px 20px rgba(0,0,0,.25)"; }}
+                  onMouseLeave={e => { e.currentTarget.style.transform="translateY(0)"; e.currentTarget.style.boxShadow="none"; }}
+                >
+                  <div style={{fontSize:11, color:"rgba(255,255,255,.5)", textTransform:"uppercase", letterSpacing:".8px", fontWeight:600}}>PDF Rapor</div>
+                  <div style={{fontSize:15, fontWeight:700, marginTop:4}}>{p.name}</div>
+                  <div style={{fontSize:12, color:"rgba(255,255,255,.45)", marginTop:6}}>{category?.name} • {monthKey}</div>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
