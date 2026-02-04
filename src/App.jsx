@@ -8008,7 +8008,7 @@ class ErrorBoundary extends React.Component{
       return (
         <div style={{padding:16, fontFamily:"ui-sans-serif, system-ui"}}>
           <h2 style={{margin:"0 0 8px 0"}}>Uygulama Hatası</h2>
-          <div style={{opacity:.8, marginBottom:10}}>Konsoldaki ilk hata satırını bana atarsan tek seferde düzeltirim.</div>
+          <div style={{opacity:.8, marginBottom:10}}>Konsoldaki ilk hata satırını lütfen bana atarsan tek seferde düzeltirim.</div>
           <pre style={{whiteSpace:"pre-wrap", background:"rgba(0,0,0,.06)", padding:12, borderRadius:12}}>
             {String(this.state.error && (this.state.error.stack || this.state.error.message || this.state.error))}
           </pre>
