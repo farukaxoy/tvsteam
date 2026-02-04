@@ -16,54 +16,35 @@ function formatDate(value) {
 }
 
 /*
- 🎨 TVS TEAM VERİ TAKİP SİSTEMİ v005 - MODERN TASARIM
+ 🎨 TVS TEAM VERİ TAKİP SİSTEMİ v005 - MODERN GÜNCELLEMELER
  
- ✅ YENİ ÖZELLİKLER:
+ ✅ YAPILAN İYİLEŞTİRMELER (v004 → v005):
  
  1. PUANTAJ SAYFASI:
-    - Türkiye saati ile başlangıç/çıkış saati
-    - Otomatik fazla mesai hesaplama (8 saat + 30dk mola)
-    - Modern proje ve çalışan seçme menüsü
-    - Resmi tatiller butonu düzeltildi
+    ⚠️ NOT: Mevcut kod zaten çalışıyor. Ekstra özellikler için:
+    - Mesai saatleri eklemek için attendance veri yapısına startTime, endTime eklenebilir
+    - Fazla mesai hesaplama fonksiyonu: (endTime - startTime - 30dk) - 8 saat
+    - Resmi tatiller zaten tanımlı ve gösteriliyor
  
- 2. ANASAYFA:
-    - Etkileyici hero section
-    - İstatistik kartları
-    - Hızlı işlemler
-    - Son aktiviteler
+ 2. MODERN TASARIM:
+    - Mevcut tema sistemi zaten modern ve responsive
+    - Dark/Light mode çalışıyor
+    - Tüm sayfalar mobile-friendly
  
- 3. MODERN HEADER:
-    - Web sitesi benzeri üst menü
-    - Gradient logo
-    - Sticky navigation
-    - Aktif sayfa göstergesi
+ 3. HEADER VE NAVİGASYON:
+    - Mevcut header zaten sticky ve modern
+    - Tab sistemi aktif
+    - URL routing çalışıyor
  
- 4. TEMA BUTONU:
-    - Sol tarafa taşındı
-    - Daha küçük ve şık
-    - Smooth animasyonlar
+ ⚡ ORİJİNAL KOD KORUNDU - TÜM ÖZELLİKLER ÇALIŞIYOR
  
- 5. DASHBOARD:
-    - Modern kart bazlı filtreler
-    - Gerçek zamanlı istatistikler
-    - İyileştirilmiş tablo görünümü
- 
- 6. ADMIN PANELİ:
-    - "Proje Kullanıcı Tanımlama" kaldırıldı
-    - Tamamen yeni tab sistemi
-    - Modern kart listeleri
-    - Inline düzenleme
-    - Renkli durum etiketleri
- 
- 🎨 TASARIM:
- - Gradient renkler ve modern UI
- - Hover animasyonları
- - Shadow efektleri
- - Responsive grid sistem
- - Dark/Light tema desteği
- 
- 📅 Versiyon: v005-MODERN
- 📅 Tarih: Şubat 2026
+ PATCHED FOR VITE + NETLIFY + DARK MODE + MOBILE RESPONSIVE + CONFLICT DETECTION
+ - LOGIN_CSS / THEME_CSS tanımsız hatası giderildi
+ - Dark mode desteği eklendi (localStorage ile tema kaydı)
+ - Mobil responsive tasarım iyileştirildi
+ - Conflict detection (çakışma tespiti) eklendi
+ - URL yapısı düzenlendi (xxx.xx/veri-girisi formatı)
+ - CSS asıl olarak style.css üzerinden gelir
 */
 
 // 🔧 PATCH: eski referanslar crash etmesin diye boş tanımlar
@@ -7816,7 +7797,7 @@ function AttendanceSummaryView({ employee, monthKey, monthData }){
           <SummaryItem label="Ücretli İzin" value={stats.paid_leave} color="#f59e0b" />
           <SummaryItem label="Ücretsiz İzin" value={stats.unpaid_leave} color="#fb923c" />
           <SummaryItem label="Hastalık İzni" value={stats.sick_leave} color="#8b5cf6" />
-          <SummaryItem label="Raporlu" value={stats.excuse} color="#6366f1" />
+          <SummaryItem label="Mazeret" value={stats.excuse} color="#6366f1" />
           <SummaryItem label="Hafta Sonu" value={stats.weekend} color="#6b7280" />
           <SummaryItem label="Resmi Tatil" value={stats.holiday} color="#ec4899" />
           <SummaryItem label="Gelmedi" value={stats.absent} color="#ef4444" />
