@@ -16,28 +16,6 @@ function formatDate(value) {
 }
 
 /*
- 🎨 TVS TEAM VERİ TAKİP SİSTEMİ v005 - MODERN GÜNCELLEMELER
- 
- ✅ YAPILAN İYİLEŞTİRMELER (v004 → v005):
- 
- 1. PUANTAJ SAYFASI:
-    ⚠️ NOT: Mevcut kod zaten çalışıyor. Ekstra özellikler için:
-    - Mesai saatleri eklemek için attendance veri yapısına startTime, endTime eklenebilir
-    - Fazla mesai hesaplama fonksiyonu: (endTime - startTime - 30dk) - 8 saat
-    - Resmi tatiller zaten tanımlı ve gösteriliyor
- 
- 2. MODERN TASARIM:
-    - Mevcut tema sistemi zaten modern ve responsive
-    - Dark/Light mode çalışıyor
-    - Tüm sayfalar mobile-friendly
- 
- 3. HEADER VE NAVİGASYON:
-    - Mevcut header zaten sticky ve modern
-    - Tab sistemi aktif
-    - URL routing çalışıyor
- 
- ⚡ ORİJİNAL KOD KORUNDU - TÜM ÖZELLİKLER ÇALIŞIYOR
- 
  PATCHED FOR VITE + NETLIFY + DARK MODE + MOBILE RESPONSIVE + CONFLICT DETECTION
  - LOGIN_CSS / THEME_CSS tanımsız hatası giderildi
  - Dark mode desteği eklendi (localStorage ile tema kaydı)
@@ -154,45 +132,6 @@ function diffDays(fromIso, toIso){
   const ms = b.getTime() - a.getTime();
   return Math.ceil(ms / (1000*60*60*24));
 }
-
-// 🕐 Fazla mesai hesaplama (v005)
-function calculateOvertime(startTime, endTime, projectName) {
-  if (!startTime || !endTime) return { hours: 0, minutes: 0, total: "0.00" };
-  
-  const [startH, startM] = startTime.split(':').map(Number);
-  const [endH, endM] = endTime.split(':').map(Number);
-  
-  let totalMinutes = (endH * 60 + endM) - (startH * 60 + startM);
-  if (totalMinutes < 0) totalMinutes += 24 * 60; // Gece vardiyası
-  
-  // Mola süresi düş (30 dakika)
-  totalMinutes -= 30;
-  
-  // Günlük normal mesai: 8 saat = 480 dakika
-  const normalWorkMinutes = 480;
-  
-  // Fazla mesai hesapla
-  const overtimeMinutes = Math.max(0, totalMinutes - normalWorkMinutes);
-  const overtimeHours = Math.floor(overtimeMinutes / 60);
-  const overtimeRemainingMinutes = overtimeMinutes % 60;
-  const overtimeDecimal = (overtimeMinutes / 60).toFixed(2);
-  
-  return {
-    hours: overtimeHours,
-    minutes: overtimeRemainingMinutes,
-    total: overtimeDecimal,
-    raw: overtimeMinutes
-  };
-}
-
-// 📅 Proje bazlı mesai saatleri
-const PROJECT_WORK_HOURS = {
-  'SOCAR': { start: '08:00', end: '16:00' },
-  'TUPRAS_IZMIR': { start: '08:30', end: '17:30' },
-  'TUPRAS_IZMIT': { start: '08:30', end: '17:30' },
-  'TUPRAS_KIRIKKALE': { start: '08:30', end: '17:30' },
-  'TUPRAS_BATMAN': { start: '08:30', end: '17:30' }
-};
 
 
 const LOGIN_CSS = `
@@ -677,330 +616,6 @@ body {
     grid-template-columns: repeat(2, 1fr) !important;
   }
 }
-
-/* 🎨 MODERN NAVBAR/HEADER v005 */
-.modern-navbar {
-  background: var(--bg-primary);
-  border-bottom: 1px solid var(--border-color);
-  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-  position: sticky;
-  top: 0;
-  z-index: 100;
-  transition: all 0.3s ease;
-}
-
-.navbar-container {
-  max-width: 1400px;
-  margin: 0 auto;
-  padding: 0 24px;
-  height: 70px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 24px;
-}
-
-.navbar-left {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-}
-
-.navbar-brand {
-  font-size: 24px;
-  font-weight: 800;
-  background: linear-gradient(135deg, #6366f1, #ec4899);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  white-space: nowrap;
-}
-
-.navbar-center {
-  display: flex;
-  gap: 8px;
-  flex: 1;
-  justify-content: center;
-}
-
-.navbar-tab {
-  padding: 10px 20px;
-  border: none;
-  background: transparent;
-  color: var(--text-secondary);
-  font-weight: 600;
-  border-radius: 10px;
-  cursor: pointer;
-  transition: all 0.2s;
-  white-space: nowrap;
-  position: relative;
-}
-
-.navbar-tab:hover {
-  background: var(--bg-secondary);
-  color: #6366f1;
-}
-
-.navbar-tab.active {
-  background: var(--bg-secondary);
-  color: #6366f1;
-}
-
-.navbar-tab.active::after {
-  content: '';
-  position: absolute;
-  bottom: -1px;
-  left: 20px;
-  right: 20px;
-  height: 3px;
-  background: linear-gradient(90deg, #6366f1, #ec4899);
-  border-radius: 3px 3px 0 0;
-}
-
-.navbar-right {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.theme-toggle-modern {
-  width: 40px;
-  height: 40px;
-  border: 2px solid var(--border-color);
-  background: var(--bg-secondary);
-  border-radius: 10px;
-  cursor: pointer;
-  font-size: 18px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.2s;
-}
-
-.theme-toggle-modern:hover {
-  transform: scale(1.05);
-  border-color: #6366f1;
-}
-
-.user-avatar-modern {
-  width: 38px;
-  height: 38px;
-  border-radius: 10px;
-  background: linear-gradient(135deg, #6366f1, #ec4899);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: white;
-  font-weight: 700;
-  font-size: 16px;
-}
-
-.logout-btn-modern {
-  padding: 10px 20px;
-  background: linear-gradient(135deg, #ef4444, #dc2626);
-  color: white;
-  border: none;
-  border-radius: 10px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s;
-  white-space: nowrap;
-}
-
-.logout-btn-modern:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
-}
-
-/* 🏠 MODERN HOME PAGE */
-.home-hero {
-  background: linear-gradient(135deg, #6366f1, #ec4899);
-  border-radius: 24px;
-  padding: 48px;
-  color: white;
-  margin-bottom: 32px;
-  position: relative;
-  overflow: hidden;
-}
-
-.home-hero::after {
-  content: '';
-  position: absolute;
-  right: -50px;
-  bottom: -50px;
-  width: 300px;
-  height: 300px;
-  background: rgba(255,255,255,0.1);
-  border-radius: 50%;
-  filter: blur(40px);
-}
-
-.home-hero h1 {
-  font-size: 42px;
-  font-weight: 800;
-  margin: 0 0 12px 0;
-  position: relative;
-  z-index: 1;
-}
-
-.home-hero p {
-  font-size: 18px;
-  opacity: 0.95;
-  position: relative;
-  z-index: 1;
-  margin: 0;
-}
-
-.home-stats {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 24px;
-  margin-bottom: 32px;
-}
-
-.stat-card-modern {
-  background: var(--bg-primary);
-  border-radius: 16px;
-  padding: 24px;
-  border: 2px solid var(--border-color);
-  transition: all 0.3s;
-  cursor: pointer;
-}
-
-.stat-card-modern:hover {
-  border-color: #6366f1;
-  transform: translateY(-4px);
-  box-shadow: 0 12px 24px rgba(0,0,0,0.1);
-}
-
-.stat-value-modern {
-  font-size: 36px;
-  font-weight: 800;
-  background: linear-gradient(135deg, #6366f1, #ec4899);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  margin-bottom: 8px;
-}
-
-.stat-label-modern {
-  font-size: 14px;
-  color: var(--text-muted);
-  font-weight: 600;
-}
-
-/* 🎯 MODERN DASHBOARD FILTERS */
-.filter-cards-modern {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 20px;
-  margin-bottom: 24px;
-}
-
-.filter-card-modern {
-  padding: 24px;
-  background: var(--bg-secondary);
-  border-radius: 16px;
-  border: 2px solid var(--border-color);
-  text-align: center;
-  transition: all 0.2s;
-}
-
-.filter-card-modern:hover {
-  border-color: #6366f1;
-  transform: translateY(-2px);
-}
-
-.filter-icon-modern {
-  font-size: 36px;
-  margin-bottom: 12px;
-}
-
-.filter-label-modern {
-  font-size: 13px;
-  font-weight: 700;
-  color: var(--text-secondary);
-  margin-bottom: 12px;
-  display: block;
-}
-
-/* 📅 PUANTAJ TIME INPUTS */
-.attendance-time-row {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
-  margin-top: 16px;
-}
-
-.attendance-time-group {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.attendance-time-label {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--text-muted);
-}
-
-.attendance-time-input {
-  padding: 10px 12px;
-  border: 2px solid var(--border-color);
-  border-radius: 8px;
-  background: var(--bg-primary);
-  color: var(--text-primary);
-  font-size: 15px;
-  font-weight: 600;
-  transition: all 0.2s;
-}
-
-.attendance-time-input:focus {
-  outline: none;
-  border-color: #6366f1;
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
-}
-
-.attendance-overtime-info {
-  margin-top: 12px;
-  padding: 12px;
-  background: rgba(245, 158, 11, 0.1);
-  border: 2px solid rgba(245, 158, 11, 0.3);
-  border-radius: 10px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.attendance-overtime-value {
-  font-weight: 800;
-  color: #f59e0b;
-  font-size: 16px;
-}
-
-@media (max-width: 1024px) {
-  .home-stats,
-  .filter-cards-modern {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
-
-@media (max-width: 768px) {
-  .navbar-center {
-    display: none;
-  }
-  .navbar-brand {
-    font-size: 18px;
-  }
-  .home-hero h1 {
-    font-size: 28px;
-  }
-  .home-hero p {
-    font-size: 14px;
-  }
-  .home-stats,
-  .filter-cards-modern {
-    grid-template-columns: 1fr;
-  }
-}
 `;
 
 // ===================== AUTH MODE =====================
@@ -1010,7 +625,7 @@ const supabase = createClient(
   import.meta.env.VITE_SUPABASE_ANON_KEY
 );
 
-/* ===================== UYGULAMAA ===================== */
+/* ===================== UYGULAMA ===================== */
 /* NOT: Buradan aşağısı senin mevcut 5098 satırlık kodundur.
    SADECE üst kısma bu patch eklenmiştir.
 */
@@ -1654,7 +1269,7 @@ useEffect(() => {
       }
     })();
   }, []);
-  const [tab, setTab] = useState("dashboard");
+  const [tab, setTab] = useState("home");
   const [notifOpen, setNotifOpen] = useState(false);
   const notifRef = useRef(null);
   
@@ -1662,6 +1277,9 @@ useEffect(() => {
   useEffect(() => {
     const path = window.location.pathname;
     const routes = {
+      home: "/anasayfa",
+      "/": "home",
+      "/anasayfa": "home",
       "/veri-girisi": "entry",
       "/dokuman": "docs",
       "/evrak-takip": "docTrack",
@@ -1683,6 +1301,7 @@ useEffect(() => {
   const navigate = (newTab) => {
     setTab(newTab);
     const routes = {
+      home: "/anasayfa",
       "dashboard": "/",
       "entry": "/veri-girisi",
       "docs": "/dokuman",
@@ -3351,6 +2970,147 @@ for(const emp of (next.employees || [])){
   }, [auth, isAdmin, entryProject, activeCategory]);
 
   /* ===================== LOGIN SCREEN ===================== */
+
+  
+  // 🎨 MODERN NAVBAR COMPONENT (v005)
+  function ModernNavbar() {
+    return (
+      <header className="modern-navbar">
+        <div className="navbar-container">
+          <div className="navbar-left">
+            <button 
+              className="theme-toggle-modern" 
+              onClick={() => setTheme(t => t === 'dark' ? 'light' : 'dark')}
+              title={theme === 'dark' ? 'Aydınlık Mod' : 'Karanlık Mod'}
+            >
+              {theme === 'dark' ? '☀️' : '🌙'}
+            </button>
+            <div className="navbar-brand">
+              📊 TVS Team Veri Takip
+            </div>
+          </div>
+
+          <nav className="navbar-center">
+            <button 
+              className={`navbar-tab ${tab === 'home' ? 'active' : ''}`}
+              onClick={() => navigate('home')}
+            >
+              🏠 Anasayfa
+            </button>
+            <button 
+              className={`navbar-tab ${tab === 'dashboard' ? 'active' : ''}`}
+              onClick={() => navigate('dashboard')}
+            >
+              📊 Dashboard
+            </button>
+            <button 
+              className={`navbar-tab ${tab === 'entry' ? 'active' : ''}`}
+              onClick={() => navigate('entry')}
+            >
+              ✍️ Veri Girişi
+            </button>
+            <button 
+              className={`navbar-tab ${tab === 'attendance' ? 'active' : ''}`}
+              onClick={() => navigate('attendance')}
+            >
+              📅 Puantaj
+            </button>
+            <button 
+              className={`navbar-tab ${tab === 'actions' ? 'active' : ''}`}
+              onClick={() => navigate('actions')}
+            >
+              🎯 Aksiyonlar
+            </button>
+            {isAdmin && (
+              <button 
+                className={`navbar-tab ${tab === 'admin' ? 'active' : ''}`}
+                onClick={() => navigate('admin')}
+              >
+                ⚙️ Admin
+              </button>
+            )}
+          </nav>
+
+          <div className="navbar-right">
+            <div className="user-avatar-modern">
+              {auth?.username?.charAt(0).toUpperCase() || 'U'}
+            </div>
+            <button className="logout-btn-modern" onClick={handleLogout}>
+              Çıkış
+            </button>
+          </div>
+        </div>
+      </header>
+    );
+  }
+
+  // 🏠 HOME PAGE COMPONENT (v005)
+  function HomePage() {
+    const totalProjects = state.projects?.length || 0;
+    const totalEmployees = state.employees?.length || 0;
+    const totalRecords = state.categories?.reduce((sum, cat) => {
+      return sum + state.projects?.reduce((pSum, proj) => {
+        return pSum + (proj.itemsByCategory?.[cat.key]?.length || 0);
+      }, 0);
+    }, 0) || 0;
+
+    return (
+      <div style={{ maxWidth: 1400, margin: '0 auto', padding: 32 }}>
+        <div className="home-hero">
+          <h1>Hoş Geldiniz, {auth?.username}! 👋</h1>
+          <p>TVS Team Veri Takip Sistemi ile projelerinizi kolayca yönetin</p>
+        </div>
+
+        <div className="home-stats">
+          <div className="stat-card-modern" onClick={() => navigate('dashboard')}>
+            <div className="stat-value-modern">{totalProjects}</div>
+            <div className="stat-label-modern">Toplam Proje</div>
+          </div>
+          <div className="stat-card-modern" onClick={() => navigate('employees')}>
+            <div className="stat-value-modern">{totalEmployees}</div>
+            <div className="stat-label-modern">Toplam Çalışan</div>
+          </div>
+          <div className="stat-card-modern" onClick={() => navigate('dashboard')}>
+            <div className="stat-value-modern">{totalRecords}</div>
+            <div className="stat-label-modern">Toplam Kayıt</div>
+          </div>
+          <div className="stat-card-modern">
+            <div className="stat-value-modern">✓</div>
+            <div className="stat-label-modern">Sistem Aktif</div>
+          </div>
+        </div>
+
+        <div className="card" style={{ marginTop: 32 }}>
+          <h2 style={{ marginBottom: 20 }}>⚡ Hızlı Erişim</h2>
+          <div className="grid grid-3" style={{ gap: 16 }}>
+            <button 
+              className="btn" 
+              style={{ padding: 24, fontSize: 16, borderRadius: 16, background: 'linear-gradient(135deg, #6366f1, #8b5cf6)', color: 'white', border: 'none' }}
+              onClick={() => navigate('entry')}
+            >
+              ✍️ Yeni Veri Girişi
+            </button>
+            <button 
+              className="btn" 
+              style={{ padding: 24, fontSize: 16, borderRadius: 16, background: 'linear-gradient(135deg, #10b981, #14b8a6)', color: 'white', border: 'none' }}
+              onClick={() => navigate('attendance')}
+            >
+              📅 Puantaj İşlemleri
+            </button>
+            <button 
+              className="btn" 
+              style={{ padding: 24, fontSize: 16, borderRadius: 16, background: 'linear-gradient(135deg, #f59e0b, #fb923c)', color: 'white', border: 'none' }}
+              onClick={() => navigate('actions')}
+            >
+              🎯 Aksiyonlar
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+
 
   if(!auth){
     return (
