@@ -1010,7 +1010,7 @@ const supabase = createClient(
   import.meta.env.VITE_SUPABASE_ANON_KEY
 );
 
-/* ===================== UYGULAMA ===================== */
+/* ===================== UYGULAMAA ===================== */
 /* NOT: Buradan aşağısı senin mevcut 5098 satırlık kodundur.
    SADECE üst kısma bu patch eklenmiştir.
 */
