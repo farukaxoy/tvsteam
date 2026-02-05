@@ -99,7 +99,7 @@ function canonProj(v){
   return String(v || "")
     .trim()
     .toUpperCase()
-    .replaceAll("İ","I").replaceAll("İ","I")
+    .replaceAll("İ","I")
     .replaceAll("ı","I")
     .replaceAll("Ğ","G").replaceAll("ğ","G")
     .replaceAll("Ü","U").replaceAll("ü","U")
@@ -132,6 +132,38 @@ function diffDays(fromIso, toIso){
   const ms = b.getTime() - a.getTime();
   return Math.ceil(ms / (1000*60*60*24));
 }
+
+// 🕐 FAZLA MESAİ HESAPLAMA (v005)
+function calculateOvertime(startTime, endTime) {
+  if (!startTime || !endTime) return 0;
+  
+  const [startH, startM] = startTime.split(':').map(Number);
+  const [endH, endM] = endTime.split(':').map(Number);
+  
+  let totalMinutes = (endH * 60 + endM) - (startH * 60 + startM);
+  if (totalMinutes < 0) totalMinutes += 24 * 60; // Gece vardiyası
+  
+  // 30 dakika mola düş
+  totalMinutes -= 30;
+  
+  // Günlük normal mesai: 8 saat = 480 dakika
+  const normalWorkMinutes = 480;
+  
+  // Fazla mesai hesapla
+  const overtimeMinutes = Math.max(0, totalMinutes - normalWorkMinutes);
+  const overtimeDecimal = (overtimeMinutes / 60).toFixed(2);
+  
+  return overtimeDecimal;
+}
+
+// Proje bazlı varsayılan mesai saatleri
+const PROJECT_WORK_HOURS = {
+  'SOCAR': { start: '08:00', end: '16:00' },
+  'TUPRAS_IZMIR': { start: '08:30', end: '17:30' },
+  'TUPRAS_IZMIT': { start: '08:30', end: '17:30' },
+  'TUPRAS_KIRIKKALE': { start: '08:30', end: '17:30' },
+  'TUPRAS_BATMAN': { start: '08:30', end: '17:30' }
+};
 
 
 const LOGIN_CSS = `
@@ -614,6 +646,333 @@ body {
   }
   .grid-4 {
     grid-template-columns: repeat(2, 1fr) !important;
+  }
+}
+
+/* ========================================
+   🎨 MODERN TASARIM v005
+   ======================================== */
+
+/* MODERN NAVBAR */
+.modern-navbar {
+  background: var(--bg-primary);
+  border-bottom: 1px solid var(--border-color);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.navbar-container {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 0 24px;
+  height: 70px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.navbar-left {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.navbar-brand {
+  font-size: 24px;
+  font-weight: 800;
+  background: linear-gradient(135deg, #6366f1, #ec4899);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  white-space: nowrap;
+}
+
+.navbar-center {
+  display: flex;
+  gap: 8px;
+  flex: 1;
+  justify-content: center;
+}
+
+.navbar-tab {
+  padding: 10px 20px;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  font-weight: 600;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+  position: relative;
+}
+
+.navbar-tab:hover {
+  background: var(--bg-secondary);
+  color: #6366f1;
+}
+
+.navbar-tab.active {
+  background: var(--bg-secondary);
+  color: #6366f1;
+}
+
+.navbar-tab.active::after {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  left: 20px;
+  right: 20px;
+  height: 3px;
+  background: linear-gradient(90deg, #6366f1, #ec4899);
+  border-radius: 3px 3px 0 0;
+}
+
+.navbar-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.theme-toggle-modern {
+  width: 40px;
+  height: 40px;
+  border: 2px solid var(--border-color);
+  background: var(--bg-secondary);
+  border-radius: 10px;
+  cursor: pointer;
+  font-size: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.theme-toggle-modern:hover {
+  transform: scale(1.05);
+  border-color: #6366f1;
+}
+
+.user-avatar-modern {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #6366f1, #ec4899);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: 700;
+  font-size: 16px;
+}
+
+.logout-btn-modern {
+  padding: 10px 20px;
+  background: linear-gradient(135deg, #ef4444, #dc2626);
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.logout-btn-modern:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+}
+
+/* HOME PAGE */
+.home-hero {
+  background: linear-gradient(135deg, #6366f1, #ec4899);
+  border-radius: 24px;
+  padding: 48px;
+  color: white;
+  margin-bottom: 32px;
+  position: relative;
+  overflow: hidden;
+}
+
+.home-hero::after {
+  content: '';
+  position: absolute;
+  right: -50px;
+  bottom: -50px;
+  width: 300px;
+  height: 300px;
+  background: rgba(255,255,255,0.1);
+  border-radius: 50%;
+  filter: blur(40px);
+}
+
+.home-hero h1 {
+  font-size: 42px;
+  font-weight: 800;
+  margin: 0 0 12px 0;
+  position: relative;
+  z-index: 1;
+}
+
+.home-hero p {
+  font-size: 18px;
+  opacity: 0.95;
+  position: relative;
+  z-index: 1;
+  margin: 0;
+}
+
+.home-stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 24px;
+  margin-bottom: 32px;
+}
+
+.stat-card-modern {
+  background: var(--bg-primary);
+  border-radius: 16px;
+  padding: 24px;
+  border: 2px solid var(--border-color);
+  transition: all 0.3s;
+  cursor: pointer;
+}
+
+.stat-card-modern:hover {
+  border-color: #6366f1;
+  transform: translateY(-4px);
+  box-shadow: 0 12px 24px rgba(0,0,0,0.1);
+}
+
+.stat-value-modern {
+  font-size: 36px;
+  font-weight: 800;
+  background: linear-gradient(135deg, #6366f1, #ec4899);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  margin-bottom: 8px;
+}
+
+.stat-label-modern {
+  font-size: 14px;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+/* DASHBOARD FILTERS */
+.filter-cards-modern {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 20px;
+  margin-bottom: 24px;
+}
+
+.filter-card-modern {
+  padding: 24px;
+  background: var(--bg-secondary);
+  border-radius: 16px;
+  border: 2px solid var(--border-color);
+  text-align: center;
+  transition: all 0.2s;
+}
+
+.filter-card-modern:hover {
+  border-color: #6366f1;
+  transform: translateY(-2px);
+}
+
+.filter-icon-modern {
+  font-size: 36px;
+  margin-bottom: 12px;
+}
+
+.filter-label-modern {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-secondary);
+  margin-bottom: 12px;
+  display: block;
+}
+
+/* PUANTAJ TIME INPUTS */
+.attendance-time-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.attendance-time-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.attendance-time-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.attendance-time-input {
+  padding: 10px 12px;
+  border: 2px solid var(--border-color);
+  border-radius: 8px;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-size: 15px;
+  font-weight: 600;
+  transition: all 0.2s;
+}
+
+.attendance-time-input:focus {
+  outline: none;
+  border-color: #6366f1;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+}
+
+.attendance-overtime-info {
+  margin-top: 12px;
+  padding: 12px;
+  background: rgba(245, 158, 11, 0.1);
+  border: 2px solid rgba(245, 158, 11, 0.3);
+  border-radius: 10px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.attendance-overtime-value {
+  font-weight: 800;
+  color: #f59e0b;
+  font-size: 16px;
+}
+
+@media (max-width: 1024px) {
+  .home-stats,
+  .filter-cards-modern {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .navbar-center {
+    display: none;
+  }
+  .navbar-brand {
+    font-size: 18px;
+  }
+  .home-hero h1 {
+    font-size: 28px;
+  }
+  .home-hero p {
+    font-size: 14px;
+  }
+  .home-stats,
+  .filter-cards-modern {
+    grid-template-columns: 1fr;
   }
 }
 `;
@@ -1269,7 +1628,7 @@ useEffect(() => {
       }
     })();
   }, []);
-  const [tab, setTab] = useState("home");
+  const [tab, setTab] = useState("home");  // v005: Anasayfa başlangıç
   const [notifOpen, setNotifOpen] = useState(false);
   const notifRef = useRef(null);
   
@@ -1277,7 +1636,6 @@ useEffect(() => {
   useEffect(() => {
     const path = window.location.pathname;
     const routes = {
-      home: "/anasayfa",
       "/": "home",
       "/anasayfa": "home",
       "/veri-girisi": "entry",
@@ -1301,7 +1659,7 @@ useEffect(() => {
   const navigate = (newTab) => {
     setTab(newTab);
     const routes = {
-      home: "/anasayfa",
+      "home": "/anasayfa",
       "dashboard": "/",
       "entry": "/veri-girisi",
       "docs": "/dokuman",
@@ -1563,7 +1921,7 @@ useEffect(() => {
 
   /* ===== normalization: kategori eklendiğinde projelere alan aç ===== */
   function normalizeState(s){
-    const next = s; // deepClone zaten updateState'de yapılıyor, tekrar yapmayalım
+    const next = s; // deepClone zaten updateState de yapılıyor, tekrar yapmayalım
 
     // --- ensure defaults exist (without breaking existing dynamic categories) ---
     const defaultCats = defaultCategories();
@@ -2278,7 +2636,8 @@ for(const emp of (next.employees || [])){
   }
   
   // Tek gün için puantaj kaydet
-  function setAttendanceDay(employeeId, monthKey, day, status, note = ""){
+  // 🕐 v005: Mesai saatleri parametreleri eklendi
+  function setAttendanceDay(employeeId, monthKey, day, status, note = "", startTime = "", endTime = "", overtime = 0){
     updateState(d => {
       if(!d.attendance) d.attendance = {};
       if(!d.attendance[employeeId]) d.attendance[employeeId] = {};
@@ -2291,6 +2650,9 @@ for(const emp of (next.employees || [])){
       month.days[day] = {
         status,
         note: (note || "").trim(),
+        startTime: startTime || "",
+        endTime: endTime || "",
+        overtime: parseFloat(overtime) || 0,
         updatedBy: auth?.username || "admin",
         updatedAt: new Date().toISOString()
       };
@@ -2971,147 +3333,6 @@ for(const emp of (next.employees || [])){
 
   /* ===================== LOGIN SCREEN ===================== */
 
-  
-  // 🎨 MODERN NAVBAR COMPONENT (v005)
-  function ModernNavbar() {
-    return (
-      <header className="modern-navbar">
-        <div className="navbar-container">
-          <div className="navbar-left">
-            <button 
-              className="theme-toggle-modern" 
-              onClick={() => setTheme(t => t === 'dark' ? 'light' : 'dark')}
-              title={theme === 'dark' ? 'Aydınlık Mod' : 'Karanlık Mod'}
-            >
-              {theme === 'dark' ? '☀️' : '🌙'}
-            </button>
-            <div className="navbar-brand">
-              📊 TVS Team Veri Takip
-            </div>
-          </div>
-
-          <nav className="navbar-center">
-            <button 
-              className={`navbar-tab ${tab === 'home' ? 'active' : ''}`}
-              onClick={() => navigate('home')}
-            >
-              🏠 Anasayfa
-            </button>
-            <button 
-              className={`navbar-tab ${tab === 'dashboard' ? 'active' : ''}`}
-              onClick={() => navigate('dashboard')}
-            >
-              📊 Dashboard
-            </button>
-            <button 
-              className={`navbar-tab ${tab === 'entry' ? 'active' : ''}`}
-              onClick={() => navigate('entry')}
-            >
-              ✍️ Veri Girişi
-            </button>
-            <button 
-              className={`navbar-tab ${tab === 'attendance' ? 'active' : ''}`}
-              onClick={() => navigate('attendance')}
-            >
-              📅 Puantaj
-            </button>
-            <button 
-              className={`navbar-tab ${tab === 'actions' ? 'active' : ''}`}
-              onClick={() => navigate('actions')}
-            >
-              🎯 Aksiyonlar
-            </button>
-            {isAdmin && (
-              <button 
-                className={`navbar-tab ${tab === 'admin' ? 'active' : ''}`}
-                onClick={() => navigate('admin')}
-              >
-                ⚙️ Admin
-              </button>
-            )}
-          </nav>
-
-          <div className="navbar-right">
-            <div className="user-avatar-modern">
-              {auth?.username?.charAt(0).toUpperCase() || 'U'}
-            </div>
-            <button className="logout-btn-modern" onClick={handleLogout}>
-              Çıkış
-            </button>
-          </div>
-        </div>
-      </header>
-    );
-  }
-
-  // 🏠 HOME PAGE COMPONENT (v005)
-  function HomePage() {
-    const totalProjects = state.projects?.length || 0;
-    const totalEmployees = state.employees?.length || 0;
-    const totalRecords = state.categories?.reduce((sum, cat) => {
-      return sum + state.projects?.reduce((pSum, proj) => {
-        return pSum + (proj.itemsByCategory?.[cat.key]?.length || 0);
-      }, 0);
-    }, 0) || 0;
-
-    return (
-      <div style={{ maxWidth: 1400, margin: '0 auto', padding: 32 }}>
-        <div className="home-hero">
-          <h1>Hoş Geldiniz, {auth?.username}! 👋</h1>
-          <p>TVS Team Veri Takip Sistemi ile projelerinizi kolayca yönetin</p>
-        </div>
-
-        <div className="home-stats">
-          <div className="stat-card-modern" onClick={() => navigate('dashboard')}>
-            <div className="stat-value-modern">{totalProjects}</div>
-            <div className="stat-label-modern">Toplam Proje</div>
-          </div>
-          <div className="stat-card-modern" onClick={() => navigate('employees')}>
-            <div className="stat-value-modern">{totalEmployees}</div>
-            <div className="stat-label-modern">Toplam Çalışan</div>
-          </div>
-          <div className="stat-card-modern" onClick={() => navigate('dashboard')}>
-            <div className="stat-value-modern">{totalRecords}</div>
-            <div className="stat-label-modern">Toplam Kayıt</div>
-          </div>
-          <div className="stat-card-modern">
-            <div className="stat-value-modern">✓</div>
-            <div className="stat-label-modern">Sistem Aktif</div>
-          </div>
-        </div>
-
-        <div className="card" style={{ marginTop: 32 }}>
-          <h2 style={{ marginBottom: 20 }}>⚡ Hızlı Erişim</h2>
-          <div className="grid grid-3" style={{ gap: 16 }}>
-            <button 
-              className="btn" 
-              style={{ padding: 24, fontSize: 16, borderRadius: 16, background: 'linear-gradient(135deg, #6366f1, #8b5cf6)', color: 'white', border: 'none' }}
-              onClick={() => navigate('entry')}
-            >
-              ✍️ Yeni Veri Girişi
-            </button>
-            <button 
-              className="btn" 
-              style={{ padding: 24, fontSize: 16, borderRadius: 16, background: 'linear-gradient(135deg, #10b981, #14b8a6)', color: 'white', border: 'none' }}
-              onClick={() => navigate('attendance')}
-            >
-              📅 Puantaj İşlemleri
-            </button>
-            <button 
-              className="btn" 
-              style={{ padding: 24, fontSize: 16, borderRadius: 16, background: 'linear-gradient(135deg, #f59e0b, #fb923c)', color: 'white', border: 'none' }}
-              onClick={() => navigate('actions')}
-            >
-              🎯 Aksiyonlar
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-
-
   if(!auth){
     return (
       <div className="loginHero" data-theme={darkMode ? "dark" : "light"}>
@@ -3195,42 +3416,76 @@ for(const emp of (next.employees || [])){
 
   return (
     <div className="appShell" data-theme={darkMode ? "dark" : "light"}>
-      <button 
-        className="theme-toggle" 
-        onClick={toggleDarkMode}
-        aria-label="Tema Değiştir"
-      >
-        {darkMode ? "☀️" : "🌙"}
-      </button>
-      <div className="topNav">
-        <div className="brandRow">
-          <div className="brandDot" />
-          <div>
-            <div className="brandTitle">Aylık Takip Formu</div>
-            <div className="brandSub">Scaffolding Control Services</div>
+      {/* 🎨 MODERN NAVBAR v005 */}
+      <header className="modern-navbar">
+        <div className="navbar-container">
+          <div className="navbar-left">
+            <button 
+              className="theme-toggle-modern" 
+              onClick={toggleDarkMode}
+              title={darkMode ? 'Aydınlık Mod' : 'Karanlık Mod'}
+            >
+              {darkMode ? '☀️' : '🌙'}
+            </button>
+            <div className="navbar-brand">
+              📊 TVS Team Veri Takip
+            </div>
+          </div>
+
+          <nav className="navbar-center">
+            <button 
+              className={`navbar-tab ${tab === 'home' ? 'active' : ''}`}
+              onClick={() => navigate('home')}
+            >
+              🏠 Anasayfa
+            </button>
+            <button 
+              className={`navbar-tab ${tab === 'dashboard' ? 'active' : ''}`}
+              onClick={() => navigate('dashboard')}
+            >
+              📊 Dashboard
+            </button>
+            <button 
+              className={`navbar-tab ${tab === 'entry' ? 'active' : ''}`}
+              onClick={() => navigate('entry')}
+            >
+              ✍️ Veri Girişi
+            </button>
+            <button 
+              className={`navbar-tab ${tab === 'attendance' ? 'active' : ''}`}
+              onClick={() => navigate('attendance')}
+            >
+              📅 Puantaj
+            </button>
+            <button 
+              className={`navbar-tab ${tab === 'actions' ? 'active' : ''}`}
+              onClick={() => navigate('actions')}
+            >
+              🎯 Aksiyonlar
+            </button>
+            {isAdmin && (
+              <button 
+                className={`navbar-tab ${tab === 'admin' ? 'active' : ''}`}
+                onClick={() => navigate('admin')}
+              >
+                ⚙️ Admin
+              </button>
+            )}
+          </nav>
+
+          <div className="navbar-right">
+            <div className="user-avatar-modern">
+              {auth?.username?.charAt(0).toUpperCase() || 'U'}
+            </div>
+            <button className="logout-btn-modern" onClick={handleLogout}>
+              Çıkış
+            </button>
           </div>
         </div>
+      </header>
 
-        <div className="navTabs">
-          <button className={"navBtn " + (tab === "dashboard" ? "active" : "")} type="button" onClick={() => navigate("dashboard")}>Dashboard</button>
-          <button className={"navBtn " + (tab === "entry" ? "active" : "")} type="button" onClick={() => navigate("entry")}>Veri Girişi</button>
-          <button className={"navBtn " + (tab === "docs" ? "active" : "")} type="button" onClick={() => navigate("docs")}>Dokümanlar</button>
-          <button className={"navBtn " + (tab === "docTrack" ? "active" : "")} type="button" onClick={() => navigate("docTrack")}>Evrak Takip</button>
-          <button className={"navBtn " + (tab === "attendance" ? "active" : "")} type="button" onClick={() => navigate("attendance")}>Puantaj</button>
-          <button className={"navBtn " + (tab === "actions" ? "active" : "")} type="button" onClick={() => navigate("actions")}>Aksiyonlar</button>
-          <button className={"navBtn " + (tab === "announcements" ? "active" : "")} type="button" onClick={() => navigate("announcements")}>Duyurular</button>
-          <button className={"navBtn " + (tab === "contact" ? "active" : "")} type="button" onClick={() => navigate("contact")}>İletişim</button>
-          {isAdmin && (
-            <>
-              <button className={"navBtn " + (tab === "approvals" ? "active" : "")} type="button" onClick={() => navigate("approvals")}>Onaylar</button>
-              <button className={"navBtn " + (tab === "employees" ? "active" : "")} type="button" onClick={() => navigate("employees")}>Personel</button>
-              <button className={"navBtn " + (tab === "admin" ? "active" : "")} type="button" onClick={() => navigate("admin")}>Admin</button>
-            </>
-          )}
-        </div>
-
-        <div className="navRight">
-          <div ref={notifRef} style={{ position: "relative", marginRight: 10 }}>
+      <div className="appContent" style={{ paddingTop: 0 }}>
+      <div ref={notifRef} style={{ position: "absolute", top: 80, right: 20, zIndex: 1000 }}>
             <button
               type="button"
               className="navBtn"
@@ -3489,67 +3744,145 @@ for(const emp of (next.employees || [])){
 
         {/* RIGHT CONTENT */}
         <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+          
+          {/* 🏠 HOME PAGE v005 */}
+          {tab === "home" && (
+            <div style={{ maxWidth: 1400, margin: '0 auto', padding: 32 }}>
+              <div className="home-hero">
+                <h1>Hoş Geldiniz, {auth?.username}! 👋</h1>
+                <p>TVS Team Veri Takip Sistemi ile projelerinizi kolayca yönetin</p>
+              </div>
+
+              <div className="home-stats">
+                <div className="stat-card-modern" onClick={() => navigate('dashboard')}>
+                  <div className="stat-value-modern">{state.projects?.length || 0}</div>
+                  <div className="stat-label-modern">Toplam Proje</div>
+                </div>
+                <div className="stat-card-modern" onClick={() => navigate('employees')}>
+                  <div className="stat-value-modern">{state.employees?.length || 0}</div>
+                  <div className="stat-label-modern">Toplam Çalışan</div>
+                </div>
+                <div className="stat-card-modern" onClick={() => navigate('dashboard')}>
+                  <div className="stat-value-modern">
+                    {state.categories?.reduce((sum, cat) => {
+                      return sum + state.projects?.reduce((pSum, proj) => {
+                        return pSum + (proj.itemsByCategory?.[cat.key]?.length || 0);
+                      }, 0);
+                    }, 0) || 0}
+                  </div>
+                  <div className="stat-label-modern">Toplam Kayıt</div>
+                </div>
+                <div className="stat-card-modern">
+                  <div className="stat-value-modern">✓</div>
+                  <div className="stat-label-modern">Sistem Aktif</div>
+                </div>
+              </div>
+
+              <div className="card" style={{ marginTop: 32 }}>
+                <h2 style={{ marginBottom: 20 }}>⚡ Hızlı Erişim</h2>
+                <div className="grid grid-3" style={{ gap: 16 }}>
+                  <button 
+                    className="btn" 
+                    style={{ padding: 24, fontSize: 16, borderRadius: 16, background: 'linear-gradient(135deg, #6366f1, #8b5cf6)', color: 'white', border: 'none', cursor: 'pointer' }}
+                    onClick={() => navigate('entry')}
+                  >
+                    ✍️ Yeni Veri Girişi
+                  </button>
+                  <button 
+                    className="btn" 
+                    style={{ padding: 24, fontSize: 16, borderRadius: 16, background: 'linear-gradient(135deg, #10b981, #14b8a6)', color: 'white', border: 'none', cursor: 'pointer' }}
+                    onClick={() => navigate('attendance')}
+                  >
+                    📅 Puantaj İşlemleri
+                  </button>
+                  <button 
+                    className="btn" 
+                    style={{ padding: 24, fontSize: 16, borderRadius: 16, background: 'linear-gradient(135deg, #f59e0b, #fb923c)', color: 'white', border: 'none', cursor: 'pointer' }}
+                    onClick={() => navigate('actions')}
+                  >
+                    🎯 Aksiyonlar
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
           {tab === "dashboard" && (
             <>
               <div className="card">
                 <div className="cardTitleRow">
-                  <h3>Dashboard Hızlı Filtreler</h3>
+                  <h3>🔍 Dashboard Hızlı Filtreler</h3>
                 </div>
 
-                <div className="row" style={{ marginTop: 10, flexWrap: "wrap" }}>
+                {/* 🎯 MODERN FİLTRELER v005 */}
+                <div className="filter-cards-modern">
                   {isAdmin && (
-                    <select
-                      className="input sm"
-                      value={dashProjectId}
-                      onChange={(e) => setDashProjectId(e.target.value)}
-                      style={{ minWidth: 130 }}
-                    >
-                      <option value="ALL">Tüm Projeler</option>
-                      {(state.projects || []).map((p) => (
-                        <option key={p.id} value={p.id}>{p.name}</option>
-                      ))}
-                    </select>
+                    <div className="filter-card-modern">
+                      <div className="filter-icon-modern">📁</div>
+                      <label className="filter-label-modern">Proje Seçin</label>
+                      <select
+                        className="input sm"
+                        value={dashProjectId}
+                        onChange={(e) => setDashProjectId(e.target.value)}
+                      >
+                        <option value="ALL">Tüm Projeler</option>
+                        {(state.projects || []).map((p) => (
+                          <option key={p.id} value={p.id}>{p.name}</option>
+                        ))}
+                      </select>
+                    </div>
                   )}
 
-                  <select
-                    className="input sm"
-                    value={activeYear}
-                    onChange={(e) => setActiveYear(safeNum(e.target.value))}
-                    style={{ minWidth: 110 }}
-                  >
-                    {yearOptions().map((yy) => (
-                      <option key={yy} value={yy}>{yy}</option>
-                    ))}
-                  </select>
+                  <div className="filter-card-modern">
+                    <div className="filter-icon-modern">📅</div>
+                    <label className="filter-label-modern">Yıl Seçin</label>
+                    <select
+                      className="input sm"
+                      value={activeYear}
+                      onChange={(e) => setActiveYear(safeNum(e.target.value))}
+                    >
+                      {yearOptions().map((yy) => (
+                        <option key={yy} value={yy}>{yy}</option>
+                      ))}
+                    </select>
+                  </div>
 
-                  <select
-                    className="input sm"
-                    value={activeMonth}
-                    onChange={(e) => setActiveMonth(e.target.value)}
-                    style={{ minWidth: 130 }}
-                  >
-                    {monthOptions().map((mm) => (
-                      <option key={mm.key} value={mm.key}>{mm.label}</option>
-                    ))}
-                  </select>
+                  <div className="filter-card-modern">
+                    <div className="filter-icon-modern">📆</div>
+                    <label className="filter-label-modern">Ay Seçin</label>
+                    <select
+                      className="input sm"
+                      value={activeMonth}
+                      onChange={(e) => setActiveMonth(e.target.value)}
+                    >
+                      {monthOptions().map((mm) => (
+                        <option key={mm.key} value={mm.key}>{mm.label}</option>
+                      ))}
+                    </select>
+                  </div>
 
-                  <select
-                    className="input sm"
-                    value={categoryKey}
-                    onChange={(e) => setCategoryKey(e.target.value)}
-                    style={{ minWidth: 130 }}
-                  >
-                    {visibleCategories.map((c) => (
-                      <option key={c.key} value={c.key}>{c.name}</option>
-                    ))}
-                  </select>
+                  <div className="filter-card-modern">
+                    <div className="filter-icon-modern">📋</div>
+                    <label className="filter-label-modern">Kategori</label>
+                    <select
+                      className="input sm"
+                      value={categoryKey}
+                      onChange={(e) => setCategoryKey(e.target.value)}
+                    >
+                      {visibleCategories.map((c) => (
+                        <option key={c.key} value={c.key}>{c.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
 
+                <div style={{ marginTop: 16 }}>
                   <input
                     className="input sm"
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
                     placeholder={`${activeCategory?.itemLabel || "Kayıt"} ara...`}
-                    style={{ minWidth: 240, flex: 1 }}
+                    style={{ width: '100%' }}
                   />
                 </div>
 
@@ -3844,7 +4177,6 @@ for(const emp of (next.employees || [])){
         </div>
       </div>
 
-      </div>
       <div className="footer">© {new Date().getFullYear()} 2026 Faruk Aksoy • TVS Proje Takip Platformu</div>
     </div>
   );
@@ -4615,7 +4947,7 @@ function escapeHtml(s){
     .replaceAll("&", "&amp;")
     .replaceAll("<", "&lt;")
     .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
+    .replaceAll(String.fromCharCode(34), "&quot;")
     .replaceAll("'", "&#039;");
 }
 
@@ -7737,6 +8069,9 @@ function AttendanceCalendarView({ employee, monthKey, year, month, monthDays, mo
   const [selectedDay, setSelectedDay] = useState(null);
   const [status, setStatus] = useState("present");
   const [note, setNote] = useState("");
+  // 🕐 v005: Mesai saatleri
+  const [startTime, setStartTime] = useState("08:00");
+  const [endTime, setEndTime] = useState("16:00");
   
   const firstDay = new Date(year, month - 1, 1).getDay();
   const calendarDays = [];
@@ -7750,12 +8085,29 @@ function AttendanceCalendarView({ employee, monthKey, year, month, monthDays, mo
     calendarDays.push(i);
   }
   
+  // Modal açıldığında mevcut veriyi yükle
+  React.useEffect(() => {
+    if(selectedDay){
+      const dayData = monthData.days?.[selectedDay];
+      if(dayData){
+        setStatus(dayData.status || "present");
+        setNote(dayData.note || "");
+        setStartTime(dayData.startTime || "08:00");
+        setEndTime(dayData.endTime || "16:00");
+      }
+    }
+  }, [selectedDay, monthData]);
+  
   function handleSave(){
     if(!selectedDay) return;
-    setAttendanceDay(employee.id, monthKey, selectedDay, status, note);
+    const overtime = calculateOvertime(startTime, endTime);
+    // Mesai saatleri ile birlikte kaydet
+    setAttendanceDay(employee.id, monthKey, selectedDay, status, note, startTime, endTime, overtime);
     setSelectedDay(null);
     setStatus("present");
     setNote("");
+    setStartTime("08:00");
+    setEndTime("16:00");
   }
   
   return (
@@ -7811,13 +8163,27 @@ function AttendanceCalendarView({ employee, monthKey, year, month, monthDays, mo
             >
               <div style={{fontWeight:700, fontSize:18}}>{day}</div>
               {dayData?.status && (
-                <div className="small" style={{
-                  color: bgColor,
-                  fontWeight:600,
-                  marginTop:4
-                }}>
-                  {ATTENDANCE_LABELS[dayData.status]}
-                </div>
+                <>
+                  <div className="small" style={{
+                    color: bgColor,
+                    fontWeight:600,
+                    marginTop:4
+                  }}>
+                    {ATTENDANCE_LABELS[dayData.status]}
+                  </div>
+                  {/* 🕐 Mesai saatleri göster */}
+                  {dayData.startTime && dayData.endTime && (
+                    <div style={{fontSize:10, marginTop:2, color:'#64748b'}}>
+                      {dayData.startTime}-{dayData.endTime}
+                    </div>
+                  )}
+                  {/* ⏱️ Fazla mesai göster */}
+                  {dayData.overtime > 0 && (
+                    <div style={{fontSize:10, fontWeight:700, color:'#f59e0b', marginTop:2}}>
+                      FM: {dayData.overtime}s
+                    </div>
+                  )}
+                </>
               )}
             </button>
           );
@@ -7887,6 +8253,43 @@ function AttendanceCalendarView({ employee, monthKey, year, month, monthDays, mo
                 placeholder="İsteğe bağlı..."
                 rows={3}
               />
+            </div>
+            
+            {/* 🕐 MESAİ SAATLERİ v005 */}
+            <div className="attendance-time-row">
+              <div className="attendance-time-group">
+                <label className="attendance-time-label">🕐 Giriş Saati</label>
+                <input 
+                  type="time" 
+                  className="attendance-time-input"
+                  value={startTime}
+                  onChange={e => setStartTime(e.target.value)}
+                />
+              </div>
+              <div className="attendance-time-group">
+                <label className="attendance-time-label">🕐 Çıkış Saati</label>
+                <input 
+                  type="time" 
+                  className="attendance-time-input"
+                  value={endTime}
+                  onChange={e => setEndTime(e.target.value)}
+                />
+              </div>
+            </div>
+            
+            {/* FAZLA MESAİ BİLGİSİ */}
+            {startTime && endTime && (
+              <div className="attendance-overtime-info">
+                <span style={{fontSize:14}}>⏱️ Fazla Mesai:</span>
+                <span className="attendance-overtime-value">
+                  {calculateOvertime(startTime, endTime)} saat
+                </span>
+              </div>
+            )}
+            
+            <div style={{marginTop:12, padding:12, background:'#f0f9ff', borderRadius:8, fontSize:12, color:'#0369a1'}}>
+              💡 <strong>Not:</strong> Günlük mesai 8 saat (30dk mola dahil). 7:30 saatin üzeri fazla mesai olarak hesaplanır.
+              <br/>📌 SOCAR: 08:00-16:00 | Tüpraş: 08:30-17:30
             </div>
             
             <div className="row" style={{gap:8, marginTop:16}}>
@@ -8008,7 +8411,7 @@ class ErrorBoundary extends React.Component{
       return (
         <div style={{padding:16, fontFamily:"ui-sans-serif, system-ui"}}>
           <h2 style={{margin:"0 0 8px 0"}}>Uygulama Hatası</h2>
-          <div style={{opacity:.8, marginBottom:10}}>Konsoldaki ilk hata satırını lütfen bana atarsan tek seferde düzeltirim.</div>
+          <div style={{opacity:.8, marginBottom:10}}>Konsoldaki ilk hata satırını bana atarsan tek seferde düzeltirim.</div>
           <pre style={{whiteSpace:"pre-wrap", background:"rgba(0,0,0,.06)", padding:12, borderRadius:12}}>
             {String(this.state.error && (this.state.error.stack || this.state.error.message || this.state.error))}
           </pre>
