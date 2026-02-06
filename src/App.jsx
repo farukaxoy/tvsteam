@@ -3686,7 +3686,7 @@ function AppInner() {
 
               {/* 🏠 HOME PAGE v005 */}
               {tab === "home" && (
-                <div style={{ maxWidth: 1400, margin: '0 auto', padding: 32 }}>
+                <div style={{ width: '100%', padding: 32 }}>
                   <div className="home-hero">
                     <h1>Hoş Geldiniz, {auth?.username}! 👋</h1>
                     <p>TVS Team Veri Takip Sistemi ile projelerinizi kolayca yönetin</p>
