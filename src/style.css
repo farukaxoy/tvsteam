@@ -266,7 +266,7 @@ body {
 
 /* Layout */
 .container {
-  width: min(1280px, calc(100% - 36px));
+  width: min(1400px, calc(100% - 36px));
   margin: 18px auto 34px;
 }
 
