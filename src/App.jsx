@@ -1676,6 +1676,25 @@ function AppInner() {
     window.history.pushState({}, "", newPath);
   };
 
+  // 🎯 Keyboard navigation: Arrow keys for browser back/forward
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      // Alt + Left Arrow = Back
+      if (e.altKey && e.key === 'ArrowLeft') {
+        e.preventDefault();
+        window.history.back();
+      }
+      // Alt + Right Arrow = Forward
+      if (e.altKey && e.key === 'ArrowRight') {
+        e.preventDefault();
+        window.history.forward();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
   const [activeYear, setActiveYear] = useState(initY);
   const [activeMonth, setActiveMonth] = useState(initM);
 
@@ -3452,6 +3471,18 @@ function AppInner() {
               ✍️ Veri Girişi
             </button>
             <button
+              className={`navbar-tab ${tab === 'docs' ? 'active' : ''}`}
+              onClick={() => navigate('docs')}
+            >
+              📄 Doküman
+            </button>
+            <button
+              className={`navbar-tab ${tab === 'docTrack' ? 'active' : ''}`}
+              onClick={() => navigate('docTrack')}
+            >
+              🗂️ Evrak Takip
+            </button>
+            <button
               className={`navbar-tab ${tab === 'attendance' ? 'active' : ''}`}
               onClick={() => navigate('attendance')}
             >
@@ -4176,9 +4207,14 @@ function DashboardView({ monthKey, category, rows, projects, employees, actions,
     const prjs = Array.isArray(projects) ? projects : [];
     const emps = Array.isArray(employees) ? employees : [];
     const att = attendance || {};
+
+    // 🔒 Sadece bu projelerdeki çalışanları filtrele
+    const projectNames = prjs.map(p => p.name);
+    const filteredEmps = emps.filter(e => projectNames.includes(e.project));
+
     const zeroAgg = () => ({ present: 0, absent: 0, paid_leave: 0, unpaid_leave: 0, sick_leave: 0, excuse: 0, weekend: 0, holiday: 0, half_day: 0, unset: 0, totalDays: 0, workDays: 0 });
     const blocks = prjs.map(proj => {
-      const projEmps = emps.filter(e => e.project === proj.name);
+      const projEmps = filteredEmps.filter(e => e.project === proj.name);
       const agg = zeroAgg();
       projEmps.forEach(emp => {
         const s = att[emp.id]?.[monthKey]?.stats || {};
@@ -4709,7 +4745,7 @@ function KPI({ label, value }) {
   return (
     <div className="kpi">
       <div className="k">{label}</div>
-      <div className="v">{String(value)}</div>
+      <div className="v" style={{ wordBreak: 'break-word', overflow: 'hidden', textOverflow: 'ellipsis' }}>{String(value)}</div>
     </div>
   );
 }
