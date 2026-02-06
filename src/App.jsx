@@ -489,7 +489,17 @@ const NAV_CSS = `
 .logoutBtn:hover{ background: rgba(239,68,68,.10); }
 
 /* Keep main grid from touching top */
-.mainArea{ padding: 16px; }
+.mainArea{ 
+  padding: 24px; 
+  max-width: 1400px; 
+  margin: 0 auto; 
+  width: 100%;
+}
+
+.mainArea.dashboard-view {
+  max-width: 100%;
+  padding: 16px;
+}
 
 /* Mobile Responsive */
 @media (max-width: 900px){
@@ -981,6 +991,58 @@ body {
   .filter-cards-modern {
     grid-template-columns: 1fr;
   }
+}
+
+
+/* Modern Select Dropdowns */
+select.modern-select,
+.modern-select {
+  appearance: none;
+  background: white;
+  border: 2px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 12px 40px 12px 16px;
+  font-size: 15px;
+  font-weight: 500;
+  color: #1f2937;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%234b5563' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-size: 18px;
+}
+
+select.modern-select:hover,
+.modern-select:hover {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+[data-theme="dark"] select.modern-select,
+[data-theme="dark"] .modern-select {
+  background: #1f2937;
+  border-color: #374151;
+  color: #f9fafb;
+}
+
+/* Admin Modern Styles */
+.admin-modern-wrapper {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.admin-modern-wrapper .card {
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  transition: box-shadow 0.2s;
+}
+
+.admin-modern-wrapper .card:hover {
+  box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+}
+
+[data-theme="dark"] .admin-modern-wrapper .card:hover {
+  box-shadow: 0 4px 16px rgba(0,0,0,0.3);
 }
 `;
 
@@ -3627,7 +3689,7 @@ function AppInner() {
           )}
         </div>
 
-        <div className="mainArea">
+        <div className={`mainArea ${tab === "dashboard" ? "dashboard-view" : ""}`}>
           <div className={`grid ${tab === "dashboard" ? "gridSingle" : ""}`}>
             {/* LEFT PANEL */}
 
@@ -5629,7 +5691,7 @@ function AdminView(props) {
   }, [categories]);
 
   return (
-    <>
+    <div className="admin-modern-wrapper">
       <div className="card">
         <div className="cardTitleRow">
           <h2>Admin • Kategori Yönetimi</h2>
@@ -6011,7 +6073,7 @@ function AdminView(props) {
           </table>
         </div>
       </div>
-    </>
+    </div>
   );
 }
 
