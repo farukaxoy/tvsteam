@@ -1015,9 +1015,11 @@ select.modern-select:hover,
 
 /* Admin Modern Styles */
 .admin-modern-wrapper {
-  max-width: 1200px;
+  max-width: 1400px;
   margin: 0 auto;
+  width: 100%;
 }
+
 
 .admin-modern-wrapper .card {
   box-shadow: 0 2px 8px rgba(0,0,0,0.08);
