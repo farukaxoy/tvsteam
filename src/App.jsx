@@ -28,39 +28,39 @@ function formatDate(value) {
 // 🔧 PATCH: eski referanslar crash etmesin diye boş tanımlar
 
 // --- style injection helper (safe for SSR) ---
-function injectStyle(cssText, id){
-  if(typeof document === "undefined") return;
-  if(!cssText || !String(cssText).trim()) return;
+function injectStyle(cssText, id) {
+  if (typeof document === "undefined") return;
+  if (!cssText || !String(cssText).trim()) return;
   const styleId = id || ("style_" + Math.random().toString(36).slice(2));
   let tag = document.getElementById(styleId);
-  if(!tag){
+  if (!tag) {
     tag = document.createElement("style");
     tag.id = styleId;
     document.head.appendChild(tag);
   }
-  if(tag.textContent !== cssText) tag.textContent = cssText;
+  if (tag.textContent !== cssText) tag.textContent = cssText;
 }
 
 
 // --- tiny toast helper (no dependency, prevents ReferenceError) ---
 // Usage: toast("msg"), toast.success("..."), toast.error("...") etc.
-function toast(message, opts){
-  try{
+function toast(message, opts) {
+  try {
     const msg = (typeof message === "string") ? message : JSON.stringify(message);
     // lightweight: console + optional alert for errors
-    if(opts?.type === "error") console.error(msg);
+    if (opts?.type === "error") console.error(msg);
     else console.log(msg);
-  }catch(e){}
+  } catch (e) { }
 }
-toast.success = (m)=>toast(m,{type:"success"});
-toast.error   = (m)=>toast(m,{type:"error"});
-toast.info    = (m)=>toast(m,{type:"info"});
-toast.warn    = (m)=>toast(m,{type:"warn"});
+toast.success = (m) => toast(m, { type: "success" });
+toast.error = (m) => toast(m, { type: "error" });
+toast.info = (m) => toast(m, { type: "info" });
+toast.warn = (m) => toast(m, { type: "warn" });
 
 // --- backup helpers (download/import JSON) ---
-function downloadJsonFile(obj, filename){
-  try{
-    const blob = new Blob([JSON.stringify(obj, null, 2)], {type:"application/json;charset=utf-8"});
+function downloadJsonFile(obj, filename) {
+  try {
+    const blob = new Blob([JSON.stringify(obj, null, 2)], { type: "application/json;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
@@ -68,26 +68,26 @@ function downloadJsonFile(obj, filename){
     document.body.appendChild(a);
     a.click();
     a.remove();
-    setTimeout(()=>URL.revokeObjectURL(url), 1000);
-  }catch(e){
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  } catch (e) {
     console.error(e);
     alert("Yedek indirilemedi. Konsolu kontrol edin.");
   }
 }
 
-function readJsonFile(file){
-  return new Promise((resolve, reject)=>{
-    try{
+function readJsonFile(file) {
+  return new Promise((resolve, reject) => {
+    try {
       const reader = new FileReader();
       reader.onload = () => {
-        try{
+        try {
           const txt = String(reader.result || "");
           resolve(JSON.parse(txt));
-        }catch(err){ reject(err); }
+        } catch (err) { reject(err); }
       };
-      reader.onerror = (e)=>reject(e);
+      reader.onerror = (e) => reject(e);
       reader.readAsText(file);
-    }catch(err){ reject(err); }
+    } catch (err) { reject(err); }
   });
 }
 
@@ -95,64 +95,64 @@ function readJsonFile(file){
 
 
 // --- project key normalizer (SOCAR / TUPRAS_IZMIR vs "Tüpraş İzmir" etc.) ---
-function canonProj(v){
+function canonProj(v) {
   return String(v || "")
     .trim()
     .toUpperCase()
-    .replaceAll("İ","I")
-    .replaceAll("ı","I")
-    .replaceAll("Ğ","G").replaceAll("ğ","G")
-    .replaceAll("Ü","U").replaceAll("ü","U")
-    .replaceAll("Ş","S").replaceAll("ş","S")
-    .replaceAll("Ö","O").replaceAll("ö","O")
-    .replaceAll("Ç","C").replaceAll("ç","C")
+    .replaceAll("İ", "I").replaceAll("İ", "I")
+    .replaceAll("ı", "I")
+    .replaceAll("Ğ", "G").replaceAll("ğ", "G")
+    .replaceAll("Ü", "U").replaceAll("ü", "U")
+    .replaceAll("Ş", "S").replaceAll("ş", "S")
+    .replaceAll("Ö", "O").replaceAll("ö", "O")
+    .replaceAll("Ç", "C").replaceAll("ç", "C")
     .replace(/\s+/g, "_");
 }
 
 // --- date helpers (YYYY-MM-DD) ---
-function isoDate(d){
-  if(!d) return "";
+function isoDate(d) {
+  if (!d) return "";
   const dt = (d instanceof Date) ? d : new Date(d);
-  if(Number.isNaN(dt.getTime())) return "";
+  if (Number.isNaN(dt.getTime())) return "";
   const y = dt.getFullYear();
-  const m = String(dt.getMonth()+1).padStart(2,"0");
-  const day = String(dt.getDate()).padStart(2,"0");
+  const m = String(dt.getMonth() + 1).padStart(2, "0");
+  const day = String(dt.getDate()).padStart(2, "0");
   return `${y}-${m}-${day}`;
 }
-function addDays(iso, days){
+function addDays(iso, days) {
   const dt = new Date(iso);
-  if(Number.isNaN(dt.getTime())) return "";
-  dt.setDate(dt.getDate() + Number(days||0));
+  if (Number.isNaN(dt.getTime())) return "";
+  dt.setDate(dt.getDate() + Number(days || 0));
   return isoDate(dt);
 }
-function diffDays(fromIso, toIso){
+function diffDays(fromIso, toIso) {
   const a = new Date(fromIso);
   const b = new Date(toIso);
-  if(Number.isNaN(a.getTime()) || Number.isNaN(b.getTime())) return null;
+  if (Number.isNaN(a.getTime()) || Number.isNaN(b.getTime())) return null;
   const ms = b.getTime() - a.getTime();
-  return Math.ceil(ms / (1000*60*60*24));
+  return Math.ceil(ms / (1000 * 60 * 60 * 24));
 }
 
 // 🕐 FAZLA MESAİ HESAPLAMA (v005)
 function calculateOvertime(startTime, endTime) {
   if (!startTime || !endTime) return 0;
-  
+
   const [startH, startM] = startTime.split(':').map(Number);
   const [endH, endM] = endTime.split(':').map(Number);
-  
+
   let totalMinutes = (endH * 60 + endM) - (startH * 60 + startM);
   if (totalMinutes < 0) totalMinutes += 24 * 60; // Gece vardiyası
-  
+
   // 30 dakika mola düş
   totalMinutes -= 30;
-  
+
   // Günlük normal mesai: 8 saat = 480 dakika
   const normalWorkMinutes = 480;
-  
+
   // Fazla mesai hesapla
   const overtimeMinutes = Math.max(0, totalMinutes - normalWorkMinutes);
   const overtimeDecimal = (overtimeMinutes / 60).toFixed(2);
-  
+
   return overtimeDecimal;
 }
 
@@ -1049,7 +1049,7 @@ const ROLE_OPTIONS = [
   { value: "project_leader", label: "Proje Lideri" },
   { value: "admin", label: "Admin" }
 ];
-function roleLabel(role){
+function roleLabel(role) {
   return ROLE_OPTIONS.find(r => r.value === role)?.label || String(role || "-");
 }
 
@@ -1104,41 +1104,41 @@ const ATTENDANCE_COLORS = {
 
 /* ===================== HELPERS ===================== */
 
-const uid = (p="id") => `${p}_${Math.random().toString(16).slice(2)}_${Date.now()}`;
+const uid = (p = "id") => `${p}_${Math.random().toString(16).slice(2)}_${Date.now()}`;
 
-function safeNum(v){
+function safeNum(v) {
   const n = Number(v);
   return Number.isFinite(n) ? n : 0;
 }
-function nowYearMonth(){
+function nowYearMonth() {
   const d = new Date();
-  return { y: d.getFullYear(), m: String(d.getMonth()+1).padStart(2,"0") };
+  return { y: d.getFullYear(), m: String(d.getMonth() + 1).padStart(2, "0") };
 }
-function daysInMonth(year, month01){
+function daysInMonth(year, month01) {
   return new Date(year, Number(month01), 0).getDate();
 }
-function deepClone(x){ return JSON.parse(JSON.stringify(x)); }
-function formatDT(iso){
-  try{ return new Date(iso).toLocaleString(); }catch{ return iso; }
+function deepClone(x) { return JSON.parse(JSON.stringify(x)); }
+function formatDT(iso) {
+  try { return new Date(iso).toLocaleString(); } catch { return iso; }
 }
 
 // Backward-compat alias (some views used old name)
-function fmtDateTime(iso){ return formatDT(iso); }
+function fmtDateTime(iso) { return formatDT(iso); }
 
-function clampDay(d, max){ return Math.max(1, Math.min(max, d)); }
-function slugKey(s){
+function clampDay(d, max) { return Math.max(1, Math.min(max, d)); }
+function slugKey(s) {
   return (s || "")
     .toString()
     .trim()
     .toLowerCase()
-    .replace(/[çÇ]/g,"c")
-    .replace(/[ğĞ]/g,"g")
-    .replace(/[ıİ]/g,"i")
-    .replace(/[öÖ]/g,"o")
-    .replace(/[şŞ]/g,"s")
-    .replace(/[üÜ]/g,"u")
-    .replace(/[^a-z0-9]+/g,"_")
-    .replace(/^_+|_+$/g,"")
+    .replace(/[çÇ]/g, "c")
+    .replace(/[ğĞ]/g, "g")
+    .replace(/[ıİ]/g, "i")
+    .replace(/[öÖ]/g, "o")
+    .replace(/[şŞ]/g, "s")
+    .replace(/[üÜ]/g, "u")
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "")
     .slice(0, 40) || "alan";
 }
 
@@ -1151,7 +1151,7 @@ function slugKey(s){
    }
 ============================================================== */
 
-function defaultCategories(){
+function defaultCategories() {
   return [
     {
       id: uid("cat"),
@@ -1206,7 +1206,7 @@ function defaultCategories(){
    employeeDocs[employeeId][templateKey] = { signed:bool, signedAt:"YYYY-MM-DD" }
 ======================================================================= */
 
-function defaultDocTemplates(){
+function defaultDocTemplates() {
   const names = [
     "Kişisel Koruyucu Ekipman Kullanım Talimatı",
     "Yüksekte Çalışma Talimatı",
@@ -1235,7 +1235,7 @@ function defaultDocTemplates(){
   }));
 }
 
-function defaultDocRegisterTypes(){
+function defaultDocRegisterTypes() {
   // Personel Evrak Takip için varsayılan evrak türleri (admin panelinden değiştirilebilir)
   // validityDays: geçerlilik süresi (gün), warnDays: kaç gün kala uyarı verilsin
   const base = [
@@ -1284,9 +1284,9 @@ state = {
 ========================================================= */
 
 
-function findProjectAny(projects, value){
+function findProjectAny(projects, value) {
   const vRaw = (value ?? "").toString().trim();
-  if(!vRaw) return null;
+  if (!vRaw) return null;
   const v = vRaw;
   const sv = slugKey(vRaw);
   const arr = Array.isArray(projects) ? projects : [];
@@ -1296,25 +1296,25 @@ function findProjectAny(projects, value){
     const pname = (p?.name ?? "").toString().trim();
 
     // exact matches
-    if(pid === v || pcode === v || pname === v) return true;
+    if (pid === v || pcode === v || pname === v) return true;
 
     // slug matches
     const spid = slugKey(pid);
     const spcode = slugKey(pcode);
     const spname = slugKey(pname);
 
-    if(spid === sv || spcode === sv || spname === sv) return true;
+    if (spid === sv || spcode === sv || spname === sv) return true;
 
     // tolerate short codes like "izmit" matching "tupras-izmit" etc.
-    if(sv && (spname.includes(sv) || spcode.includes(sv) || spid.includes(sv))) return true;
+    if (sv && (spname.includes(sv) || spcode.includes(sv) || spid.includes(sv))) return true;
 
     // and vice-versa (in case stored key is shorter)
-    if(sv && (sv.includes(spname) || sv.includes(spcode) || sv.includes(spid))) return true;
+    if (sv && (sv.includes(spname) || sv.includes(spcode) || sv.includes(spid))) return true;
 
     return false;
   }) || null;
 }
-function seedState(){
+function seedState() {
   const categories = defaultCategories();
   return {
     categories,
@@ -1334,7 +1334,7 @@ function seedState(){
       }, {});
 
       // ✅ Sabit Aylık Kontroller (proje bazlı)
-      if(Array.isArray(itemsByCategory["monthly_controls"])){
+      if (Array.isArray(itemsByCategory["monthly_controls"])) {
         itemsByCategory["monthly_controls"] = MONTHLY_CHECK_ITEMS.map(label => ({
           id: uid("item"),
           name: label,
@@ -1362,7 +1362,7 @@ function seedState(){
 
 /* ===================== UI ATOMS ===================== */
 
-function TabButton({active, onClick, children}){
+function TabButton({ active, onClick, children }) {
   return (
     <button className={active ? "tab active" : "tab"} onClick={onClick}>
       {children}
@@ -1370,18 +1370,18 @@ function TabButton({active, onClick, children}){
   );
 }
 
-function Badge({kind="default", children}){
+function Badge({ kind = "default", children }) {
   const cls = kind === "ok" ? "badge ok" : kind === "warn" ? "badge warn" : kind === "danger" ? "badge danger" : "badge";
   return <span className={cls}>{children}</span>;
 }
 
-function Pill({kind="default", children}){
+function Pill({ kind = "default", children }) {
   const cls = kind === "ok" ? "pill ok" : kind === "warn" ? "pill warn" : kind === "danger" ? "pill danger" : "pill";
   return <span className={cls}>{children}</span>;
 }
 
 
-function EvrakTypeAdmin({ docRegisterTypes, onAdd, onUpdate, onDelete }){
+function EvrakTypeAdmin({ docRegisterTypes, onAdd, onUpdate, onDelete }) {
   const [name, setName] = useState("");
   const [validityDays, setValidityDays] = useState("365");
   const [warnDays, setWarnDays] = useState("30");
@@ -1390,36 +1390,36 @@ function EvrakTypeAdmin({ docRegisterTypes, onAdd, onUpdate, onDelete }){
 
   return (
     <>
-      <div className="row" style={{flexWrap:"wrap", marginTop:12}}>
-        <input className="input" value={name} onChange={e=>setName(e.target.value)} placeholder="Evrak adı (örn: Sağlık Raporu)" style={{minWidth:280}} />
-        <input className="input" value={validityDays} onChange={e=>setValidityDays(e.target.value)} placeholder="Geçerlilik (gün)" style={{width:160}} />
-        <input className="input" value={warnDays} onChange={e=>setWarnDays(e.target.value)} placeholder="Uyarı (gün kala)" style={{width:170}} />
+      <div className="row" style={{ flexWrap: "wrap", marginTop: 12 }}>
+        <input className="input" value={name} onChange={e => setName(e.target.value)} placeholder="Evrak adı (örn: Sağlık Raporu)" style={{ minWidth: 280 }} />
+        <input className="input" value={validityDays} onChange={e => setValidityDays(e.target.value)} placeholder="Geçerlilik (gün)" style={{ width: 160 }} />
+        <input className="input" value={warnDays} onChange={e => setWarnDays(e.target.value)} placeholder="Uyarı (gün kala)" style={{ width: 170 }} />
         <button
           className="btn primary"
           type="button"
-          onClick={()=>{
-            const n = String(name||"").trim();
-            const v = Number(validityDays||0);
-            const w = Number(warnDays||0);
-            if(!n || !v) return;
+          onClick={() => {
+            const n = String(name || "").trim();
+            const v = Number(validityDays || 0);
+            const w = Number(warnDays || 0);
+            if (!n || !v) return;
             onAdd(n, v, w);
             setName(""); setValidityDays("365"); setWarnDays("30");
           }}
-          disabled={!String(name||"").trim() || !Number(validityDays||0)}
+          disabled={!String(name || "").trim() || !Number(validityDays || 0)}
         >
           Evrak Türü Ekle
         </button>
       </div>
 
-      <div className="tableWrap" style={{marginTop:12}}>
+      <div className="tableWrap" style={{ marginTop: 12 }}>
         <table>
           <thead>
             <tr>
               <th>Evrak</th>
-              <th style={{width:150}}>Geçerlilik (gün)</th>
-              <th style={{width:150}}>Uyarı (gün)</th>
-              <th style={{width:110}}>Aktif</th>
-              <th style={{width:120}}>İşlem</th>
+              <th style={{ width: 150 }}>Geçerlilik (gün)</th>
+              <th style={{ width: 150 }}>Uyarı (gün)</th>
+              <th style={{ width: 110 }}>Aktif</th>
+              <th style={{ width: 120 }}>İşlem</th>
             </tr>
           </thead>
           <tbody>
@@ -1429,35 +1429,35 @@ function EvrakTypeAdmin({ docRegisterTypes, onAdd, onUpdate, onDelete }){
                 <td>
                   <input
                     className="input"
-                    style={{width:"100%"}}
+                    style={{ width: "100%" }}
                     value={String(t.validityDays ?? "")}
-                    onChange={e=>onUpdate(t.id, { validityDays: Number(e.target.value||0) })}
+                    onChange={e => onUpdate(t.id, { validityDays: Number(e.target.value || 0) })}
                   />
                 </td>
                 <td>
                   <input
                     className="input"
-                    style={{width:"100%"}}
+                    style={{ width: "100%" }}
                     value={String(t.warnDays ?? "")}
-                    onChange={e=>onUpdate(t.id, { warnDays: Number(e.target.value||0) })}
+                    onChange={e => onUpdate(t.id, { warnDays: Number(e.target.value || 0) })}
                   />
                 </td>
                 <td>
-                  <label style={{display:"inline-flex", alignItems:"center", gap:8}}>
+                  <label style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
                     <input
                       type="checkbox"
                       checked={t.active !== false}
-                      onChange={e=>onUpdate(t.id, { active: e.target.checked })}
+                      onChange={e => onUpdate(t.id, { active: e.target.checked })}
                     />
                     <span className="small">{t.active !== false ? "Açık" : "Kapalı"}</span>
                   </label>
                 </td>
                 <td>
-                  <button className="btn danger" type="button" onClick={()=>onDelete(t.id)}>Sil</button>
+                  <button className="btn danger" type="button" onClick={() => onDelete(t.id)}>Sil</button>
                 </td>
               </tr>
             ))}
-            {safe.length===0 && (
+            {safe.length === 0 && (
               <tr><td colSpan="5">Henüz evrak türü yok.</td></tr>
             )}
           </tbody>
@@ -1467,7 +1467,7 @@ function EvrakTypeAdmin({ docRegisterTypes, onAdd, onUpdate, onDelete }){
   );
 }
 
-function AdminMessageComposer({ projects, users, onSend }){
+function AdminMessageComposer({ projects, users, onSend }) {
   const [scopeType, setScopeType] = React.useState("all");
   const [scopeValue, setScopeValue] = React.useState("");
   const [title, setTitle] = React.useState("");
@@ -1475,10 +1475,10 @@ function AdminMessageComposer({ projects, users, onSend }){
 
   return (
     <>
-      <div className="row" style={{gap:10, flexWrap:"wrap", marginTop:12}}>
-        <div style={{flex:"1 1 160px"}}>
+      <div className="row" style={{ gap: 10, flexWrap: "wrap", marginTop: 12 }}>
+        <div style={{ flex: "1 1 160px" }}>
           <span className="lbl">Hedef</span>
-          <select className="input" value={scopeType} onChange={e=>{ setScopeType(e.target.value); setScopeValue(""); }}>
+          <select className="input" value={scopeType} onChange={e => { setScopeType(e.target.value); setScopeValue(""); }}>
             <option value="all">Tüm Kullanıcılar</option>
             <option value="project">Proje</option>
             <option value="user">Tek Kullanıcı</option>
@@ -1486,9 +1486,9 @@ function AdminMessageComposer({ projects, users, onSend }){
         </div>
 
         {scopeType === "project" && (
-          <div style={{flex:"1 1 220px"}}>
+          <div style={{ flex: "1 1 220px" }}>
             <span className="lbl">Proje</span>
-            <select className="input" value={scopeValue} onChange={e=>setScopeValue(e.target.value)}>
+            <select className="input" value={scopeValue} onChange={e => setScopeValue(e.target.value)}>
               <option value="">Seçiniz…</option>
               {projects.map(p => <option key={p} value={p}>{p}</option>)}
             </select>
@@ -1496,9 +1496,9 @@ function AdminMessageComposer({ projects, users, onSend }){
         )}
 
         {scopeType === "user" && (
-          <div style={{flex:"1 1 260px"}}>
+          <div style={{ flex: "1 1 260px" }}>
             <span className="lbl">Kullanıcı</span>
-            <select className="input" value={scopeValue} onChange={e=>setScopeValue(e.target.value)}>
+            <select className="input" value={scopeValue} onChange={e => setScopeValue(e.target.value)}>
               <option value="">Seçiniz…</option>
               {users.map(u => <option key={u.username} value={u.username}>{u.username} • {u.project}</option>)}
             </select>
@@ -1506,26 +1506,26 @@ function AdminMessageComposer({ projects, users, onSend }){
         )}
       </div>
 
-      <div className="row" style={{marginTop:10}}>
-        <div style={{flex:1}}>
+      <div className="row" style={{ marginTop: 10 }}>
+        <div style={{ flex: 1 }}>
           <span className="lbl">Başlık</span>
-          <input className="input" value={title} onChange={e=>setTitle(e.target.value)} placeholder="Mesaj başlığı" />
+          <input className="input" value={title} onChange={e => setTitle(e.target.value)} placeholder="Mesaj başlığı" />
         </div>
       </div>
 
-      <div className="row" style={{marginTop:10}}>
-        <div style={{flex:1}}>
+      <div className="row" style={{ marginTop: 10 }}>
+        <div style={{ flex: 1 }}>
           <span className="lbl">Mesaj</span>
-          <textarea className="input" value={body} onChange={e=>setBody(e.target.value)} placeholder="Mesaj içeriği..." />
+          <textarea className="input" value={body} onChange={e => setBody(e.target.value)} placeholder="Mesaj içeriği..." />
         </div>
       </div>
 
-      <div className="row" style={{marginTop:10, justifyContent:"flex-end", flexWrap:"wrap"}}>
+      <div className="row" style={{ marginTop: 10, justifyContent: "flex-end", flexWrap: "wrap" }}>
         <button
           className="btn primary"
           onClick={() => {
-            if(scopeType!=="all" && !scopeValue){ alert("Hedef seçimi eksik."); return; }
-            if(!title.trim() || !body.trim()){ alert("Başlık ve mesaj zorunlu."); return; }
+            if (scopeType !== "all" && !scopeValue) { alert("Hedef seçimi eksik."); return; }
+            if (!title.trim() || !body.trim()) { alert("Başlık ve mesaj zorunlu."); return; }
             onSend({ scopeType, scopeValue, title, body });
             setTitle(""); setBody("");
           }}
@@ -1535,28 +1535,28 @@ function AdminMessageComposer({ projects, users, onSend }){
   );
 }
 
-function IconBell({active=false}){
+function IconBell({ active = false }) {
   return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" style={{opacity: active ? 1 : .85}}>
-      <path d="M15 17H9" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-      <path d="M18 9a6 6 0 10-12 0c0 7-3 7-3 7h18s-3 0-3-7Z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round"/>
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" style={{ opacity: active ? 1 : .85 }}>
+      <path d="M15 17H9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      <path d="M18 9a6 6 0 10-12 0c0 7-3 7-3 7h18s-3 0-3-7Z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
     </svg>
   );
 }
 
-function LogoMark(){
+function LogoMark() {
   return (
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <path d="M4 7.5 12 4l8 3.5v9L12 20l-8-3.5v-9Z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round"/>
-      <path d="M8 11.2h8M8 14.2h5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
+      <path d="M4 7.5 12 4l8 3.5v9L12 20l-8-3.5v-9Z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
+      <path d="M8 11.2h8M8 14.2h5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
     </svg>
   );
 }
 
 /* ===================== MAIN APP ===================== */
 
-function Toasts({ items, onClose }){
-  if(!items || items.length === 0) return null;
+function Toasts({ items, onClose }) {
+  if (!items || items.length === 0) return null;
   return (
     <div className="toastWrap">
       {items.map(t => (
@@ -1573,57 +1573,57 @@ function Toasts({ items, onClose }){
   );
 }
 
-function AppInner(){
-// ensure login styles override style.css
-useEffect(() => {
-  injectStyle(LOGIN_CSS, "vtp_login_css");
-}, []);
+function AppInner() {
+  // ensure login styles override style.css
+  useEffect(() => {
+    injectStyle(LOGIN_CSS, "vtp_login_css");
+  }, []);
 
   const { y: initY, m: initM } = nowYearMonth();
 
   const [auth, setAuth] = useState(null);
   const [activeProjectCode, setActiveProjectCode] = useState("GLOBAL"); // tek ortak DB kaydı
   const [availableProjectCodes, setAvailableProjectCodes] = useState([]); // admin için
- // {username, role, project?}
+  // {username, role, project?}
 
   // Supabase oturumu varsa (sayfa yenilenince) otomatik giriş yap
   useEffect(() => {
-    if(!supabase) return;
+    if (!supabase) return;
     (async () => {
-      try{
+      try {
         const { data } = await supabase.auth.getSession();
         const sess = data?.session;
         const email = sess?.user?.email;
-        if(email){
+        if (email) {
           // 2) Kullanıcının yetkisini (rol + proje) Supabase'ten al
           const key = String(email || "").trim().toLowerCase().split("@")[0];
           let role = "member";
           let project = "";
-          try{
+          try {
             const { data: access } = await supabase
               .from("user_access")
               .select("role, project_code")
               .eq("user_id", sess.user.id)
               .maybeSingle();
-            if(access){
+            if (access) {
               role = access.role || role;
               project = access.project_code || "";
             }
-          }catch(eAcc){
+          } catch (eAcc) {
             console.error(eAcc);
           }
           setAuth({ username: key, role, project, email });
           // Buluttan veriyi çek
-          try{
+          try {
             const remote = await loadStateFromSupabase("GLOBAL");
-            if(remote && typeof remote === "object"){
+            if (remote && typeof remote === "object") {
               setState(normalizeState(remote));
             }
-          }catch(e2){
+          } catch (e2) {
             console.error(e2);
           }
         }
-      }catch(e){
+      } catch (e) {
         console.error(e);
       }
     })();
@@ -1631,7 +1631,7 @@ useEffect(() => {
   const [tab, setTab] = useState("home");  // v005: Anasayfa başlangıç
   const [notifOpen, setNotifOpen] = useState(false);
   const notifRef = useRef(null);
-  
+
   // URL routing - path'e göre tab ayarlama
   useEffect(() => {
     const path = window.location.pathname;
@@ -1654,7 +1654,7 @@ useEffect(() => {
       setTab(matchedTab);
     }
   }, []);
-  
+
   // Navigate fonksiyonu - tab değiştiğinde URL'i güncelle
   const navigate = (newTab) => {
     setTab(newTab);
@@ -1686,7 +1686,7 @@ useEffect(() => {
         try {
           const parsed = JSON.parse(raw);
           if (parsed && Array.isArray(parsed.projects) && Array.isArray(parsed.categories)) return normalizeState(parsed);
-        } catch {}
+        } catch { }
       }
     }
     return seedState();
@@ -1695,7 +1695,7 @@ useEffect(() => {
   /* login */
   const [lu, setLu] = useState("");
   const [lp, setLp] = useState("");
-    const [showPw, setShowPw] = useState(false);
+  const [showPw, setShowPw] = useState(false);
 
   const [loginError, setLoginError] = useState("");
   const [darkMode, setDarkMode] = useState(() => {
@@ -1704,7 +1704,7 @@ useEffect(() => {
   });
   const [theme, setTheme] = useState(() => localStorage.getItem("APP_THEME") || "light");
   const [toasts, setToasts] = useState([]);
-  
+
   // Dark mode effect
   useEffect(() => {
     if (darkMode) {
@@ -1715,13 +1715,13 @@ useEffect(() => {
       localStorage.setItem("theme", "light");
     }
   }, [darkMode]);
-  
+
   // Toggle dark mode function
   const toggleDarkMode = () => setDarkMode(!darkMode);
 
-  const pushToast = (text, kind="info", title="") => {
+  const pushToast = (text, kind = "info", title = "") => {
     const id = uid("t");
-    const t = { id, text: String(text || ""), kind, title: title || (kind==="danger" ? "Hata" : kind==="warn" ? "Uyarı" : kind==="ok" ? "Başarılı" : "Bilgi") };
+    const t = { id, text: String(text || ""), kind, title: title || (kind === "danger" ? "Hata" : kind === "warn" ? "Uyarı" : kind === "ok" ? "Başarılı" : "Bilgi") };
     setToasts(prev => [t, ...prev].slice(0, 5));
     setTimeout(() => setToasts(prev => prev.filter(x => x.id !== id)), 3500);
   };
@@ -1730,40 +1730,40 @@ useEffect(() => {
 
   /* left panel actions */
   const [search, setSearch] = useState("");
-  
+
 
   // --- Backup (JSON) ---
   const handleDownloadBackup = () => {
     const ts = new Date();
-    const pad = (n)=>String(n).padStart(2,"0");
-    const name = `tvsteam_backup_${ts.getFullYear()}-${pad(ts.getMonth()+1)}-${pad(ts.getDate())}_${pad(ts.getHours())}-${pad(ts.getMinutes())}.json`;
+    const pad = (n) => String(n).padStart(2, "0");
+    const name = `tvsteam_backup_${ts.getFullYear()}-${pad(ts.getMonth() + 1)}-${pad(ts.getDate())}_${pad(ts.getHours())}-${pad(ts.getMinutes())}.json`;
     downloadJsonFile(state, name);
     toast.success("Yedek indirildi.");
   };
 
   const handleImportBackup = async (file) => {
-    if(!file) return;
-    try{
+    if (!file) return;
+    try {
       const data = await readJsonFile(file);
       const normalized = normalizeState(data);
       setState(normalized);
       toast.success("Yedek içe aktarıldı.");
-    }catch(e){
+    } catch (e) {
       console.error(e);
       toast.error("Yedek içe aktarılamadı. Dosya JSON mu kontrol et.");
       alert("Yedek içe aktarılamadı. Dosya bozuk veya JSON değil.");
     }
   };
-const [categoryKey, setCategoryKey] = useState("experts");
+  const [categoryKey, setCategoryKey] = useState("experts");
   const [newItemName, setNewItemName] = useState("");
 
   /* admin entry: project selector */
   const [entryProjectId, setEntryProjectId] = useState(null);
 
-  
+
   /* admin dashboard: project filter */
   const [dashProjectId, setDashProjectId] = useState("ALL");
-/* contact */
+  /* contact */
   const [contactText, setContactText] = useState("");
 
   /* admin: category editor */
@@ -1775,63 +1775,63 @@ const [categoryKey, setCategoryKey] = useState("experts");
   const [catFieldUnit, setCatFieldUnit] = useState("");
 
   // Modern login styles (injected once)
-useEffect(() => {
-  if(document.getElementById("login-modern-css")) return;
-  const st = document.createElement("style");
-  st.id = "login-modern-css";
-  st.textContent = LOGIN_CSS;
-  document.head.appendChild(st);
-}, []);
+  useEffect(() => {
+    if (document.getElementById("login-modern-css")) return;
+    const st = document.createElement("style");
+    st.id = "login-modern-css";
+    st.textContent = LOGIN_CSS;
+    document.head.appendChild(st);
+  }, []);
 
-// Top nav styles (injected once)
-useEffect(() => {
-  if(document.getElementById("nav-modern-css")) return;
-  const st = document.createElement("style");
-  st.id = "nav-modern-css";
-  st.textContent = NAV_CSS;
-  document.head.appendChild(st);
-}, []);
+  // Top nav styles (injected once)
+  useEffect(() => {
+    if (document.getElementById("nav-modern-css")) return;
+    const st = document.createElement("style");
+    st.id = "nav-modern-css";
+    st.textContent = NAV_CSS;
+    document.head.appendChild(st);
+  }, []);
 
-// kategori silme vb. durumlarda aktif kategori geçersiz kalmasın
-useEffect(() => {
-  const keys = (state.categories || []).map(c => c.key);
-  if(keys.length === 0) return;
-  if(!keys.includes(categoryKey)){
-    setCategoryKey(keys[0]);
-  }
-}, [state.categories]);
+  // kategori silme vb. durumlarda aktif kategori geçersiz kalmasın
+  useEffect(() => {
+    const keys = (state.categories || []).map(c => c.key);
+    if (keys.length === 0) return;
+    if (!keys.includes(categoryKey)) {
+      setCategoryKey(keys[0]);
+    }
+  }, [state.categories]);
 
-// Theme + toast styles (injected once)
-useEffect(() => {
-  if(document.getElementById("theme-modern-css")) return;
-  const st = document.createElement("style");
-  st.id = "theme-modern-css";
-  st.textContent = THEME_CSS;
-  document.head.appendChild(st);
-}, []);
+  // Theme + toast styles (injected once)
+  useEffect(() => {
+    if (document.getElementById("theme-modern-css")) return;
+    const st = document.createElement("style");
+    st.id = "theme-modern-css";
+    st.textContent = THEME_CSS;
+    document.head.appendChild(st);
+  }, []);
 
-// Apply theme
-useEffect(() => {
-  document.documentElement.setAttribute("data-theme", theme);
-  localStorage.setItem("APP_THEME", theme);
-}, [theme]);
+  // Apply theme
+  useEffect(() => {
+    document.documentElement.setAttribute("data-theme", theme);
+    localStorage.setItem("APP_THEME", theme);
+  }, [theme]);
 
-useEffect(() => {
+  useEffect(() => {
     // 1) Local cache (isteğe bağlı). Ana kaynak Supabase.
     if (USE_LOCAL_STATE) {
       try {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-      } catch {}
+      } catch { }
     }
 
     // 2) Buluta kaydet (debounce)
-    if(!auth || !supabase) return;
-    if(window.__supabaseSaveTimer) clearTimeout(window.__supabaseSaveTimer);
+    if (!auth || !supabase) return;
+    if (window.__supabaseSaveTimer) clearTimeout(window.__supabaseSaveTimer);
 
     window.__supabaseSaveTimer = setTimeout(async () => {
-      try{
+      try {
         await saveStateToSupabase(state);
-      }catch(e){
+      } catch (e) {
         console.error(e);
         // sessiz: kullanıcıyı sürekli rahatsız etmeyelim
       }
@@ -1844,22 +1844,22 @@ useEffect(() => {
 
   // admin "Veri Girişi" için proje seçimi
   useEffect(() => {
-    if(!auth) return;
-    if(isAdmin){
+    if (!auth) return;
+    if (isAdmin) {
       const firstId = state.projects?.[0]?.id || null;
       // seçili proje yoksa veya artık yoksa ilk projeye dön
-      if(!entryProjectId || !state.projects.some(p => p.id === entryProjectId)){
+      if (!entryProjectId || !state.projects.some(p => p.id === entryProjectId)) {
         setEntryProjectId(firstId);
       }
     } else {
       // kullanıcı için proje seçimi yok
-      if(entryProjectId) setEntryProjectId(null);
+      if (entryProjectId) setEntryProjectId(null);
     }
   }, [auth, isAdmin, state.projects, entryProjectId]);
 
   const entryProject = useMemo(() => {
-    if(!auth) return null;
-    if(isAdmin){
+    if (!auth) return null;
+    if (isAdmin) {
       return state.projects.find(p => p.id === entryProjectId) || state.projects[0] || null;
     }
     // kullanıcı: kendi projesi
@@ -1869,12 +1869,12 @@ useEffect(() => {
   // If a non-admin user's project isn't present in GLOBAL state yet, create it automatically.
   // This prevents "Proje bulunamadı" for new projects like TUPRAS_IZMIT / TUPRAS_IZMIR.
   useEffect(() => {
-    if(!auth || isAdmin) return;
+    if (!auth || isAdmin) return;
     const codeRaw = auth.project;
-    if(!codeRaw) return;
+    if (!codeRaw) return;
 
     const existing = findProjectAny(state.projects, codeRaw);
-    if(existing) return;
+    if (existing) return;
 
     updateState(next => {
       const projects = Array.isArray(next.projects) ? next.projects : [];
@@ -1882,7 +1882,7 @@ useEffect(() => {
       const code = String(codeRaw).trim();
 
       // Avoid duplicates if something adds it concurrently
-      if(projects.some(p => p?.id === code || p?.project_code === code)) return;
+      if (projects.some(p => p?.id === code || p?.project_code === code)) return;
 
       const pretty = code
         .replace(/_/g, " ")
@@ -1901,18 +1901,18 @@ useEffect(() => {
       next.projects = projects;
       // Ensure itemsByCategory has buckets for all categories (existing logic usually already does this)
       next.itemsByCategory = next.itemsByCategory || {};
-      cats.forEach(c => { if(!next.itemsByCategory[c.key]) next.itemsByCategory[c.key] = []; });
+      cats.forEach(c => { if (!next.itemsByCategory[c.key]) next.itemsByCategory[c.key] = []; });
     });
   }, [auth?.project, auth?.email, isAdmin, state.projects, state.categories]);
   // Cleanup legacy projects (old Izmir/Izmit entries) and keep only canonical project_code ones
   useEffect(() => {
-    if(!isAdmin) return;
+    if (!isAdmin) return;
     updateState(next => {
-      if(!Array.isArray(next.projects)) return;
+      if (!Array.isArray(next.projects)) return;
       next.projects = next.projects.filter(p => {
-        if(!p) return false;
+        if (!p) return false;
         // keep projects that have a project_code or are GLOBAL
-        if(p.id === "GLOBAL" || p.project_code) return true;
+        if (p.id === "GLOBAL" || p.project_code) return true;
         return false;
       });
     });
@@ -1920,17 +1920,17 @@ useEffect(() => {
 
 
   /* ===== normalization: kategori eklendiğinde projelere alan aç ===== */
-  function normalizeState(s){
+  function normalizeState(s) {
     const next = s; // deepClone zaten updateState de yapılıyor, tekrar yapmayalım
 
     // --- ensure defaults exist (without breaking existing dynamic categories) ---
     const defaultCats = defaultCategories();
-    if(!Array.isArray(next.categories) || next.categories.length === 0){
+    if (!Array.isArray(next.categories) || next.categories.length === 0) {
       next.categories = defaultCats;
-    }else{
+    } else {
       const existingKeys = new Set(next.categories.map(c => c && c.key).filter(Boolean));
-      for(const dc of defaultCats){
-        if(!existingKeys.has(dc.key)){
+      for (const dc of defaultCats) {
+        if (!existingKeys.has(dc.key)) {
           next.categories.push(dc);
           existingKeys.add(dc.key);
         }
@@ -1941,42 +1941,42 @@ useEffect(() => {
     // ensure project_code exists for reliable matching (auth.project may be a code)
     next.projects = (next.projects || []).map(p => {
       const pp = p || {};
-      if(!pp.project_code && (pp.id || pp.name)){
+      if (!pp.project_code && (pp.id || pp.name)) {
         pp.project_code = (pp.id ?? "").toString().trim() || slugKey((pp.name ?? "").toString());
       }
-      if(!pp.id && pp.project_code) pp.id = pp.project_code;
-      if(!pp.enabledCategoryKeys) pp.enabledCategoryKeys = [];
-      if(!pp.fieldVisibility) pp.fieldVisibility = {}; // { [categoryKey]: string[] hiddenFieldKeys }
+      if (!pp.id && pp.project_code) pp.id = pp.project_code;
+      if (!pp.enabledCategoryKeys) pp.enabledCategoryKeys = [];
+      if (!pp.fieldVisibility) pp.fieldVisibility = {}; // { [categoryKey]: string[] hiddenFieldKeys }
       return pp;
     });
 
     // Remove legacy duplicate projects created only by display-name.
-// IMPORTANT: normalizeState may auto-fill project_code, so we remove by NAME regardless,
-// but always KEEP canonical coded projects.
-const keepCodes = new Set(["TUPRAS_IZMIT","TUPRAS_IZMIR","GLOBAL"]);
-const legacyNames = new Set([
-  "Tupras İzmir","Tupras Izmir","Tüpraş İzmir","Tüpraş Izmir",
-  "Tupras İzmit","Tupras Izmit","Tüpraş İzmit","Tüpraş Izmit"
-]);
-next.projects = (next.projects || []).filter(p => {
-  if(!p) return false;
-  const code = (p.project_code || p.id || "").toString().trim();
-  if(keepCodes.has(code)) return true;
-  if(legacyNames.has((p.name || "").toString().trim())) return false;
-  return true;
-});
+    // IMPORTANT: normalizeState may auto-fill project_code, so we remove by NAME regardless,
+    // but always KEEP canonical coded projects.
+    const keepCodes = new Set(["TUPRAS_IZMIT", "TUPRAS_IZMIR", "GLOBAL"]);
+    const legacyNames = new Set([
+      "Tupras İzmir", "Tupras Izmir", "Tüpraş İzmir", "Tüpraş Izmir",
+      "Tupras İzmit", "Tupras Izmit", "Tüpraş İzmit", "Tüpraş Izmit"
+    ]);
+    next.projects = (next.projects || []).filter(p => {
+      if (!p) return false;
+      const code = (p.project_code || p.id || "").toString().trim();
+      if (keepCodes.has(code)) return true;
+      if (legacyNames.has((p.name || "").toString().trim())) return false;
+      return true;
+    });
 
     next.employees ||= [];
     next.attendance ||= {}; // 📅 PUANTAJ
 
     // documents
     const defaultTmpl = defaultDocTemplates();
-    if(!Array.isArray(next.docTemplates) || next.docTemplates.length === 0){
+    if (!Array.isArray(next.docTemplates) || next.docTemplates.length === 0) {
       next.docTemplates = defaultTmpl;
-    }else{
+    } else {
       const tmplKeys = new Set(next.docTemplates.map(t => t && t.key).filter(Boolean));
-      for(const dt of defaultTmpl){
-        if(!tmplKeys.has(dt.key)){
+      for (const dt of defaultTmpl) {
+        if (!tmplKeys.has(dt.key)) {
           next.docTemplates.push(dt);
           tmplKeys.add(dt.key);
         }
@@ -1986,14 +1986,14 @@ next.projects = (next.projects || []).filter(p => {
 
     // evrak takip (validity)
     const defaultReg = defaultDocRegisterTypes();
-    if(!Array.isArray(next.docRegisterTypes) || next.docRegisterTypes.length === 0){
+    if (!Array.isArray(next.docRegisterTypes) || next.docRegisterTypes.length === 0) {
       next.docRegisterTypes = defaultReg;
-    }else{
+    } else {
       // keep existing; add missing defaults by name
-      const names = new Set(next.docRegisterTypes.map(x => (x?.name||"").trim().toLowerCase()).filter(Boolean));
-      for(const t of defaultReg){
-        const n = (t.name||"").trim().toLowerCase();
-        if(!names.has(n)){
+      const names = new Set(next.docRegisterTypes.map(x => (x?.name || "").trim().toLowerCase()).filter(Boolean));
+      for (const t of defaultReg) {
+        const n = (t.name || "").trim().toLowerCase();
+        if (!names.has(n)) {
           next.docRegisterTypes.push(t);
           names.add(n);
         }
@@ -2007,40 +2007,40 @@ next.projects = (next.projects || []).filter(p => {
     next.contacts ||= [];
     next.notifications ||= [];
 
-    
-// ensure employeeDocs has all templates
-const tmplKeys = (next.docTemplates || []).map(t => t.key);
-for(const emp of (next.employees || [])){
-  next.employeeDocs[emp.id] ||= {};
-  for(const tk of tmplKeys){
-    if(!next.employeeDocs[emp.id][tk]){
-      next.employeeDocs[emp.id][tk] = { signed: false, signedAt: "" };
-    }else{
-      next.employeeDocs[emp.id][tk].signed = !!next.employeeDocs[emp.id][tk].signed;
-      next.employeeDocs[emp.id][tk].signedAt ||= "";
-    }
-  }
-}
 
-// ensure each project has itemsByCategory for all categories
-    for(const p of next.projects){
+    // ensure employeeDocs has all templates
+    const tmplKeys = (next.docTemplates || []).map(t => t.key);
+    for (const emp of (next.employees || [])) {
+      next.employeeDocs[emp.id] ||= {};
+      for (const tk of tmplKeys) {
+        if (!next.employeeDocs[emp.id][tk]) {
+          next.employeeDocs[emp.id][tk] = { signed: false, signedAt: "" };
+        } else {
+          next.employeeDocs[emp.id][tk].signed = !!next.employeeDocs[emp.id][tk].signed;
+          next.employeeDocs[emp.id][tk].signedAt ||= "";
+        }
+      }
+    }
+
+    // ensure each project has itemsByCategory for all categories
+    for (const p of next.projects) {
       p.itemsByCategory ||= {};
       p.fieldVisibility ||= {};
-      for(const c of next.categories){
-        if(!Array.isArray(p.itemsByCategory[c.key])) p.itemsByCategory[c.key] = [];
+      for (const c of next.categories) {
+        if (!Array.isArray(p.itemsByCategory[c.key])) p.itemsByCategory[c.key] = [];
       }
     }
 
     // seed fixed monthly controls as items (per project)
     const mc = next.categories.find(c => c.key === MONTHLY_CAT_KEY);
-    if(mc){
-      for(const p of next.projects){
+    if (mc) {
+      for (const p of next.projects) {
         p.itemsByCategory ||= {};
         let arr = p.itemsByCategory[mc.key];
-        if(!Array.isArray(arr)) arr = [];
+        if (!Array.isArray(arr)) arr = [];
         const names = new Set(arr.map(x => (x.name || "").trim()));
-        for(const nm of MONTHLY_CHECK_ITEMS){
-          if(!names.has(nm)){
+        for (const nm of MONTHLY_CHECK_ITEMS) {
+          if (!names.has(nm)) {
             arr.push({
               id: uid("item"),
               name: nm,
@@ -2052,17 +2052,17 @@ for(const emp of (next.employees || [])){
           }
         }
         // stable ordering
-        arr.sort((a,b)=> MONTHLY_CHECK_ITEMS.indexOf(a.name) - MONTHLY_CHECK_ITEMS.indexOf(b.name));
-  
-    if(!Array.isArray(next.authUsers)) next.authUsers = [];
-      p.itemsByCategory[mc.key] = arr;
+        arr.sort((a, b) => MONTHLY_CHECK_ITEMS.indexOf(a.name) - MONTHLY_CHECK_ITEMS.indexOf(b.name));
+
+        if (!Array.isArray(next.authUsers)) next.authUsers = [];
+        p.itemsByCategory[mc.key] = arr;
       }
     }
 
     return next;
   }
 
-  function updateState(mutator){
+  function updateState(mutator) {
     setState(prev => {
       const next = deepClone(prev);
       mutator(next);
@@ -2071,14 +2071,14 @@ for(const emp of (next.employees || [])){
   }
 
   /* ===== AUTH ===== */
-    
+
   /* ===== AUTH (SUPABASE) ===== */
-  function accountFromEmail(email){
+  function accountFromEmail(email) {
     const e = String(email || "").trim().toLowerCase();
     const key = e.includes("@") ? e.split("@")[0] : e;
     const info = (CREDENTIALS && CREDENTIALS[key]) ? CREDENTIALS[key] : null;
 
-    if(info){
+    if (info) {
       return {
         username: key,
         role: info.role || "user",
@@ -2089,8 +2089,8 @@ for(const emp of (next.employees || [])){
     return { username: key, role: "user", project: "" };
   }
 
-  async function loadStateFromSupabase(projectCodeOverride){
-    if(!supabase) return null;
+  async function loadStateFromSupabase(projectCodeOverride) {
+    if (!supabase) return null;
     // Tek satırda tüm uygulama verisini tutuyoruz (local kurguyu bozmamak için)
     const project_code = "GLOBAL"; // tek ortak kayıt
     const { data, error } = await supabase
@@ -2099,13 +2099,13 @@ for(const emp of (next.employees || [])){
       .eq("project_code", project_code)
       .maybeSingle();
 
-    if(error) throw error;
+    if (error) throw error;
     return data?.data ?? null;
   }
 
-  async function saveStateToSupabase(nextState, projectCodeOverride){
-    if(!supabase) return;
-        const project_code = "GLOBAL"; // tek ortak kayıt
+  async function saveStateToSupabase(nextState, projectCodeOverride) {
+    if (!supabase) return;
+    const project_code = "GLOBAL"; // tek ortak kayıt
     const payload = {
       project_code,
       data: nextState,
@@ -2115,27 +2115,27 @@ for(const emp of (next.employees || [])){
       .from("app_state")
       .upsert(payload, { onConflict: "project_code" });
 
-    if(error) throw error;
+    if (error) throw error;
   }
 
-  async function doLogin(){
+  async function doLogin() {
     setLoginError("");
 
     const email = (lu || "").trim();
     const password = (lp || "").trim();
 
-    if(!email || !password){
+    if (!email || !password) {
       setLoginError("E-posta ve şifre zorunlu.");
       pushToast("E-posta ve şifre zorunlu.", "warn");
       return;
     }
 
-    try{
+    try {
       // 1) Supabase giriş
       const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-      if(error) throw error;
+      if (error) throw error;
 
-      // 2) Kullanıcının yetkisini (rol + proje) Supabase'ten al
+      // 2) Kullanıcının yetkisini rol + proje Supabase'ten al
       const user = data?.user;
       const userEmail = user?.email || email;
       const key = String(userEmail || "").trim().toLowerCase().split("@")[0];
@@ -2146,8 +2146,8 @@ for(const emp of (next.employees || [])){
         .eq("user_id", user.id)
         .maybeSingle();
 
-      if(accessErr) throw accessErr;
-      if(!access) throw new Error("Bu kullanıcı için proje/rol tanımı yapılmamış (user_access tablosu).");
+      if (accessErr) throw accessErr;
+      if (!access) throw new Error("Bu kullanıcı için proje/rol tanımı yapılmamış (user_access tablosu).");
 
       const role = access.role || "member";
       setAuth({ username: key, role, project: access.project_code || "", email: userEmail });
@@ -2158,25 +2158,25 @@ for(const emp of (next.employees || [])){
       setActiveProjectCode("GLOBAL");
 
       // 3) Buluttan en güncel veriyi çek (varsa)
-      try{
+      try {
         const remote = await loadStateFromSupabase("GLOBAL");
-        if(remote && typeof remote === "object"){
+        if (remote && typeof remote === "object") {
           // Local kurguyu bozmamak için normalize edip kur
           setState(normalizeState(remote));
           pushToast("Buluttaki veriler yüklendi.", "ok");
-        }else{
+        } else {
           // Bulutta boşsa ilk kez kaydet
           await saveStateToSupabase(state);
           pushToast("Bulut veri alanı hazırlandı.", "ok");
         }
-      }catch(e2){
+      } catch (e2) {
         console.error(e2);
         pushToast("Buluttan veri okunamadı. Local veri ile devam.", "warn");
       }
 
       setNotifOpen(false);
       navigate("dashboard");
-    }catch(e){
+    } catch (e) {
       console.error(e);
       setLoginError(e?.message || "Giriş yapılamadı.");
       pushToast(e?.message || "Giriş yapılamadı.", "err");
@@ -2184,10 +2184,10 @@ for(const emp of (next.employees || [])){
   }
 
 
-  async function doLogout(){
-    try{
-      if(supabase) await supabase.auth.signOut();
-    }catch{}
+  async function doLogout() {
+    try {
+      if (supabase) await supabase.auth.signOut();
+    } catch { }
     setAuth(null);
     navigate("dashboard");
     setNotifOpen(false);
@@ -2195,8 +2195,8 @@ for(const emp of (next.employees || [])){
 
   /* ===== ACCESS: visible projects ===== */
   const visibleProjects = useMemo(() => {
-    if(!auth) return [];
-    if(isAdmin) return state.projects;
+    if (!auth) return [];
+    if (isAdmin) return state.projects;
     const mine = findProjectAny(state.projects, auth.project);
     return mine ? [mine] : [];
   }, [state.projects, auth, isAdmin]);
@@ -2206,11 +2206,11 @@ for(const emp of (next.employees || [])){
   const visibleCategories = useMemo(() => {
     const all = Array.isArray(state.categories) ? state.categories : [];
     // Admin "admin" sekmesinde her şeyi görsün (kategori yönetimi vs.)
-    if(isAdmin && tab === "admin") return all;
+    if (isAdmin && tab === "admin") return all;
 
     const p = entryProject || null;
     const keys = Array.isArray(p?.enabledCategoryKeys) ? p.enabledCategoryKeys : null;
-    if(keys){
+    if (keys) {
       const keyset = new Set(keys);
       const filtered = all.filter(c => keyset.has(c.key));
       return filtered;
@@ -2219,18 +2219,18 @@ for(const emp of (next.employees || [])){
   }, [state.categories, isAdmin, tab, entryProject]);
 
   const activeCategory = useMemo(() => {
-    if(!visibleCategories || visibleCategories.length===0) return null;
+    if (!visibleCategories || visibleCategories.length === 0) return null;
     return visibleCategories.find(c => c.key === categoryKey) || visibleCategories[0] || null;
   }, [visibleCategories, categoryKey]);
 
   useEffect(() => {
-    if(visibleCategories.length && !visibleCategories.some(c => c.key === categoryKey)){
+    if (visibleCategories.length && !visibleCategories.some(c => c.key === categoryKey)) {
       setCategoryKey(visibleCategories[0].key);
     }
   }, [visibleCategories, categoryKey]);
 
   /* ===== NOTIFICATIONS ===== */
-  function pushNotification({to, title, body, level="info"}){
+  function pushNotification({ to, title, body, level = "info" }) {
     updateState(d => {
       d.notifications.unshift({
         id: uid("n"),
@@ -2245,7 +2245,7 @@ for(const emp of (next.employees || [])){
   }
 
   const myNotifications = useMemo(() => {
-    if(!auth) return [];
+    if (!auth) return [];
     const target = isAdmin ? "admin" : auth.username;
     return (state.notifications || []).filter(n => n.to === target);
   }, [state.notifications, auth, isAdmin]);
@@ -2254,12 +2254,12 @@ for(const emp of (next.employees || [])){
     return myNotifications.filter(n => !n.read).length;
   }, [myNotifications]);
 
-  function markAllRead(){
-    if(!auth) return;
+  function markAllRead() {
+    if (!auth) return;
     const target = isAdmin ? "admin" : auth.username;
     updateState(d => {
-      for(const n of d.notifications){
-        if(n.to === target) n.read = true;
+      for (const n of d.notifications) {
+        if (n.to === target) n.read = true;
       }
     });
   }
@@ -2268,29 +2268,29 @@ for(const emp of (next.employees || [])){
 
   // 🔔 Bildirim paneli: dışarı tıklayınca kapat
   useEffect(() => {
-    function onDown(e){
-      if(!notifOpen) return;
+    function onDown(e) {
+      if (!notifOpen) return;
       const el = notifRef.current;
-      if(el && !el.contains(e.target)) setNotifOpen(false);
+      if (el && !el.contains(e.target)) setNotifOpen(false);
     }
     document.addEventListener("mousedown", onDown);
     return () => document.removeEventListener("mousedown", onDown);
   }, [notifOpen]);
 
   /* ===== FINDERS ===== */
-  function findProject(d, projectId){
+  function findProject(d, projectId) {
     return d.projects.find(p => p.id === projectId);
   }
-  function findItem(d, projectId, catKey, itemId){
+  function findItem(d, projectId, catKey, itemId) {
     const p = findProject(d, projectId);
-    if(!p) return null;
+    if (!p) return null;
     const arr = p.itemsByCategory?.[catKey] || [];
     return arr.find(x => x.id === itemId);
   }
 
-  function ensureMonthSlot(item, mk, category){
+  function ensureMonthSlot(item, mk, category) {
     item.months ||= {};
-    if(!item.months[mk]){
+    if (!item.months[mk]) {
       item.months[mk] = {
         draft: buildDefaultDraft(category),
         submitted: false,
@@ -2304,93 +2304,93 @@ for(const emp of (next.employees || [])){
     // draft ensure
     item.months[mk].draft ||= buildDefaultDraft(category);
     // meals ensure
-    if(category?.special?.meals){
-      if(!Array.isArray(item.months[mk].draft.meals)) item.months[mk].draft.meals = [];
+    if (category?.special?.meals) {
+      if (!Array.isArray(item.months[mk].draft.meals)) item.months[mk].draft.meals = [];
     }
   }
 
-  function buildDefaultDraft(category){
+  function buildDefaultDraft(category) {
     const draft = {};
-    for(const f of (category?.fields || [])){
-      if(f.type === "number") draft[f.key] = 0;
-      else if(f.type === "date") draft[f.key] = "";
-      else if(f.type === "select") draft[f.key] = (f.options && f.options[0]) ? f.options[0] : "";
+    for (const f of (category?.fields || [])) {
+      if (f.type === "number") draft[f.key] = 0;
+      else if (f.type === "date") draft[f.key] = "";
+      else if (f.type === "select") draft[f.key] = (f.options && f.options[0]) ? f.options[0] : "";
       else draft[f.key] = "";
     }
-    if(category?.special?.meals) draft.meals = [];
+    if (category?.special?.meals) draft.meals = [];
     return draft;
   }
 
   /* ===== ITEM REQUEST (Uzman/Araç/Diğer kategori) ===== */
   function requestItem(projectId) {
-  const name = (newItemName || "").trim();
-  if (!name) return;
+    const name = (newItemName || "").trim();
+    if (!name) return;
 
-  const c = activeCategory;
+    const c = activeCategory;
 
-  updateState((d) => {
-    const p = findProject(d, projectId);
-    if (!p) return;
+    updateState((d) => {
+      const p = findProject(d, projectId);
+      if (!p) return;
 
-    p.itemsByCategory[c.key] ||= [];
-    p.itemsByCategory[c.key].push({
-      id: uid("item"),
-      name,
-      // Admin ekliyorsa direkt onaylı olsun; kullanıcı ekliyorsa kategori onayı varsa beklesin
-      approved: isAdmin ? true : c.approval?.item ? false : true,
-      requestedBy: isAdmin ? "admin" : auth.username,
-      createdAt: new Date().toISOString(),
-      months: {},
+      p.itemsByCategory[c.key] ||= [];
+      p.itemsByCategory[c.key].push({
+        id: uid("item"),
+        name,
+        // Admin ekliyorsa direkt onaylı olsun; kullanıcı ekliyorsa kategori onayı varsa beklesin
+        approved: isAdmin ? true : c.approval?.item ? false : true,
+        requestedBy: isAdmin ? "admin" : auth.username,
+        createdAt: new Date().toISOString(),
+        months: {},
+      });
     });
-  });
 
-  setNewItemName("");
+    setNewItemName("");
 
-  if (!isAdmin) {
-    pushNotification({
-      to: "admin",
-      title: `Yeni ${activeCategory.itemLabel} Talebi`,
-      body: `${auth.project} • ${activeCategory.itemLabel}: ${name}`,
-      level: "warn",
-    });
-    pushToast(`${activeCategory.itemLabel} talebi admin onayına gönderildi.`, "danger");
-  } else {
-    pushToast(`${activeCategory.itemLabel} eklendi.`, "ok");
+    if (!isAdmin) {
+      pushNotification({
+        to: "admin",
+        title: `Yeni ${activeCategory.itemLabel} Talebi`,
+        body: `${auth.project} • ${activeCategory.itemLabel}: ${name}`,
+        level: "warn",
+      });
+      pushToast(`${activeCategory.itemLabel} talebi admin onayına gönderildi.`, "danger");
+    } else {
+      pushToast(`${activeCategory.itemLabel} eklendi.`, "ok");
+    }
   }
-}
 
   function approveItem(projectId, catKey, itemId) {
-  // Önce state'den gerekli bilgileri al
-  const cat = state.categories.find((c) => c.key === catKey);
-  const p = state.projects.find((pp) => pp.id === projectId);
-  const it0 = p?.itemsByCategory?.[catKey]?.find((x) => x.id === itemId);
-  const requestedBy = it0?.requestedBy;
-  const itemName = it0?.name;
+    // Önce state'den gerekli bilgileri al
+    const cat = state.categories.find((c) => c.key === catKey);
+    const p = state.projects.find((pp) => pp.id === projectId);
+    const it0 = p?.itemsByCategory?.[catKey]?.find((x) => x.id === itemId);
+    const requestedBy = it0?.requestedBy;
+    const itemName = it0?.name;
 
-  updateState((d) => {
-    const it = findItem(d, projectId, catKey, itemId);
-    if (!it) return;
-    it.approved = true;
-    it.approvedAt = new Date().toISOString();
-    it.approvedBy = auth?.username || "admin";
-  });
-
-  // İstek atan kullanıcıya bildirim (best effort)
-  if (requestedBy) {
-    pushNotification({
-      to: requestedBy,
-      title: `${cat?.itemLabel || "Kayıt"} Onaylandı`,
-      body: `${p?.name || ""} • ${cat?.itemLabel || "Kayıt"}: ${itemName}`,
-      level: "ok",
+    updateState((d) => {
+      const it = findItem(d, projectId, catKey, itemId);
+      if (!it) return;
+      it.approved = true;
+      it.approvedAt = new Date().toISOString();
+      it.approvedBy = auth?.username || "admin";
     });
-  }
-  
-  pushToast(`${cat?.itemLabel || "Kayıt"} onaylandı.`, "ok");
-}
 
-  function rejectItem(projectId, catKey, itemId){
-    if(!confirm("Talep reddedilsin mi? (silinir)")) return;
-    
+    // İstek atan kullanıcıya bildirim (best effort)
+    if (requestedBy) {
+      pushNotification({
+        to: requestedBy,
+        title: `${cat?.itemLabel || "Kayıt"} Onaylandı`,
+        body: `${p?.name || ""} • ${cat?.itemLabel || "Kayıt"}: ${itemName}`,
+        level: "ok",
+      });
+    }
+
+    pushToast(`${cat?.itemLabel || "Kayıt"} onaylandı.`, "ok");
+  }
+
+  function rejectItem(projectId, catKey, itemId) {
+    if (!confirm("Talep reddedilsin mi? (silinir)")) return;
+
     // Önce state'den gerekli bilgileri al
     const p0 = state.projects.find(pp => pp.id === projectId);
     const it0 = p0?.itemsByCategory?.[catKey]?.find(x => x.id === itemId);
@@ -2400,11 +2400,11 @@ for(const emp of (next.employees || [])){
 
     updateState(d => {
       const p = findProject(d, projectId);
-      if(!p) return;
+      if (!p) return;
       p.itemsByCategory[catKey] = (p.itemsByCategory[catKey] || []).filter(x => x.id !== itemId);
     });
 
-    if(req){
+    if (req) {
       pushNotification({
         to: req,
         title: `${cat?.itemLabel || "Kayıt"} Reddedildi`,
@@ -2412,12 +2412,12 @@ for(const emp of (next.employees || [])){
         level: "danger"
       });
     }
-    
+
     pushToast(`${cat?.itemLabel || "Kayıt"} reddedildi.`, "warn");
   }
 
   /* ===== MONTHLY EDIT / SUBMIT / APPROVE ===== */
-  function setMonthlyField(projectId, catKey, itemId, monthOrField, fieldOrValue, maybeValue){
+  function setMonthlyField(projectId, catKey, itemId, monthOrField, fieldOrValue, maybeValue) {
     // Desteklenen çağrılar:
     // 1 setMonthlyField(projectId, catKey, itemId, fieldKey, value)  -> aktif ay
     // 2 setMonthlyField(projectId, catKey, itemId, monthKey, fieldKey, value) -> verilen ay
@@ -2426,27 +2426,27 @@ for(const emp of (next.employees || [])){
     const fieldKey = (maybeValue === undefined) ? monthOrField : fieldOrValue;
     const value = (maybeValue === undefined) ? fieldOrValue : maybeValue;
 
-    if(!cat) return;
+    if (!cat) return;
 
     updateState(d => {
       const it = findItem(d, projectId, catKey, itemId);
-      if(!it) return;
+      if (!it) return;
 
       ensureMonthSlot(it, mk, cat);
 
       // kullanıcı onaylı veriyi değiştiremesin
-      if(!isAdmin && it.months?.[mk]?.approved) return;
+      if (!isAdmin && it.months?.[mk]?.approved) return;
 
       const f = (cat.fields || []).find(ff => ff.key === fieldKey);
 
-      if(!it.months[mk].draft) it.months[mk].draft = {};
+      if (!it.months[mk].draft) it.months[mk].draft = {};
 
       // Field admin tarafından silindiyse / eski şema varsa yine de kaydet (geriye dönük uyumluluk)
-      if(!f){
+      if (!f) {
         const vStr = String(value);
         const isNumLike = (typeof value === "number") || /^-?\d+(?:\.\d+)?$/.test(vStr);
         it.months[mk].draft[fieldKey] = isNumLike ? safeNum(value) : value;
-      } else if(f.type === "number") {
+      } else if (f.type === "number") {
         it.months[mk].draft[fieldKey] = safeNum(value);
       } else {
         it.months[mk].draft[fieldKey] = value;
@@ -2457,38 +2457,38 @@ for(const emp of (next.employees || [])){
     });
   }
 
-  function toggleMeal(projectId, itemId, day){
+  function toggleMeal(projectId, itemId, day) {
     const catKey = "experts";
     const cat = state.categories.find(c => c.key === catKey);
     updateState(d => {
       const it = findItem(d, projectId, catKey, itemId);
-      if(!it) return;
+      if (!it) return;
       ensureMonthSlot(it, monthKey, cat);
 
-      if(!isAdmin && it.months[monthKey].approved) return;
+      if (!isAdmin && it.months[monthKey].approved) return;
 
       const arr = it.months[monthKey].draft.meals || [];
       const has = arr.includes(day);
       const next = has ? arr.filter(x => x !== day) : [...arr, day];
       it.months[monthKey].draft.meals = next
         .map(x => clampDay(x, monthDays))
-        .filter((v,i,a) => a.indexOf(v) === i)
-        .sort((a,b)=>a-b);
+        .filter((v, i, a) => a.indexOf(v) === i)
+        .sort((a, b) => a - b);
 
-      if(!isAdmin){
+      if (!isAdmin) {
         it.months[monthKey].submitted = false;
       }
     });
   }
 
-  function submitMonth(projectId, catKey, itemId){
+  function submitMonth(projectId, catKey, itemId) {
     const cat = state.categories.find(c => c.key === catKey);
     updateState(d => {
       const it = findItem(d, projectId, catKey, itemId);
-      if(!it) return;
+      if (!it) return;
       ensureMonthSlot(it, monthKey, cat);
 
-      if(cat.approval?.item && !it.approved) return;
+      if (cat.approval?.item && !it.approved) return;
 
       it.months[monthKey].submitted = true;
       it.months[monthKey].submittedAt = new Date().toISOString();
@@ -2511,7 +2511,7 @@ for(const emp of (next.employees || [])){
     pushToast("Aylık veri admin onayına gönderildi.", "danger");
   }
 
-  function approveMonth(projectId, catKey, itemId){
+  function approveMonth(projectId, catKey, itemId) {
     // Önce state'den gerekli bilgileri al
     const cat = state.categories.find(c => c.key === catKey);
     const p0 = state.projects.find(pp => pp.id === projectId);
@@ -2521,7 +2521,7 @@ for(const emp of (next.employees || [])){
 
     updateState(d => {
       const it = findItem(d, projectId, catKey, itemId);
-      if(!it) return;
+      if (!it) return;
       ensureMonthSlot(it, monthKey, cat);
 
       it.months[monthKey].approved = true;
@@ -2530,7 +2530,7 @@ for(const emp of (next.employees || [])){
       it.months[monthKey].submitted = false;
     });
 
-    if(req){
+    if (req) {
       pushNotification({
         to: req,
         title: `Aylık Veri Onaylandı`,
@@ -2538,11 +2538,11 @@ for(const emp of (next.employees || [])){
         level: "ok"
       });
     }
-    
+
     pushToast("Aylık veri onaylandı.", "ok");
   }
 
-  function rejectMonth(projectId, catKey, itemId){
+  function rejectMonth(projectId, catKey, itemId) {
     // Önce state'den gerekli bilgileri al
     const cat = state.categories.find(c => c.key === catKey);
     const p0 = state.projects.find(pp => pp.id === projectId);
@@ -2552,7 +2552,7 @@ for(const emp of (next.employees || [])){
 
     updateState(d => {
       const it = findItem(d, projectId, catKey, itemId);
-      if(!it) return;
+      if (!it) return;
       ensureMonthSlot(it, monthKey, cat);
 
       it.months[monthKey].approved = false;
@@ -2561,7 +2561,7 @@ for(const emp of (next.employees || [])){
       it.months[monthKey].submitted = false;
     });
 
-    if(req){
+    if (req) {
       pushNotification({
         to: req,
         title: `Aylık Veri Reddedildi`,
@@ -2569,14 +2569,14 @@ for(const emp of (next.employees || [])){
         level: "danger"
       });
     }
-    
+
     pushToast("Aylık veri reddedildi.", "warn");
   }
 
   /* ===== CONTACT ===== */
-  function sendContact(){
+  function sendContact() {
     const txt = (contactText || "").trim();
-    if(!txt) return;
+    if (!txt) return;
 
     updateState(d => {
       d.contacts.unshift({
@@ -2591,7 +2591,7 @@ for(const emp of (next.employees || [])){
     pushNotification({
       to: "admin",
       title: "İletişim Mesajı",
-      body: `${auth.project} • ${auth.username}: ${txt.slice(0, 80)}${txt.length>80 ? "…" : ""}`,
+      body: `${auth.project} • ${auth.username}: ${txt.slice(0, 80)}${txt.length > 80 ? "…" : ""}`,
       level: "info"
     });
 
@@ -2600,9 +2600,9 @@ for(const emp of (next.employees || [])){
   }
 
   /* ===== PUANTAJ YÖNETİMİ ===== */
-  
+
   // Puantaj istatistiklerini yeniden hesapla
-  function recalculateAttendanceStats(monthData, totalDays){
+  function recalculateAttendanceStats(monthData, totalDays) {
     const counts = {
       present: 0,
       absent: 0,
@@ -2615,18 +2615,18 @@ for(const emp of (next.employees || [])){
       half_day: 0,
       unset: 0
     };
-    
-    for(let i = 1; i <= totalDays; i++){
+
+    for (let i = 1; i <= totalDays; i++) {
       const day = monthData.days[i];
-      if(day && day.status){
+      if (day && day.status) {
         counts[day.status] = (counts[day.status] || 0) + 1;
       } else {
         counts.unset++;
       }
     }
-    
+
     const workDays = counts.present + (counts.half_day * 0.5);
-    
+
     monthData.stats = {
       ...counts,
       totalDays,
@@ -2634,19 +2634,19 @@ for(const emp of (next.employees || [])){
       completionRate: ((totalDays - counts.unset) / totalDays * 100).toFixed(1)
     };
   }
-  
+
   // Tek gün için puantaj kaydet
   // 🕐 v005: Mesai saatleri parametreleri eklendi
-  function setAttendanceDay(employeeId, monthKey, day, status, note = "", startTime = "", endTime = "", overtime = 0){
+  function setAttendanceDay(employeeId, monthKey, day, status, note = "", startTime = "", endTime = "", overtime = 0) {
     updateState(d => {
-      if(!d.attendance) d.attendance = {};
-      if(!d.attendance[employeeId]) d.attendance[employeeId] = {};
-      if(!d.attendance[employeeId][monthKey]){
+      if (!d.attendance) d.attendance = {};
+      if (!d.attendance[employeeId]) d.attendance[employeeId] = {};
+      if (!d.attendance[employeeId][monthKey]) {
         d.attendance[employeeId][monthKey] = { days: {}, stats: {} };
       }
-      
+
       const month = d.attendance[employeeId][monthKey];
-      
+
       month.days[day] = {
         status,
         note: (note || "").trim(),
@@ -2656,24 +2656,24 @@ for(const emp of (next.employees || [])){
         updatedBy: auth?.username || "admin",
         updatedAt: new Date().toISOString()
       };
-      
+
       recalculateAttendanceStats(month, monthDays);
     });
-    
+
     pushToast("Puantaj kaydedildi.", "ok");
   }
-  
+
   // Toplu puantaj kayıt (örn: tüm hafta sonları)
-  function bulkSetAttendance(employeeId, monthKey, days, status){
+  function bulkSetAttendance(employeeId, monthKey, days, status) {
     updateState(d => {
-      if(!d.attendance) d.attendance = {};
-      if(!d.attendance[employeeId]) d.attendance[employeeId] = {};
-      if(!d.attendance[employeeId][monthKey]){
+      if (!d.attendance) d.attendance = {};
+      if (!d.attendance[employeeId]) d.attendance[employeeId] = {};
+      if (!d.attendance[employeeId][monthKey]) {
         d.attendance[employeeId][monthKey] = { days: {}, stats: {} };
       }
-      
+
       const month = d.attendance[employeeId][monthKey];
-      
+
       days.forEach(day => {
         month.days[day] = {
           status,
@@ -2682,43 +2682,43 @@ for(const emp of (next.employees || [])){
           updatedAt: new Date().toISOString()
         };
       });
-      
+
       recalculateAttendanceStats(month, monthDays);
     });
-    
+
     pushToast(`${days.length} gün toplu kaydedildi.`, "ok");
   }
-  
+
   // Hafta sonlarını otomatik işaretle
-  function autoMarkWeekends(employeeId, monthKey, year, month){
+  function autoMarkWeekends(employeeId, monthKey, year, month) {
     const weekends = [];
     const daysInMonth = new Date(year, month, 0).getDate();
-    
-    for(let day = 1; day <= daysInMonth; day++){
+
+    for (let day = 1; day <= daysInMonth; day++) {
       const date = new Date(year, month - 1, day);
       const dayOfWeek = date.getDay();
-      if(dayOfWeek === 0 || dayOfWeek === 6){
+      if (dayOfWeek === 0 || dayOfWeek === 6) {
         weekends.push(day);
       }
     }
-    
-    if(weekends.length > 0){
+
+    if (weekends.length > 0) {
       bulkSetAttendance(employeeId, monthKey, weekends, "weekend");
     }
   }
-  
+
   // Resmi tatilleri işaretle
-  function autoMarkHolidays(employeeId, monthKey, year, month){
+  function autoMarkHolidays(employeeId, monthKey, year, month) {
     const holidays = getHolidaysForMonth(year, month);
-    if(holidays.length > 0){
+    if (holidays.length > 0) {
       bulkSetAttendance(employeeId, monthKey, holidays, "holiday");
     }
   }
-  
+
   // Türkiye resmi tatilleri
-  function getHolidaysForMonth(year, month){
+  function getHolidaysForMonth(year, month) {
     const holidays = [];
-    
+
     const fixedHolidays = {
       1: [1],
       4: [23],
@@ -2726,39 +2726,39 @@ for(const emp of (next.employees || [])){
       8: [30],
       10: [29]
     };
-    
-    if(fixedHolidays[month]){
+
+    if (fixedHolidays[month]) {
       holidays.push(...fixedHolidays[month]);
     }
-    
+
     return holidays;
   }
-  
+
   // Puantaj excel export
-  function exportAttendanceToExcel(employeeId, monthKey){
+  function exportAttendanceToExcel(employeeId, monthKey) {
     const employee = state.employees.find(e => e.id === employeeId);
     const monthData = state.attendance?.[employeeId]?.[monthKey];
-    
-    if(!employee || !monthData) {
+
+    if (!employee || !monthData) {
       pushToast("Veri bulunamadı.", "warn");
       return;
     }
-    
+
     const [year, month] = monthKey.split("-").map(Number);
     const daysInMonth = new Date(year, month, 0).getDate();
-    
+
     let csv = "Gün,Tarih,Durum,Not\n";
-    
-    for(let day = 1; day <= daysInMonth; day++){
+
+    for (let day = 1; day <= daysInMonth; day++) {
       const date = new Date(year, month - 1, day);
       const dateStr = date.toLocaleDateString("tr-TR");
       const dayData = monthData.days[day];
       const status = dayData?.status ? ATTENDANCE_LABELS[dayData.status] : "-";
       const note = (dayData?.note || "").replace(/,/g, ";");
-      
+
       csv += `${day},${dateStr},${status},${note}\n`;
     }
-    
+
     csv += "\n\nİSTATİSTİKLER\n";
     csv += `Toplam Gün,${monthData.stats?.totalDays || 0}\n`;
     csv += `Çalışma Günü,${monthData.stats?.workDays || 0}\n`;
@@ -2766,7 +2766,7 @@ for(const emp of (next.employees || [])){
     csv += `Ücretli İzin,${monthData.stats?.paid_leave || 0}\n`;
     csv += `Hastalık İzni,${monthData.stats?.sick_leave || 0}\n`;
     csv += `Gelmedi,${monthData.stats?.absent || 0}\n`;
-    
+
     const blob = new Blob(["\ufeff" + csv], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -2776,15 +2776,15 @@ for(const emp of (next.employees || [])){
     a.click();
     a.remove();
     URL.revokeObjectURL(url);
-    
+
     pushToast("Puantaj raporu indirildi.", "ok");
   }
 
   // 📣 Duyuru yayınla (admin)
-  function addAnnouncement({ scopeType, scopeValue, title, body }){
+  function addAnnouncement({ scopeType, scopeValue, title, body }) {
     const t = (title || "").trim();
     const b = (body || "").trim();
-    if(!t || !b) return;
+    if (!t || !b) return;
 
     const ann = {
       id: uid("ann"),
@@ -2802,21 +2802,21 @@ for(const emp of (next.employees || [])){
     });
 
     // hedef kitleye bildirim (kısa)
-    const shortBody = `${t}: ${b.slice(0, 90)}${b.length>90 ? "…" : ""}`;
-    if(ann.scopeType === "all"){
+    const shortBody = `${t}: ${b.slice(0, 90)}${b.length > 90 ? "…" : ""}`;
+    if (ann.scopeType === "all") {
       // tüm kullanıcılar + admin (görsün)
-      for(const u of Object.keys(CREDENTIALS)){
+      for (const u of Object.keys(CREDENTIALS)) {
         pushNotification({ to: u, title: "Duyuru", body: shortBody, level: "info" });
       }
-    }else if(ann.scopeType === "project"){
-      for(const u of Object.keys(CREDENTIALS)){
-        if(u === "admin") { pushNotification({ to: u, title: "Duyuru", body: shortBody, level: "info" }); continue; }
+    } else if (ann.scopeType === "project") {
+      for (const u of Object.keys(CREDENTIALS)) {
+        if (u === "admin") { pushNotification({ to: u, title: "Duyuru", body: shortBody, level: "info" }); continue; }
         const cred = CREDENTIALS[u];
-        if(cred && cred.project === ann.scopeValue){
+        if (cred && cred.project === ann.scopeValue) {
           pushNotification({ to: u, title: "Duyuru", body: shortBody, level: "info" });
         }
       }
-    }else if(ann.scopeType === "user"){
+    } else if (ann.scopeType === "user") {
       pushNotification({ to: ann.scopeValue, title: "Duyuru", body: shortBody, level: "info" });
       pushNotification({ to: "admin", title: "Duyuru", body: `@${ann.scopeValue} • ${shortBody}`, level: "info" });
     }
@@ -2825,27 +2825,27 @@ for(const emp of (next.employees || [])){
   }
 
   // ✉️ Admin -> Kullanıcı mesajı (iletişim alanından)
-  function adminSendMessage({ scopeType, scopeValue, title, body }){
+  function adminSendMessage({ scopeType, scopeValue, title, body }) {
     const t = (title || "").trim();
     const b = (body || "").trim();
-    if(!t || !b) return;
+    if (!t || !b) return;
 
-    const shortBody = `${t}: ${b.slice(0, 120)}${b.length>120 ? "…" : ""}`;
+    const shortBody = `${t}: ${b.slice(0, 120)}${b.length > 120 ? "…" : ""}`;
 
-    if(scopeType === "all"){
-      for(const u of Object.keys(CREDENTIALS)){
-        if(u === "admin") continue;
+    if (scopeType === "all") {
+      for (const u of Object.keys(CREDENTIALS)) {
+        if (u === "admin") continue;
         pushNotification({ to: u, title: `Admin Mesajı • ${t}`, body: b, level: "info" });
       }
-    }else if(scopeType === "project"){
-      for(const u of Object.keys(CREDENTIALS)){
-        if(u === "admin") continue;
+    } else if (scopeType === "project") {
+      for (const u of Object.keys(CREDENTIALS)) {
+        if (u === "admin") continue;
         const cred = CREDENTIALS[u];
-        if(cred && cred.project === scopeValue){
+        if (cred && cred.project === scopeValue) {
           pushNotification({ to: u, title: `Admin Mesajı • ${t}`, body: b, level: "info" });
         }
       }
-    }else if(scopeType === "user"){
+    } else if (scopeType === "user") {
       pushNotification({ to: scopeValue, title: `Admin Mesajı • ${t}`, body: b, level: "info" });
     }
 
@@ -2853,10 +2853,10 @@ for(const emp of (next.employees || [])){
   }
 
   /* ===== ADMIN: DYNAMIC CATEGORY + FIELD ===== */
-  function adminAddCategory(){
+  function adminAddCategory() {
     const name = (catName || "").trim();
     const itemLabel = (catItemLabel || "").trim() || "Kayıt";
-    if(!name){
+    if (!name) {
       pushToast("Kategori adı zorunlu.", "warn");
       return;
     }
@@ -2864,7 +2864,7 @@ for(const emp of (next.employees || [])){
     const keyBase = slugKey(name);
     let key = keyBase;
     let i = 1;
-    while(state.categories.some(c => c.key === key)){
+    while (state.categories.some(c => c.key === key)) {
       i++;
       key = `${keyBase}_${i}`;
     }
@@ -2881,9 +2881,9 @@ for(const emp of (next.employees || [])){
       });
 
       // projelere alan aç
-      for(const p of d.projects){
+      for (const p of d.projects) {
         p.itemsByCategory ||= {};
-        if(!Array.isArray(p.itemsByCategory[key])) p.itemsByCategory[key] = [];
+        if (!Array.isArray(p.itemsByCategory[key])) p.itemsByCategory[key] = [];
       }
     });
 
@@ -2894,19 +2894,19 @@ for(const emp of (next.employees || [])){
   }
 
   // ===== ADMIN: PROJE EKLE / KATEGORİ YETKİSİ =====
-  function adminAddProject(projectName, enabledCategoryKeys){
+  function adminAddProject(projectName, enabledCategoryKeys) {
     const name = String(projectName || "").trim();
-    if(!name){
+    if (!name) {
       pushToast("Proje adı zorunlu.", "warn");
       return;
     }
-    
+
     // Duplicate check
-    if(state.projects.some(p => canonProj(p.name) === canonProj(name))){
+    if (state.projects.some(p => canonProj(p.name) === canonProj(name))) {
       pushToast("Bu proje zaten var.", "warn");
       return;
     }
-    
+
     updateState(next => {
       next.projects = Array.isArray(next.projects) ? next.projects : [];
       const cats = Array.isArray(next.categories) ? next.categories : [];
@@ -2925,12 +2925,12 @@ for(const emp of (next.employees || [])){
     pushToast("Proje eklendi.", "ok");
   }
 
-  function adminSetProjectCategories(projectId, enabledCategoryKeys){
+  function adminSetProjectCategories(projectId, enabledCategoryKeys) {
     updateState(next => {
       const cats = Array.isArray(next.categories) ? next.categories : [];
       const keys = Array.isArray(enabledCategoryKeys) ? enabledCategoryKeys.filter(Boolean) : [];
       const p = (next.projects || []).find(x => x.id === projectId);
-      if(!p){ pushToast("Proje bulunamadı.", "warn"); return; }
+      if (!p) { pushToast("Proje bulunamadı.", "warn"); return; }
       p.enabledCategoryKeys = keys.length ? keys : cats.map(c => c.key);
       // Not: itemsByCategory yapısı zaten tüm kategoriler için mevcut kalsın.
       // Gizli kategori sadece arayüzde görünmez; veri kaybı olmaz.
@@ -2938,13 +2938,13 @@ for(const emp of (next.employees || [])){
     pushToast("Proje kategorileri güncellendi.", "ok");
   }
 
-  function adminSetProjectHiddenFields(projectId, categoryKey, hiddenFieldKeys){
+  function adminSetProjectHiddenFields(projectId, categoryKey, hiddenFieldKeys) {
     updateState(next => {
       const p = (next.projects || []).find(x => x.id === projectId);
-      if(!p) return;
+      if (!p) return;
       p.fieldVisibility = p.fieldVisibility && typeof p.fieldVisibility === "object" ? p.fieldVisibility : {};
       const k = String(categoryKey || "").trim();
-      if(!k) return;
+      if (!k) return;
       p.fieldVisibility[k] = {
         hiddenFieldKeys: Array.isArray(hiddenFieldKeys) ? hiddenFieldKeys.filter(Boolean) : []
       };
@@ -2955,16 +2955,16 @@ for(const emp of (next.employees || [])){
 
 
 
-  function adminAddField(){
+  function adminAddField() {
     const c = activeCategory;
-    if(!c) return;
+    if (!c) return;
 
     const label = (catFieldLabel || "").trim();
-    if(!label) return;
+    if (!label) return;
 
     let key = slugKey(label);
     let i = 1;
-    while(c.fields.some(f => f.key === key)){
+    while (c.fields.some(f => f.key === key)) {
       i++;
       key = `${key}_${i}`;
     }
@@ -2981,22 +2981,22 @@ for(const emp of (next.employees || [])){
       label,
       type
     };
-    if(unit) field.unit = unit;
-    if(type === "select") field.options = options.length ? options : ["Seçiniz"];
+    if (unit) field.unit = unit;
+    if (type === "select") field.options = options.length ? options : ["Seçiniz"];
 
     updateState(d => {
       const cat = d.categories.find(x => x.key === c.key);
-      if(!cat) return;
+      if (!cat) return;
       cat.fields.push(field);
 
       // mevcut itemların draftlarını genişlet (mevcut aylar için sadece default boş)
-      for(const p of d.projects){
+      for (const p of d.projects) {
         const arr = p.itemsByCategory?.[cat.key] || [];
-        for(const it of arr){
+        for (const it of arr) {
           it.months ||= {};
-          for(const mk of Object.keys(it.months)){
+          for (const mk of Object.keys(it.months)) {
             it.months[mk].draft ||= {};
-            if(!(field.key in it.months[mk].draft)){
+            if (!(field.key in it.months[mk].draft)) {
               it.months[mk].draft[field.key] = (type === "number") ? 0 : "";
             }
           }
@@ -3010,44 +3010,44 @@ for(const emp of (next.employees || [])){
     pushToast("Alan eklendi.", "danger");
   }
 
-  function adminDeleteField(fieldKey){
-    if(!confirm("Bu alan silinsin mi? (mevcut verilerde de kaldırılır)")) return;
+  function adminDeleteField(fieldKey) {
+    if (!confirm("Bu alan silinsin mi? (mevcut verilerde de kaldırılır)")) return;
     const c = activeCategory;
     updateState(d => {
       const cat = d.categories.find(x => x.key === c.key);
-      if(!cat) return;
+      if (!cat) return;
       cat.fields = cat.fields.filter(f => f.key !== fieldKey);
 
-      for(const p of d.projects){
+      for (const p of d.projects) {
         const arr = p.itemsByCategory?.[cat.key] || [];
-        for(const it of arr){
-          for(const mk of Object.keys(it.months || {})){
-            if(it.months[mk]?.draft) delete it.months[mk].draft[fieldKey];
+        for (const it of arr) {
+          for (const mk of Object.keys(it.months || {})) {
+            if (it.months[mk]?.draft) delete it.months[mk].draft[fieldKey];
           }
         }
       }
     });
   }
 
-  function adminDeleteCategory(catKey){
+  function adminDeleteCategory(catKey) {
     const cat = state.categories.find(c => c.key === catKey);
-    if(!cat) return;
-    if(!confirm(`Kategori silinsin mi? (${cat.name})\nBu işlem ilgili tüm proje verilerini de kaldırır!`)) return;
+    if (!cat) return;
+    if (!confirm(`Kategori silinsin mi? (${cat.name})\nBu işlem ilgili tüm proje verilerini de kaldırır!`)) return;
 
     updateState(d => {
       // kategoriyi sil
       d.categories = (d.categories || []).filter(c => c.key !== catKey);
 
       // projelerde ilgili category verisini kaldır
-      for(const p of (d.projects || [])){
-        if(p.itemsByCategory && p.itemsByCategory[catKey]){
+      for (const p of (d.projects || [])) {
+        if (p.itemsByCategory && p.itemsByCategory[catKey]) {
           delete p.itemsByCategory[catKey];
         }
       }
 
       // eğer aktif kategori silindiyse ilk kategoriye düş
       const still = (d.categories || [])[0];
-      if(still && catKey === categoryKey){
+      if (still && catKey === categoryKey) {
         // categoryKey state'i dışarıdan set edemiyoruz burada; aşağıda useEffect ile düzelteceğiz
       }
     });
@@ -3055,65 +3055,65 @@ for(const emp of (next.employees || [])){
     pushToast(`Kategori silindi: ${cat.name}`, "danger");
   }
 
-  
+
   /* ===== ADMIN USER MAPPING (PROJECT ACCESS) ===== */
   /* ===== ADMIN: DOKÜMAN ŞABLONLARI (Sadece Admin) ===== */
-  function adminAddDocTemplate(nameArg, keyArg){
-    if(!isAdmin) return;
+  function adminAddDocTemplate(nameArg, keyArg) {
+    if (!isAdmin) return;
     const name = String(nameArg || "").trim();
-    if(!name){
-      toast({ title:"Doküman adı boş", body:"Lütfen doküman adını gir.", level:"warn" });
+    if (!name) {
+      toast({ title: "Doküman adı boş", body: "Lütfen doküman adını gir.", level: "warn" });
       return;
     }
 
     const base = slugKey(String(keyArg || "").trim() || name) || uid("doc");
     let key = base;
     let i = 1;
-    while((state.docTemplates || []).some(d => d.key === key)){
+    while ((state.docTemplates || []).some(d => d.key === key)) {
       i++;
       key = `${base}_${i}`;
     }
 
     updateState(d => {
-      if(!Array.isArray(d.docTemplates)) d.docTemplates = [];
+      if (!Array.isArray(d.docTemplates)) d.docTemplates = [];
       d.docTemplates.push({ key, name, required: true });
     });
 
-    toast({ title:"Doküman eklendi", body:name, level:"ok" });
+    toast({ title: "Doküman eklendi", body: name, level: "ok" });
   }
 
-  function adminDeleteDocTemplate(docKey){
-    if(!isAdmin) return;
+  function adminDeleteDocTemplate(docKey) {
+    if (!isAdmin) return;
     const doc = (state.docTemplates || []).find(d => d.key === docKey);
-    if(!doc) return;
-    if(!confirm(`Doküman silinsin mi? (${doc.name})`)) return;
+    if (!doc) return;
+    if (!confirm(`Doküman silinsin mi? (${doc.name})`)) return;
 
     updateState(d => {
       d.docTemplates = (d.docTemplates || []).filter(x => x.key !== docKey);
       // Çalışan imza kayıtlarından da kaldır
       const ed = d.employeeDocs || {};
-      for(const empId of Object.keys(ed)){
-        if(ed[empId] && ed[empId][docKey]) delete ed[empId][docKey];
+      for (const empId of Object.keys(ed)) {
+        if (ed[empId] && ed[empId][docKey]) delete ed[empId][docKey];
       }
     });
 
-    toast({ title:"Doküman silindi", body:doc.name, level:"warn" });
+    toast({ title: "Doküman silindi", body: doc.name, level: "warn" });
   }
 
   /* ===== ADMIN: EVRAK TAKİP TÜRLERİ (Geçerlilik) ===== */
   const adminAddDocRegisterType = (nameArg, validityDaysArg, warnDaysArg) => {
-    if(!isAdmin) return;
+    if (!isAdmin) return;
     const name = String(nameArg || "").trim();
     const validityDays = Number(validityDaysArg || 0);
     const warnDays = Number(warnDaysArg || 0);
 
-    if(!name || !validityDays){
+    if (!name || !validityDays) {
       pushToast("Evrak adı ve geçerlilik (gün) zorunlu.", "warn");
       return;
     }
 
     updateState(d => {
-      if(!Array.isArray(d.docRegisterTypes)) d.docRegisterTypes = [];
+      if (!Array.isArray(d.docRegisterTypes)) d.docRegisterTypes = [];
       d.docRegisterTypes.push({
         id: uid("dt"),
         name,
@@ -3126,34 +3126,34 @@ for(const emp of (next.employees || [])){
     pushToast("Evrak türü eklendi.", "ok");
   }
 
-  function adminUpdateDocRegisterType(typeId, patch){
-    if(!isAdmin) return;
+  function adminUpdateDocRegisterType(typeId, patch) {
+    if (!isAdmin) return;
     updateState(d => {
-      if(!Array.isArray(d.docRegisterTypes)) d.docRegisterTypes = [];
+      if (!Array.isArray(d.docRegisterTypes)) d.docRegisterTypes = [];
       const ix = d.docRegisterTypes.findIndex(x => x.id === typeId);
-      if(ix < 0) return;
+      if (ix < 0) return;
       d.docRegisterTypes[ix] = { ...d.docRegisterTypes[ix], ...(patch || {}) };
     });
   }
 
-  function adminDeleteDocRegisterType(typeId){
-    if(!isAdmin) return;
+  function adminDeleteDocRegisterType(typeId) {
+    if (!isAdmin) return;
     const t = (state.docRegisterTypes || []).find(x => x.id === typeId);
-    if(!t) return;
-    if(!confirm(`Evrak türü silinsin mi? (${t.name})`)) return;
+    if (!t) return;
+    if (!confirm(`Evrak türü silinsin mi? (${t.name})`)) return;
 
     updateState(d => {
       d.docRegisterTypes = (d.docRegisterTypes || []).filter(x => x.id !== typeId);
       const reg = d.employeeDocRegister || {};
-      for(const empId of Object.keys(reg)){
-        if(reg[empId] && reg[empId][typeId]) delete reg[empId][typeId];
+      for (const empId of Object.keys(reg)) {
+        if (reg[empId] && reg[empId][typeId]) delete reg[empId][typeId];
       }
     });
 
     pushToast("Evrak türü silindi.", "warn");
   }
 
-  async function adminUpsertAuthUser(username, password, projectName, role){
+  async function adminUpsertAuthUser(username, password, projectName, role) {
     const u = (username || "").trim().toLowerCase();
     const p = (password || "").trim();
     const pr = (projectName || "").trim();
@@ -3163,40 +3163,40 @@ for(const emp of (next.employees || [])){
     const finalRole = allowed.has(rr) ? rr : "user";
 
     // Admin haricinde proje zorunlu
-    if(!u || !p || (finalRole !== "admin" && !pr)){
+    if (!u || !p || (finalRole !== "admin" && !pr)) {
       pushToast("E-mail / şifre / proje zorunlu.", "warn");
       return;
     }
 
     // Legacy fallback (single-device local storage)
     updateState(d => {
-      if(!Array.isArray(d.authUsers)) d.authUsers = [];
+      if (!Array.isArray(d.authUsers)) d.authUsers = [];
       const ix = d.authUsers.findIndex(x => x && x.username === u);
       const rec = { username: u, password: p, project: pr, role: finalRole };
-      if(ix >= 0) d.authUsers[ix] = rec;
+      if (ix >= 0) d.authUsers[ix] = rec;
       else d.authUsers.push(rec);
     });
     pushToast("Kullanıcı kaydedildi (local).", "ok");
   }
-  function adminDeleteAuthUser(username){
+  function adminDeleteAuthUser(username) {
     const u = (username || "").trim();
-    if(!u) return;
-    if(!confirm(`Kullanıcı silinsin mi? (${u})`)) return;
+    if (!u) return;
+    if (!confirm(`Kullanıcı silinsin mi? (${u})`)) return;
     updateState(d => {
       d.authUsers = (d.authUsers || []).filter(x => x && x.username !== u);
     });
     pushToast("Kullanıcı silindi.", "success");
   }
 
-/* ===== DASHBOARD (APPROVED ONLY) ===== */
+  /* ===== DASHBOARD (APPROVED ONLY) ===== */
   const dashboardProjects = useMemo(() => {
-    if(!auth) return [];
+    if (!auth) return [];
     const all = state.projects || [];
-    if(isAdmin) return all;
+    if (isAdmin) return all;
 
     // member: tek proje görür (user_access.project_code)
     const target = canonProj(auth.project || auth.projectId || "");
-    if(!target) return [];
+    if (!target) return [];
     const p = all.find(pr => {
       const prKey = canonProj(pr.code || pr.projectCode || pr.project || pr.name || pr.id);
       return prKey === target;
@@ -3204,9 +3204,9 @@ for(const emp of (next.employees || [])){
     return p ? [p] : [];
   }, [state.projects, auth, isAdmin]);
   const dashboardRows = useMemo(() => {
-    if(!auth) return [];
+    if (!auth) return [];
     const cat = activeCategory;
-    if(!cat) return [];
+    if (!cat) return [];
 
     return dashboardProjects.map(p => {
       const arr = p.itemsByCategory?.[cat.key] || [];
@@ -3214,27 +3214,27 @@ for(const emp of (next.employees || [])){
       let monthApproved = 0;
 
       const sums = {};
-      for(const f of (cat.fields || [])){
-        if(f.type === "number") sums[f.key] = 0;
+      for (const f of (cat.fields || [])) {
+        if (f.type === "number") sums[f.key] = 0;
       }
       let mealsSum = 0;
 
-      for(const it of arr){
-        if(cat.approval?.item && !it.approved) continue;
+      for (const it of arr) {
+        if (cat.approval?.item && !it.approved) continue;
         itemsApproved++;
 
         const slot = it.months?.[monthKey];
-        if(!slot || !slot.approved) continue;
+        if (!slot || !slot.approved) continue;
         monthApproved++;
 
         const dft = slot.draft || {};
-        for(const f of (cat.fields || [])){
-          if(f.type === "number") sums[f.key] += safeNum(dft[f.key]);
+        for (const f of (cat.fields || [])) {
+          if (f.type === "number") sums[f.key] += safeNum(dft[f.key]);
         }
         // Yemek: yeni (mealCount) + eski (meals[]) uyumluluğu
-        if(Object.prototype.hasOwnProperty.call(dft, "mealCount")){
+        if (Object.prototype.hasOwnProperty.call(dft, "mealCount")) {
           mealsSum += safeNum(dft.mealCount);
-        } else if(Array.isArray(dft.meals)){
+        } else if (Array.isArray(dft.meals)) {
           mealsSum += dft.meals.length;
         }
       }
@@ -3252,13 +3252,13 @@ for(const emp of (next.employees || [])){
 
   /* ===== APPROVAL QUEUES (admin) ===== */
   const pendingItemRequests = useMemo(() => {
-    if(!isAdmin) return [];
+    if (!isAdmin) return [];
     const out = [];
-    for(const p of state.projects){
-      for(const cat of state.categories){
+    for (const p of state.projects) {
+      for (const cat of state.categories) {
         const arr = p.itemsByCategory?.[cat.key] || [];
-        for(const it of arr){
-          if(cat.approval?.item && !it.approved){
+        for (const it of arr) {
+          if (cat.approval?.item && !it.approved) {
             out.push({
               projectId: p.id, projectName: p.name,
               catKey: cat.key, catName: cat.name, itemLabel: cat.itemLabel,
@@ -3270,21 +3270,21 @@ for(const emp of (next.employees || [])){
         }
       }
     }
-    out.sort((a,b)=> String(b.createdAt||"").localeCompare(String(a.createdAt||"")));
+    out.sort((a, b) => String(b.createdAt || "").localeCompare(String(a.createdAt || "")));
     return out;
   }, [state.projects, state.categories, isAdmin]);
 
   const pendingMonthApprovals = useMemo(() => {
-    if(!isAdmin) return [];
+    if (!isAdmin) return [];
     const out = [];
-    for(const p of state.projects){
-      for(const cat of state.categories){
+    for (const p of state.projects) {
+      for (const cat of state.categories) {
         const arr = p.itemsByCategory?.[cat.key] || [];
-        for(const it of arr){
-          if(cat.approval?.item && !it.approved) continue;
+        for (const it of arr) {
+          if (cat.approval?.item && !it.approved) continue;
 
           const slot = it.months?.[monthKey];
-          if(slot?.submitted && !slot?.approved){
+          if (slot?.submitted && !slot?.approved) {
             out.push({
               projectId: p.id, projectName: p.name,
               catKey: cat.key, catName: cat.name, itemLabel: cat.itemLabel,
@@ -3296,35 +3296,35 @@ for(const emp of (next.employees || [])){
         }
       }
     }
-    out.sort((a,b)=> String(b.submittedAt||"").localeCompare(String(a.submittedAt||"")));
+    out.sort((a, b) => String(b.submittedAt || "").localeCompare(String(a.submittedAt || "")));
     return out;
   }, [state.projects, state.categories, isAdmin, monthKey]);
 
   /* ===== FILTERED ITEMS FOR ENTRY ===== */
   const entryItems = useMemo(() => {
-    if(!auth) return [];
+    if (!auth) return [];
     const p = entryProject;
-    if(!p) return [];
+    if (!p) return [];
 
     const cat = activeCategory;
-    if(!cat) return [];
+    if (!cat) return [];
     const arrAll = p.itemsByCategory?.[cat.key] || [];
     const q = (search || "").trim().toLowerCase();
 
     // kullanıcı: sadece onaylı itemlar
     const arr = isAdmin ? arrAll.filter(it => (!cat.approval?.item || it.approved)) : arrAll.filter(it => (!cat.approval?.item || it.approved));
 
-    return arr.filter(it => !q || (it.name||"").toLowerCase().includes(q));
+    return arr.filter(it => !q || (it.name || "").toLowerCase().includes(q));
   }, [auth, entryProject, activeCategory, search, isAdmin]);
 
   const entryExperts = useMemo(() => {
-    if(!entryProject) return [];
+    if (!entryProject) return [];
     return entryProject.itemsByCategory?.["experts"] || [];
   }, [entryProject]);
 
   const myPendingItems = useMemo(() => {
-    if(!auth || isAdmin) return [];
-    if(!entryProject || !activeCategory) return [];
+    if (!auth || isAdmin) return [];
+    if (!entryProject || !activeCategory) return [];
     const p = entryProject;
     const cat = activeCategory;
     const arr = p.itemsByCategory?.[cat.key] || [];
@@ -3333,11 +3333,11 @@ for(const emp of (next.employees || [])){
 
   /* ===================== LOGIN SCREEN ===================== */
 
-  if(!auth){
+  if (!auth) {
     return (
       <div className="loginHero" data-theme={darkMode ? "dark" : "light"}>
-        <button 
-          className="theme-toggle" 
+        <button
+          className="theme-toggle"
           onClick={toggleDarkMode}
           aria-label="Tema Değiştir"
         >
@@ -3373,7 +3373,7 @@ for(const emp of (next.employees || [])){
               <input
                 className="loginInputLine"
                 value={lu}
-                onChange={(e) => { setLu(e.target.value); if(loginError) setLoginError(""); }}
+                onChange={(e) => { setLu(e.target.value); if (loginError) setLoginError(""); }}
                 placeholder="E-mail Adresinizi Yazınız"
                 autoComplete="username"
               />
@@ -3386,10 +3386,10 @@ for(const emp of (next.employees || [])){
                   className="loginInputLine"
                   type={showPw ? "text" : "password"}
                   value={lp}
-                  onChange={(e) => { setLp(e.target.value); if(loginError) setLoginError(""); }}
+                  onChange={(e) => { setLp(e.target.value); if (loginError) setLoginError(""); }}
                   placeholder="••••••••"
                   autoComplete="current-password"
-                  onKeyDown={(e)=>{ if(e.key === "Enter") doLogin(); }}
+                  onKeyDown={(e) => { if (e.key === "Enter") doLogin(); }}
                 />
                 <button
                   className="loginEye"
@@ -3420,8 +3420,8 @@ for(const emp of (next.employees || [])){
       <header className="modern-navbar">
         <div className="navbar-container">
           <div className="navbar-left">
-            <button 
-              className="theme-toggle-modern" 
+            <button
+              className="theme-toggle-modern"
               onClick={toggleDarkMode}
               title={darkMode ? 'Aydınlık Mod' : 'Karanlık Mod'}
             >
@@ -3433,38 +3433,38 @@ for(const emp of (next.employees || [])){
           </div>
 
           <nav className="navbar-center">
-            <button 
+            <button
               className={`navbar-tab ${tab === 'home' ? 'active' : ''}`}
               onClick={() => navigate('home')}
             >
               🏠 Anasayfa
             </button>
-            <button 
+            <button
               className={`navbar-tab ${tab === 'dashboard' ? 'active' : ''}`}
               onClick={() => navigate('dashboard')}
             >
               📊 Dashboard
             </button>
-            <button 
+            <button
               className={`navbar-tab ${tab === 'entry' ? 'active' : ''}`}
               onClick={() => navigate('entry')}
             >
               ✍️ Veri Girişi
             </button>
-            <button 
+            <button
               className={`navbar-tab ${tab === 'attendance' ? 'active' : ''}`}
               onClick={() => navigate('attendance')}
             >
               📅 Puantaj
             </button>
-            <button 
+            <button
               className={`navbar-tab ${tab === 'actions' ? 'active' : ''}`}
               onClick={() => navigate('actions')}
             >
               🎯 Aksiyonlar
             </button>
             {isAdmin && (
-              <button 
+              <button
                 className={`navbar-tab ${tab === 'admin' ? 'active' : ''}`}
                 onClick={() => navigate('admin')}
               >
@@ -3485,698 +3485,669 @@ for(const emp of (next.employees || [])){
       </header>
 
       <div className="appContent" style={{ paddingTop: 0 }}>
-      <div ref={notifRef} style={{ position: "absolute", top: 80, right: 20, zIndex: 1000 }}>
-            <button
-              type="button"
-              className="navBtn"
-              style={{ padding: "8px 10px", minWidth: 44 }}
-              onClick={() => setNotifOpen(v => !v)}
-              title="Bildirimler"
+        <div ref={notifRef} style={{ position: "absolute", top: 80, right: 20, zIndex: 1000 }}>
+          <button
+            type="button"
+            className="navBtn"
+            style={{ padding: "8px 10px", minWidth: 44 }}
+            onClick={() => setNotifOpen(v => !v)}
+            title="Bildirimler"
+          >
+            <span style={{ fontSize: 16 }}>🔔</span>
+            {unreadCount > 0 && (
+              <span
+                style={{
+                  marginLeft: 6,
+                  background: "#d81b60",
+                  color: "#fff",
+                  borderRadius: 999,
+                  padding: "1px 7px",
+                  fontSize: 12,
+                  fontWeight: 700,
+                  lineHeight: "18px",
+                  display: "inline-block"
+                }}
+              >
+                {unreadCount}
+              </span>
+            )}
+          </button>
+
+          {notifOpen && (
+            <div
+              style={{
+                position: "absolute",
+                right: 0,
+                top: "110%",
+                width: 360,
+                maxWidth: "80vw",
+                background: "#ffffff",
+                border: "1px solid #e5e7eb",
+                borderRadius: 12,
+                padding: 10,
+                zIndex: 50,
+                boxShadow: "0 10px 30px rgba(0,0,0,.12)"
+              }}
             >
-              <span style={{ fontSize: 16 }}>🔔</span>
-              {unreadCount > 0 && (
-                <span
-                  style={{
-                    marginLeft: 6,
-                    background: "#d81b60",
-                    color: "#fff",
-                    borderRadius: 999,
-                    padding: "1px 7px",
-                    fontSize: 12,
-                    fontWeight: 700,
-                    lineHeight: "18px",
-                    display: "inline-block"
-                  }}
-                >
-                  {unreadCount}
-                </span>
+
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
+                <div style={{ fontWeight: 800 }}>Bildirimler</div>
+                <div style={{ display: "flex", gap: 8 }}>
+                  <button type="button" className="miniBtn" onClick={markAllRead}>Tümü okundu</button>
+                  <button type="button" className="miniBtn" onClick={() => setNotifOpen(false)}>Kapat</button>
+                </div>
+              </div>
+
+              {myNotifications.length === 0 ? (
+                <div style={{ opacity: .8, padding: 8 }}>Bildirim yok.</div>
+              ) : (
+                <div style={{ maxHeight: 360, overflow: "auto" }}>
+                  {myNotifications.slice(0, 30).map((n) => (
+                    <button
+                      key={n.id}
+                      type="button"
+                      onClick={() => {
+                        updateState(d => {
+                          const nn = (d.notifications || []).find(x => x.id === n.id);
+                          if (nn) nn.read = true;
+                        });
+                      }}
+                      style={{
+                        width: "100%",
+                        textAlign: "left",
+                        padding: 10,
+                        borderRadius: 10,
+                        border: "1px solid rgba(255,255,255,.08)",
+                        background: n.read ? "rgba(255,255,255,.03)" : "rgba(76,175,80,.10)",
+                        marginBottom: 8,
+                        cursor: "pointer"
+                      }}
+                    >
+                      <div style={{ display: "flex", justifyContent: "space-between", gap: 10 }}>
+                        <div style={{ fontWeight: 800 }}>{n.title || "Bildirim"}</div>
+                        <div style={{ opacity: .7, fontSize: 12 }}>{formatDate(n.createdAt)}</div>
+                      </div>
+                      {n.body ? <div style={{ opacity: .9, marginTop: 4, fontSize: 13 }}>{n.body}</div> : null}
+                      {!n.read ? <div style={{ marginTop: 6, fontSize: 12, opacity: .85 }}>• okunmadı</div> : null}
+                    </button>
+                  ))}
+                </div>
               )}
-            </button>
+            </div>
+          )}
+        </div>
 
-           {notifOpen && (
-  <div
-    style={{
-      position: "absolute",
-      right: 0,
-      top: "110%",
-      width: 360,
-      maxWidth: "80vw",
-      background: "#ffffff",
-      border: "1px solid #e5e7eb",
-      borderRadius: 12,
-      padding: 10,
-      zIndex: 50,
-      boxShadow: "0 10px 30px rgba(0,0,0,.12)"
-    }}
-  >
-
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
-                  <div style={{ fontWeight: 800 }}>Bildirimler</div>
-                  <div style={{ display: "flex", gap: 8 }}>
-                    <button type="button" className="miniBtn" onClick={markAllRead}>Tümü okundu</button>
-                    <button type="button" className="miniBtn" onClick={() => setNotifOpen(false)}>Kapat</button>
-                  </div>
+        <div className="mainArea">
+          <div className={`grid ${tab === "dashboard" ? "gridSingle" : ""}`}>
+            {/* LEFT PANEL */}
+            {tab !== "dashboard" && (
+              <div className="card">
+                <div className="cardTitleRow">
+                  <h3>Filtreler</h3>
+                  <Badge kind="ok">{monthDays} gün</Badge>
                 </div>
 
-                {myNotifications.length === 0 ? (
-                  <div style={{ opacity: .8, padding: 8 }}>Bildirim yok.</div>
-                ) : (
-                  <div style={{ maxHeight: 360, overflow: "auto" }}>
-                    {myNotifications.slice(0, 30).map((n) => (
-                      <button
-                        key={n.id}
-                        type="button"
-                        onClick={() => {
-                          updateState(d => {
-                            const nn = (d.notifications || []).find(x => x.id === n.id);
-                            if(nn) nn.read = true;
-                          });
-                        }}
-                        style={{
-                          width: "100%",
-                          textAlign: "left",
-                          padding: 10,
-                          borderRadius: 10,
-                          border: "1px solid rgba(255,255,255,.08)",
-                          background: n.read ? "rgba(255,255,255,.03)" : "rgba(76,175,80,.10)",
-                          marginBottom: 8,
-                          cursor: "pointer"
-                        }}
-                      >
-                        <div style={{ display: "flex", justifyContent: "space-between", gap: 10 }}>
-                          <div style={{ fontWeight: 800 }}>{n.title || "Bildirim"}</div>
-                          <div style={{ opacity: .7, fontSize: 12 }}>{formatDate(n.createdAt)}</div>
-                        </div>
-                        {n.body ? <div style={{ opacity: .9, marginTop: 4, fontSize: 13 }}>{n.body}</div> : null}
-                        {!n.read ? <div style={{ marginTop: 6, fontSize: 12, opacity: .85 }}>• okunmadı</div> : null}
-                      </button>
+                <div className="small" style={{ marginTop: 6 }}>
+                  Kategori seç (Uzman/Araç/diğer). Veri girişi ve dashboard o kategoriye göre çalışır.
+                </div>
+
+                <hr className="sep" />
+
+                <div className="row">
+                  <select
+                    className="input sm"
+                    value={activeYear}
+                    onChange={(e) => setActiveYear(safeNum(e.target.value))}
+                  >
+                    {yearOptions().map((yy) => (
+                      <option key={yy} value={yy}>{yy}</option>
                     ))}
-                  </div>
+                  </select>
+
+                  <select
+                    className="input sm"
+                    value={activeMonth}
+                    onChange={(e) => setActiveMonth(e.target.value)}
+                  >
+                    {monthOptions().map((mm) => (
+                      <option key={mm.key} value={mm.key}>{mm.label}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div style={{ height: 10 }} />
+
+                {isAdmin && tab === "entry" && (
+                  <>
+                    <select
+                      className="input"
+                      value={entryProjectId || ""}
+                      onChange={(e) => setEntryProjectId(e.target.value)}
+                    >
+                      {(state.projects || []).map((p) => (
+                        <option key={p.id} value={p.id}>{p.name}</option>
+                      ))}
+                    </select>
+                    <div style={{ height: 10 }} />
+                  </>
                 )}
-              </div>
-            )}
-          </div>
 
-          <div className="userPill" title={auth?.username || ""}>
-            <span>{auth?.username || "Kullanıcı"}</span>
-            <span className="small" style={{opacity:.7}}>{isAdmin ? "Admin" : (auth?.projectName || "Proje")}</span>
-          </div>
-          {auth?.role === "admin" && availableProjectCodes?.length > 0 && (
-            <select
-              className="projectSelect"
-              value={activeProjectCode || ""}
-              onChange={async (e) => {
-                const code = e.target.value;
-                setActiveProjectCode(code);
-                try{
-                  const remote = await loadStateFromSupabase(code);
-                  if(remote) setState(normalizeState(remote));
-                }catch(err){
-                  console.error(err);
-                  alert(err?.message || "Proje verisi yüklenemedi");
-                }
-              }}
-              title="Admin proje seçimi"
-              style={{ marginRight: 10, padding: "6px 8px", borderRadius: 8 }}
-            >
-              {availableProjectCodes.map(c => (
-                <option key={c} value={c}>{c}</option>
-              ))}
-            </select>
-          )}
-          <button className="logoutBtn" type="button" onClick={() => { setAuth(null); setLu(""); setLp(""); navigate("dashboard"); setNotifOpen(false); }}>Çıkış</button>
-        </div>
-      </div>
-
-      <div className="mainArea">
-      <div className={`grid ${tab === "dashboard" ? "gridSingle" : ""}`}>
-        {/* LEFT PANEL */}
-        {tab !== "dashboard" && (
-          <div className="card">
-            <div className="cardTitleRow">
-              <h3>Filtreler</h3>
-              <Badge kind="ok">{monthDays} gün</Badge>
-            </div>
-
-            <div className="small" style={{ marginTop: 6 }}>
-              Kategori seç (Uzman/Araç/diğer). Veri girişi ve dashboard o kategoriye göre çalışır.
-            </div>
-
-            <hr className="sep" />
-
-            <div className="row">
-              <select
-                className="input sm"
-                value={activeYear}
-                onChange={(e) => setActiveYear(safeNum(e.target.value))}
-              >
-                {yearOptions().map((yy) => (
-                  <option key={yy} value={yy}>{yy}</option>
-                ))}
-              </select>
-
-              <select
-                className="input sm"
-                value={activeMonth}
-                onChange={(e) => setActiveMonth(e.target.value)}
-              >
-                {monthOptions().map((mm) => (
-                  <option key={mm.key} value={mm.key}>{mm.label}</option>
-                ))}
-              </select>
-            </div>
-
-            <div style={{ height: 10 }} />
-
-            {isAdmin && tab === "entry" && (
-              <>
                 <select
-                  className="input"
-                  value={entryProjectId || ""}
-                  onChange={(e) => setEntryProjectId(e.target.value)}
+                  className="input sm"
+                  value={categoryKey}
+                  onChange={(e) => setCategoryKey(e.target.value)}
                 >
-                  {(state.projects || []).map((p) => (
-                    <option key={p.id} value={p.id}>{p.name}</option>
+                  {visibleCategories.map((c) => (
+                    <option key={c.key} value={c.key}>{c.name}</option>
                   ))}
                 </select>
+
                 <div style={{ height: 10 }} />
-              </>
-            )}
 
-            <select
-              className="input sm"
-              value={categoryKey}
-              onChange={(e) => setCategoryKey(e.target.value)}
-            >
-              {visibleCategories.map((c) => (
-                <option key={c.key} value={c.key}>{c.name}</option>
-              ))}
-            </select>
+                <input
+                  className="input sm"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder={`${activeCategory?.itemLabel || "Kayıt"} ara...`}
+                />
 
-            <div style={{ height: 10 }} />
-
-            <input
-              className="input sm"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder={`${activeCategory?.itemLabel || "Kayıt"} ara...`}
-            />
-
-            {!isAdmin && activeCategory?.key !== "monthly_controls" && (
-              <>
-                <hr className="sep" />
-                <div className="cardTitleRow">
-                  <h3>{activeCategory?.itemLabel || "Kayıt"} Talebi</h3>
-                  <Badge kind="warn">Admin onayı</Badge>
-                </div>
-
-                <div style={{ marginTop: 10 }} className="row">
-                  <input
-                    className="input"
-                    value={newItemName}
-                    onChange={(e) => setNewItemName(e.target.value)}
-                    placeholder={`${activeCategory?.itemLabel || "Kayıt"} adı (ör: Faruk Aksoy / 34 ABC 123)`}
-                  />
-                  <button className="btn primary" onClick={() => requestItem(visibleProjects[0]?.id)}>
-                    Gönder
-                  </button>
-                </div>
-
-                {myPendingItems.length > 0 && (
+                {!isAdmin && activeCategory?.key !== "monthly_controls" && (
                   <>
                     <hr className="sep" />
                     <div className="cardTitleRow">
-                      <h3>Bekleyen Taleplerim</h3>
-                      <Badge kind="warn">{myPendingItems.length}</Badge>
+                      <h3>{activeCategory?.itemLabel || "Kayıt"} Talebi</h3>
+                      <Badge kind="warn">Admin onayı</Badge>
                     </div>
-                    <div className="list">
-                      {myPendingItems.map((it) => (
-                        <div key={it.id} className="item">
-                          <div className="itemLeft">
-                            <b>{it.name}</b>
-                            <span className="small">{formatDT(it.createdAt)}</span>
-                          </div>
-                          <Badge kind="warn">Onay Bekliyor</Badge>
+
+                    <div style={{ marginTop: 10 }} className="row">
+                      <input
+                        className="input"
+                        value={newItemName}
+                        onChange={(e) => setNewItemName(e.target.value)}
+                        placeholder={`${activeCategory?.itemLabel || "Kayıt"} adı (ör: Faruk Aksoy / 34 ABC 123)`}
+                      />
+                      <button className="btn primary" onClick={() => requestItem(visibleProjects[0]?.id)}>
+                        Gönder
+                      </button>
+                    </div>
+
+                    {myPendingItems.length > 0 && (
+                      <>
+                        <hr className="sep" />
+                        <div className="cardTitleRow">
+                          <h3>Bekleyen Taleplerim</h3>
+                          <Badge kind="warn">{myPendingItems.length}</Badge>
                         </div>
-                      ))}
+                        <div className="list">
+                          {myPendingItems.map((it) => (
+                            <div key={it.id} className="item">
+                              <div className="itemLeft">
+                                <b>{it.name}</b>
+                                <span className="small">{formatDT(it.createdAt)}</span>
+                              </div>
+                              <Badge kind="warn">Onay Bekliyor</Badge>
+                            </div>
+                          ))}
+                        </div>
+                      </>
+                    )}
+                  </>
+                )}
+
+                {isAdmin && (
+                  <>
+                    <hr className="sep" />
+                    <div className="cardTitleRow">
+                      <h3>Bekleyenler</h3>
+                      <Badge kind={(pendingItemRequests.length + pendingMonthApprovals.length) ? "warn" : "ok"}>
+                        {pendingItemRequests.length + pendingMonthApprovals.length}
+                      </Badge>
+                    </div>
+                    <div className="small" style={{ marginTop: 6 }}>
+                      Onaylar sekmesinden yönet.
                     </div>
                   </>
                 )}
-              </>
-            )}
-
-            {isAdmin && (
-              <>
-                <hr className="sep" />
-                <div className="cardTitleRow">
-                  <h3>Bekleyenler</h3>
-                  <Badge kind={(pendingItemRequests.length + pendingMonthApprovals.length) ? "warn" : "ok"}>
-                    {pendingItemRequests.length + pendingMonthApprovals.length}
-                  </Badge>
-                </div>
-                <div className="small" style={{ marginTop: 6 }}>
-                  Onaylar sekmesinden yönet.
-                </div>
-              </>
-            )}
-          </div>
-        )}
-
-        {/* RIGHT CONTENT */}
-        <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-          
-          {/* 🏠 HOME PAGE v005 */}
-          {tab === "home" && (
-            <div style={{ maxWidth: 1400, margin: '0 auto', padding: 32 }}>
-              <div className="home-hero">
-                <h1>Hoş Geldiniz, {auth?.username}! 👋</h1>
-                <p>TVS Team Veri Takip Sistemi ile projelerinizi kolayca yönetin</p>
               </div>
+            )}
 
-              <div className="home-stats">
-                <div className="stat-card-modern" onClick={() => navigate('dashboard')}>
-                  <div className="stat-value-modern">{state.projects?.length || 0}</div>
-                  <div className="stat-label-modern">Toplam Proje</div>
-                </div>
-                <div className="stat-card-modern" onClick={() => navigate('employees')}>
-                  <div className="stat-value-modern">{state.employees?.length || 0}</div>
-                  <div className="stat-label-modern">Toplam Çalışan</div>
-                </div>
-                <div className="stat-card-modern" onClick={() => navigate('dashboard')}>
-                  <div className="stat-value-modern">
-                    {state.categories?.reduce((sum, cat) => {
-                      return sum + state.projects?.reduce((pSum, proj) => {
-                        return pSum + (proj.itemsByCategory?.[cat.key]?.length || 0);
-                      }, 0);
-                    }, 0) || 0}
+            {/* RIGHT CONTENT */}
+            <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+
+              {/* 🏠 HOME PAGE v005 */}
+              {tab === "home" && (
+                <div style={{ maxWidth: 1400, margin: '0 auto', padding: 32 }}>
+                  <div className="home-hero">
+                    <h1>Hoş Geldiniz, {auth?.username}! 👋</h1>
+                    <p>TVS Team Veri Takip Sistemi ile projelerinizi kolayca yönetin</p>
                   </div>
-                  <div className="stat-label-modern">Toplam Kayıt</div>
-                </div>
-                <div className="stat-card-modern">
-                  <div className="stat-value-modern">✓</div>
-                  <div className="stat-label-modern">Sistem Aktif</div>
-                </div>
-              </div>
 
-              <div className="card" style={{ marginTop: 32 }}>
-                <h2 style={{ marginBottom: 20 }}>⚡ Hızlı Erişim</h2>
-                <div className="grid grid-3" style={{ gap: 16 }}>
-                  <button 
-                    className="btn" 
-                    style={{ padding: 24, fontSize: 16, borderRadius: 16, background: 'linear-gradient(135deg, #6366f1, #8b5cf6)', color: 'white', border: 'none', cursor: 'pointer' }}
-                    onClick={() => navigate('entry')}
-                  >
-                    ✍️ Yeni Veri Girişi
-                  </button>
-                  <button 
-                    className="btn" 
-                    style={{ padding: 24, fontSize: 16, borderRadius: 16, background: 'linear-gradient(135deg, #10b981, #14b8a6)', color: 'white', border: 'none', cursor: 'pointer' }}
-                    onClick={() => navigate('attendance')}
-                  >
-                    📅 Puantaj İşlemleri
-                  </button>
-                  <button 
-                    className="btn" 
-                    style={{ padding: 24, fontSize: 16, borderRadius: 16, background: 'linear-gradient(135deg, #f59e0b, #fb923c)', color: 'white', border: 'none', cursor: 'pointer' }}
-                    onClick={() => navigate('actions')}
-                  >
-                    🎯 Aksiyonlar
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {tab === "dashboard" && (
-            <>
-              <div className="card">
-                <div className="cardTitleRow">
-                  <h3>🔍 Dashboard Hızlı Filtreler</h3>
-                </div>
-
-                {/* 🎯 MODERN FİLTRELER v005 */}
-                <div className="filter-cards-modern">
-                  {isAdmin && (
-                    <div className="filter-card-modern">
-                      <div className="filter-icon-modern">📁</div>
-                      <label className="filter-label-modern">Proje Seçin</label>
-                      <select
-                        className="input sm"
-                        value={dashProjectId}
-                        onChange={(e) => setDashProjectId(e.target.value)}
-                      >
-                        <option value="ALL">Tüm Projeler</option>
-                        {(state.projects || []).map((p) => (
-                          <option key={p.id} value={p.id}>{p.name}</option>
-                        ))}
-                      </select>
+                  <div className="home-stats">
+                    <div className="stat-card-modern" onClick={() => navigate('dashboard')}>
+                      <div className="stat-value-modern">{state.projects?.length || 0}</div>
+                      <div className="stat-label-modern">Toplam Proje</div>
                     </div>
-                  )}
-
-                  <div className="filter-card-modern">
-                    <div className="filter-icon-modern">📅</div>
-                    <label className="filter-label-modern">Yıl Seçin</label>
-                    <select
-                      className="input sm"
-                      value={activeYear}
-                      onChange={(e) => setActiveYear(safeNum(e.target.value))}
-                    >
-                      {yearOptions().map((yy) => (
-                        <option key={yy} value={yy}>{yy}</option>
-                      ))}
-                    </select>
+                    <div className="stat-card-modern" onClick={() => navigate('employees')}>
+                      <div className="stat-value-modern">{state.employees?.length || 0}</div>
+                      <div className="stat-label-modern">Toplam Çalışan</div>
+                    </div>
+                    <div className="stat-card-modern" onClick={() => navigate('dashboard')}>
+                      <div className="stat-value-modern">
+                        {state.categories?.reduce((sum, cat) => {
+                          return sum + state.projects?.reduce((pSum, proj) => {
+                            return pSum + (proj.itemsByCategory?.[cat.key]?.length || 0);
+                          }, 0);
+                        }, 0) || 0}
+                      </div>
+                      <div className="stat-label-modern">Toplam Kayıt</div>
+                    </div>
+                    <div className="stat-card-modern">
+                      <div className="stat-value-modern">✓</div>
+                      <div className="stat-label-modern">Sistem Aktif</div>
+                    </div>
                   </div>
 
-                  <div className="filter-card-modern">
-                    <div className="filter-icon-modern">📆</div>
-                    <label className="filter-label-modern">Ay Seçin</label>
-                    <select
-                      className="input sm"
-                      value={activeMonth}
-                      onChange={(e) => setActiveMonth(e.target.value)}
-                    >
-                      {monthOptions().map((mm) => (
-                        <option key={mm.key} value={mm.key}>{mm.label}</option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div className="filter-card-modern">
-                    <div className="filter-icon-modern">📋</div>
-                    <label className="filter-label-modern">Kategori</label>
-                    <select
-                      className="input sm"
-                      value={categoryKey}
-                      onChange={(e) => setCategoryKey(e.target.value)}
-                    >
-                      {visibleCategories.map((c) => (
-                        <option key={c.key} value={c.key}>{c.name}</option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-
-                <div style={{ marginTop: 16 }}>
-                  <input
-                    className="input sm"
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                    placeholder={`${activeCategory?.itemLabel || "Kayıt"} ara...`}
-                    style={{ width: '100%' }}
-                  />
-                </div>
-
-                <div className="small" style={{ marginTop: 10 }}>
-                  Bu filtreler, dashboard görünümünü ve hesaplamaları etkiler.
-                </div>
-              </div>
-
-              <DashboardView
-                categories={state.categories}
-                monthKey={monthKey}
-                category={activeCategory}
-                rows={dashboardRows}
-                projects={dashboardProjects}
-                employees={state.employees}
-                actions={state.actions}
-                isAdmin={isAdmin}
-                attendance={state.attendance}
-              />
-            </>
-          )}
-
-          {tab === "entry" && (
-            <>
-              <div className="card">
-                <div className="cardTitleRow">
-                  <h3>Hızlı Menü</h3>
-                  <Badge>Veri Girişi</Badge>
-                </div>
-
-                {(() => {
-                  const KEY_MONTHLY = MONTHLY_CAT_KEY;
-
-                  // Try to detect an equipment-like category even if key isn't exactly "equipment"
-                  const equipCat = state.categories.find(c =>
-                    c.key === "equipment" || /ekipman/i.test(c.name) || /ekipman/i.test(c.key)
-                  );
-                  const equipKey = equipCat?.key;
-
-                  const prefKeys = [
-                    "experts",
-                    "vehicles",
-                    ...(equipKey ? [equipKey] : []),
-                    KEY_MONTHLY
-                  ];
-
-                  const ordered = [
-                    ...prefKeys
-                      .map(k => state.categories.find(c => c.key === k))
-                      .filter(Boolean),
-                    ...state.categories.filter(c => !prefKeys.includes(c.key))
-                  ].slice(0, 10);
-
-                  const btnStyle = {
-                    display: "inline-flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    gap: 8,
-                    width: "100%",
-                    padding: "10px 12px",
-                    borderRadius: 12
-                  };
-
-                  return (
-                    <>
-                      <div
-                        style={{
-                          display: "grid",
-                          gridTemplateColumns: "repeat(auto-fit, minmax(170px, 1fr))",
-                          gap: 10,
-                          marginTop: 12
-                        }}
+                  <div className="card" style={{ marginTop: 32 }}>
+                    <h2 style={{ marginBottom: 20 }}>⚡ Hızlı Erişim</h2>
+                    <div className="grid grid-3" style={{ gap: 16 }}>
+                      <button
+                        className="btn"
+                        style={{ padding: 24, fontSize: 16, borderRadius: 16, background: 'linear-gradient(135deg, #6366f1, #8b5cf6)', color: 'white', border: 'none', cursor: 'pointer' }}
+                        onClick={() => navigate('entry')}
                       >
-                        {ordered.map(c => {
-                          const icon =
-                            c.key === "experts" ? "👷" :
-                            c.key === "vehicles" ? "🚗" :
-                            c.key === KEY_MONTHLY ? "✅" :
-                            (/ekipman/i.test(c.name) || /ekipman/i.test(c.key)) ? "🧰" :
-                            "📌";
+                        ✍️ Yeni Veri Girişi
+                      </button>
+                      <button
+                        className="btn"
+                        style={{ padding: 24, fontSize: 16, borderRadius: 16, background: 'linear-gradient(135deg, #10b981, #14b8a6)', color: 'white', border: 'none', cursor: 'pointer' }}
+                        onClick={() => navigate('attendance')}
+                      >
+                        📅 Puantaj İşlemleri
+                      </button>
+                      <button
+                        className="btn"
+                        style={{ padding: 24, fontSize: 16, borderRadius: 16, background: 'linear-gradient(135deg, #f59e0b, #fb923c)', color: 'white', border: 'none', cursor: 'pointer' }}
+                        onClick={() => navigate('actions')}
+                      >
+                        🎯 Aksiyonlar
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
 
-                          return (
-                            <button
-                              key={c.key}
-                              className={categoryKey === c.key ? "btn primary" : "btn"}
-                              style={btnStyle}
-                              onClick={() => { setCategoryKey(c.key); setSearch(""); }}
-                              title={c.name}
-                            >
-                              <span style={{fontSize:16}}>{icon}</span>
-                              <b style={{fontWeight:900}}>{c.name}</b>
-                            </button>
-                          );
-                        })}
+              {tab === "dashboard" && (
+                <>
+                  <div className="card">
+                    <div className="cardTitleRow">
+                      <h3>🔍 Dashboard Hızlı Filtreler</h3>
+                    </div>
+
+                    {/* 🎯 MODERN FİLTRELER v005 */}
+                    <div className="filter-cards-modern">
+                      {isAdmin && (
+                        <div className="filter-card-modern">
+                          <div className="filter-icon-modern">📁</div>
+                          <label className="filter-label-modern">Proje Seçin</label>
+                          <select
+                            className="input sm"
+                            value={dashProjectId}
+                            onChange={(e) => setDashProjectId(e.target.value)}
+                          >
+                            <option value="ALL">Tüm Projeler</option>
+                            {(state.projects || []).map((p) => (
+                              <option key={p.id} value={p.id}>{p.name}</option>
+                            ))}
+                          </select>
+                        </div>
+                      )}
+
+                      <div className="filter-card-modern">
+                        <div className="filter-icon-modern">📅</div>
+                        <label className="filter-label-modern">Yıl Seçin</label>
+                        <select
+                          className="input sm"
+                          value={activeYear}
+                          onChange={(e) => setActiveYear(safeNum(e.target.value))}
+                        >
+                          {yearOptions().map((yy) => (
+                            <option key={yy} value={yy}>{yy}</option>
+                          ))}
+                        </select>
                       </div>
 
-                      <div className="small" style={{marginTop:10}}>
-                        Kategoriyi seç → sağ tarafta ilgili forma veri gir.
+                      <div className="filter-card-modern">
+                        <div className="filter-icon-modern">📆</div>
+                        <label className="filter-label-modern">Ay Seçin</label>
+                        <select
+                          className="input sm"
+                          value={activeMonth}
+                          onChange={(e) => setActiveMonth(e.target.value)}
+                        >
+                          {monthOptions().map((mm) => (
+                            <option key={mm.key} value={mm.key}>{mm.label}</option>
+                          ))}
+                        </select>
                       </div>
-                    </>
-                  );
-                })()}
-              </div>
 
-              {activeCategory?.key === MONTHLY_CAT_KEY ? (
-                <MonthlyControlsView
-                  isAdmin={isAdmin}
+                      <div className="filter-card-modern">
+                        <div className="filter-icon-modern">📋</div>
+                        <label className="filter-label-modern">Kategori</label>
+                        <select
+                          className="input sm"
+                          value={categoryKey}
+                          onChange={(e) => setCategoryKey(e.target.value)}
+                        >
+                          {visibleCategories.map((c) => (
+                            <option key={c.key} value={c.key}>{c.name}</option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+
+                    <div style={{ marginTop: 16 }}>
+                      <input
+                        className="input sm"
+                        value={search}
+                        onChange={(e) => setSearch(e.target.value)}
+                        placeholder={`${activeCategory?.itemLabel || "Kayıt"} ara...`}
+                        style={{ width: '100%' }}
+                      />
+                    </div>
+
+                    <div className="small" style={{ marginTop: 10 }}>
+                      Bu filtreler, dashboard görünümünü ve hesaplamaları etkiler.
+                    </div>
+                  </div>
+
+                  <DashboardView
+                    categories={state.categories}
+                    monthKey={monthKey}
+                    category={activeCategory}
+                    rows={dashboardRows}
+                    projects={dashboardProjects}
+                    employees={state.employees}
+                    actions={state.actions}
+                    isAdmin={isAdmin}
+                    attendance={state.attendance}
+                  />
+                </>
+              )}
+
+              {tab === "entry" && (
+                <>
+                  <div className="card">
+                    <div className="cardTitleRow">
+                      <h3>Hızlı Menü</h3>
+                      <Badge>Veri Girişi</Badge>
+                    </div>
+
+                    {(() => {
+                      const KEY_MONTHLY = MONTHLY_CAT_KEY;
+
+                      // Try to detect an equipment-like category even if key isn't exactly "equipment"
+                      const equipCat = state.categories.find(c =>
+                        c.key === "equipment" || /ekipman/i.test(c.name) || /ekipman/i.test(c.key)
+                      );
+                      const equipKey = equipCat?.key;
+
+                      const prefKeys = [
+                        "experts",
+                        "vehicles",
+                        ...(equipKey ? [equipKey] : []),
+                        KEY_MONTHLY
+                      ];
+
+                      const ordered = [
+                        ...prefKeys
+                          .map(k => state.categories.find(c => c.key === k))
+                          .filter(Boolean),
+                        ...state.categories.filter(c => !prefKeys.includes(c.key))
+                      ].slice(0, 10);
+
+                      const btnStyle = {
+                        display: "inline-flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: 8,
+                        width: "100%",
+                        padding: "10px 12px",
+                        borderRadius: 12
+                      };
+
+                      return (
+                        <>
+                          <div
+                            style={{
+                              display: "grid",
+                              gridTemplateColumns: "repeat(auto-fit, minmax(170px, 1fr))",
+                              gap: 10,
+                              marginTop: 12
+                            }}
+                          >
+                            {ordered.map(c => {
+                              const icon =
+                                c.key === "experts" ? "👷" :
+                                  c.key === "vehicles" ? "🚗" :
+                                    c.key === KEY_MONTHLY ? "✅" :
+                                      (/ekipman/i.test(c.name) || /ekipman/i.test(c.key)) ? "🧰" :
+                                        "📌";
+
+                              return (
+                                <button
+                                  key={c.key}
+                                  className={categoryKey === c.key ? "btn primary" : "btn"}
+                                  style={btnStyle}
+                                  onClick={() => { setCategoryKey(c.key); setSearch(""); }}
+                                  title={c.name}
+                                >
+                                  <span style={{ fontSize: 16 }}>{icon}</span>
+                                  <b style={{ fontWeight: 900 }}>{c.name}</b>
+                                </button>
+                              );
+                            })}
+                          </div>
+
+                          <div className="small" style={{ marginTop: 10 }}>
+                            Kategoriyi seç → sağ tarafta ilgili forma veri gir.
+                          </div>
+                        </>
+                      );
+                    })()}
+                  </div>
+
+                  {activeCategory?.key === MONTHLY_CAT_KEY ? (
+                    <MonthlyControlsView
+                      isAdmin={isAdmin}
+                      monthKey={monthKey}
+                      project={entryProject}
+                      category={activeCategory}
+                      items={entryItems}
+                      experts={entryExperts}
+                      employees={state.employees}
+                      setMonthlyField={setMonthlyField}
+                      submitMonth={submitMonth}
+                    />
+                  ) : (
+                    <EntryView
+                      isAdmin={isAdmin}
+                      onDownloadBackup={handleDownloadBackup}
+                      onImportBackup={handleImportBackup}
+                      monthKey={monthKey}
+                      monthDays={monthDays}
+                      project={entryProject}
+                      category={activeCategory}
+                      items={entryItems}
+                      experts={entryExperts}
+                      employees={state.employees}
+                      setMonthlyField={setMonthlyField}
+                      toggleMeal={toggleMeal}
+                      submitMonth={submitMonth}
+                      hiddenFieldKeys={entryProject?.fieldVisibility?.[activeCategory?.key]?.hiddenFieldKeys || []}
+                    />
+                  )}
+                </>
+              )}
+
+              {isAdmin && tab === "approvals" && (
+                <ApprovalsView
                   monthKey={monthKey}
-                  project={entryProject}
-                  category={activeCategory}
-                  items={entryItems}
-                  experts={entryExperts}
-                  employees={state.employees}
-                  setMonthlyField={setMonthlyField}
-                  submitMonth={submitMonth}
-                />
-              ) : (
-                <EntryView
-                  isAdmin={isAdmin}
-                  onDownloadBackup={handleDownloadBackup}
-                  onImportBackup={handleImportBackup}
-                  monthKey={monthKey}
-                  monthDays={monthDays}
-                  project={entryProject}
-                  category={activeCategory}
-                  items={entryItems}
-                  experts={entryExperts}
-                  employees={state.employees}
-                  setMonthlyField={setMonthlyField}
-                  toggleMeal={toggleMeal}
-                  submitMonth={submitMonth}
-                  hiddenFieldKeys={entryProject?.fieldVisibility?.[activeCategory?.key]?.hiddenFieldKeys || []}
+                  pendingItems={pendingItemRequests}
+                  pendingMonths={pendingMonthApprovals}
+                  approveItem={approveItem}
+                  rejectItem={rejectItem}
+                  approveMonth={approveMonth}
+                  rejectMonth={rejectMonth}
                 />
               )}
-            </>
-          )}
 
-          {isAdmin && tab === "approvals" && (
-            <ApprovalsView
-              monthKey={monthKey}
-              pendingItems={pendingItemRequests}
-              pendingMonths={pendingMonthApprovals}
-              approveItem={approveItem}
-              rejectItem={rejectItem}
-              approveMonth={approveMonth}
-              rejectMonth={rejectMonth}
-            />
-          )}
+              {isAdmin && tab === "admin" && (
+                <>
+                  <AdminView
+                    onDownloadBackup={handleDownloadBackup}
+                    onImportBackup={handleImportBackup}
+                    isAdmin={isAdmin}
+                    monthKey={monthKey}
+                    categories={state.categories}
+                    projects={visibleProjects}
+                    docTemplates={state.docTemplates}
+                    docRegisterTypes={state.docRegisterTypes}
+                    adminAddDocTemplate={adminAddDocTemplate}
+                    adminDeleteDocTemplate={adminDeleteDocTemplate}
+                    adminAddDocRegisterType={adminAddDocRegisterType}
+                    adminUpdateDocRegisterType={adminUpdateDocRegisterType}
+                    adminDeleteDocRegisterType={adminDeleteDocRegisterType}
+                    catName={catName}
+                    setCatName={setCatName}
+                    catItemLabel={catItemLabel}
+                    setCatItemLabel={setCatItemLabel}
+                    adminAddCategory={adminAddCategory}
+                    activeCategory={activeCategory}
+                    catFieldLabel={catFieldLabel}
+                    setCatFieldLabel={setCatFieldLabel}
+                    catFieldType={catFieldType}
+                    setCatFieldType={setCatFieldType}
+                    catFieldOptions={catFieldOptions}
+                    setCatFieldOptions={setCatFieldOptions}
+                    catFieldUnit={catFieldUnit}
+                    setCatFieldUnit={setCatFieldUnit}
+                    adminAddField={adminAddField}
+                    adminDeleteField={adminDeleteField}
+                    adminDeleteCategory={adminDeleteCategory}
+                    adminAddProject={adminAddProject}
+                    adminSetProjectCategories={adminSetProjectCategories}
+                    adminSetProjectHiddenFields={adminSetProjectHiddenFields}
+                  />
 
-          {isAdmin && tab === "admin" && (
-            <>
-              <AdminView
-                onDownloadBackup={handleDownloadBackup}
-                onImportBackup={handleImportBackup}
-                isAdmin={isAdmin}
-                monthKey={monthKey}
-                categories={state.categories}
-                projects={visibleProjects}
-                docTemplates={state.docTemplates}
-                docRegisterTypes={state.docRegisterTypes}
-                adminAddDocTemplate={adminAddDocTemplate}
-                adminDeleteDocTemplate={adminDeleteDocTemplate}
-                adminAddDocRegisterType={adminAddDocRegisterType}
-                adminUpdateDocRegisterType={adminUpdateDocRegisterType}
-                adminDeleteDocRegisterType={adminDeleteDocRegisterType}
-                catName={catName}
-                setCatName={setCatName}
-                catItemLabel={catItemLabel}
-                setCatItemLabel={setCatItemLabel}
-                adminAddCategory={adminAddCategory}
-                activeCategory={activeCategory}
-                catFieldLabel={catFieldLabel}
-                setCatFieldLabel={setCatFieldLabel}
-                catFieldType={catFieldType}
-                setCatFieldType={setCatFieldType}
-                catFieldOptions={catFieldOptions}
-                setCatFieldOptions={setCatFieldOptions}
-                catFieldUnit={catFieldUnit}
-                setCatFieldUnit={setCatFieldUnit}
-                adminAddField={adminAddField}
-                adminDeleteField={adminDeleteField}
-                adminDeleteCategory={adminDeleteCategory}
-                adminAddProject={adminAddProject}
-                adminSetProjectCategories={adminSetProjectCategories}
-          adminSetProjectHiddenFields={adminSetProjectHiddenFields}
-              />
+                  <ProjectUserMapping
+                    authUsers={state.authUsers}
+                    projects={visibleProjects}
+                    onUpsert={adminUpsertAuthUser}
+                    onDelete={adminDeleteAuthUser}
+                  />
 
-              <ProjectUserMapping
-                authUsers={state.authUsers}
-                projects={visibleProjects}
-                onUpsert={adminUpsertAuthUser}
-                onDelete={adminDeleteAuthUser}
-              />
+                  <VehiclesAdminView
+                    isAdmin={isAdmin}
+                    auth={auth}
+                    categories={state.categories}
+                    projects={visibleProjects}
+                    updateState={updateState}
+                    pushToast={pushToast}
+                  />
+                </>
+              )}
 
-              <VehiclesAdminView
-                isAdmin={isAdmin}
-                auth={auth}
-                categories={state.categories}
-                projects={visibleProjects}
-                updateState={updateState}
-                pushToast={pushToast}
-              />
-            </>
-          )}
+              {tab === "employees" && (
+                <EmployeesView
+                  isAdmin={isAdmin}
+                  auth={auth}
+                  employees={state.employees}
+                  projects={visibleProjects}
+                  updateState={updateState}
+                />
+              )}
 
-          {tab === "employees" && (
-            <EmployeesView
-              isAdmin={isAdmin}
-              auth={auth}
-              employees={state.employees}
-              projects={visibleProjects}
-              updateState={updateState}
-            />
-          )}
+              {tab === "docs" && (
+                <DocsView
+                  isAdmin={isAdmin}
+                  auth={auth}
+                  projects={visibleProjects}
+                  employees={state.employees}
+                  docTemplates={state.docTemplates}
+                  employeeDocs={state.employeeDocs}
+                  updateState={updateState}
+                />
+              )}
 
-          {tab === "docs" && (
-            <DocsView
-              isAdmin={isAdmin}
-              auth={auth}
-              projects={visibleProjects}
-              employees={state.employees}
-              docTemplates={state.docTemplates}
-              employeeDocs={state.employeeDocs}
-              updateState={updateState}
-            />
-          )}
+              {tab === "docTrack" && (
+                <DocTrackingView
+                  isAdmin={isAdmin}
+                  auth={auth}
+                  projects={visibleProjects}
+                  employees={state.employees}
+                  docRegisterTypes={state.docRegisterTypes}
+                  employeeDocRegister={state.employeeDocRegister}
+                  updateState={updateState}
+                />
+              )}
 
-          {tab === "docTrack" && (
-            <DocTrackingView
-              isAdmin={isAdmin}
-              auth={auth}
-              projects={visibleProjects}
-              employees={state.employees}
-              docRegisterTypes={state.docRegisterTypes}
-              employeeDocRegister={state.employeeDocRegister}
-              updateState={updateState}
-            />
-          )}
+              {tab === "actions" && (
+                <ActionsView
+                  auth={auth}
+                  projects={dashboardProjects}
+                  employees={state.employees}
+                  actions={state.actions}
+                  updateState={updateState}
+                />
+              )}
 
-          {tab === "actions" && (
-            <ActionsView
-              auth={auth}
-              projects={dashboardProjects}
-              employees={state.employees}
-              actions={state.actions}
-              updateState={updateState}
-            />
-          )}
+              {tab === "announcements" && (
+                <AnnouncementsView
+                  isAdmin={isAdmin}
+                  auth={auth}
+                  announcements={state.announcements}
+                  projects={PROJECT_NAMES}
+                  addAnnouncement={addAnnouncement}
+                />
+              )}
 
-          {tab === "announcements" && (
-            <AnnouncementsView
-              isAdmin={isAdmin}
-              auth={auth}
-              announcements={state.announcements}
-              projects={PROJECT_NAMES}
-              addAnnouncement={addAnnouncement}
-            />
-          )}
+              {tab === "attendance" && (
+                <AttendanceView
+                  isAdmin={isAdmin}
+                  auth={auth}
+                  employees={state.employees}
+                  projects={visibleProjects}
+                  monthKey={monthKey}
+                  monthDays={monthDays}
+                  attendance={state.attendance}
+                  setAttendanceDay={setAttendanceDay}
+                  bulkSetAttendance={bulkSetAttendance}
+                  autoMarkWeekends={autoMarkWeekends}
+                  autoMarkHolidays={autoMarkHolidays}
+                  exportAttendanceToExcel={exportAttendanceToExcel}
+                />
+              )}
 
-          {tab === "attendance" && (
-            <AttendanceView
-              isAdmin={isAdmin}
-              auth={auth}
-              employees={state.employees}
-              projects={visibleProjects}
-              monthKey={monthKey}
-              monthDays={monthDays}
-              attendance={state.attendance}
-              setAttendanceDay={setAttendanceDay}
-              bulkSetAttendance={bulkSetAttendance}
-              autoMarkWeekends={autoMarkWeekends}
-              autoMarkHolidays={autoMarkHolidays}
-              exportAttendanceToExcel={exportAttendanceToExcel}
-            />
-          )}
+              {tab === "contact" && (
+                <ContactView
+                  isAdmin={isAdmin}
+                  auth={auth}
+                  contacts={state.contacts}
+                  contactText={contactText}
+                  setContactText={setContactText}
+                  sendContact={sendContact}
+                  adminSendMessage={adminSendMessage}
+                  projects={PROJECT_NAMES}
+                  users={Object.keys(CREDENTIALS)
+                    .filter((u) => u !== "admin")
+                    .map((u) => ({ username: u, project: CREDENTIALS[u].project }))}
+                />
+              )}
+            </div>
+          </div>
 
-          {tab === "contact" && (
-            <ContactView
-              isAdmin={isAdmin}
-              auth={auth}
-              contacts={state.contacts}
-              contactText={contactText}
-              setContactText={setContactText}
-              sendContact={sendContact}
-              adminSendMessage={adminSendMessage}
-              projects={PROJECT_NAMES}
-              users={Object.keys(CREDENTIALS)
-                .filter((u) => u !== "admin")
-                .map((u) => ({ username: u, project: CREDENTIALS[u].project }))}
-            />
-          )}
         </div>
       </div>
-
       <div className="footer">© {new Date().getFullYear()} 2026 Faruk Aksoy • TVS Proje Takip Platformu</div>
     </div>
   );
@@ -4185,17 +4156,17 @@ for(const emp of (next.employees || [])){
 
 /* ===================== VIEWS ===================== */
 
-function DashboardView({ monthKey, category, rows, projects, employees, actions, categories, isAdmin, attendance }){
+function DashboardView({ monthKey, category, rows, projects, employees, actions, categories, isAdmin, attendance }) {
   const [dashTab, setDashTab] = useState("genel");
 
   /* ─── aggregations ─── */
   const totals = useMemo(() => {
-    const t = { itemsApproved:0, monthApproved:0, sums:{}, mealsSum:0 };
-    for(const f of (category?.fields || [])) if(f.type === "number") t.sums[f.key] = 0;
-    for(const r of rows){
+    const t = { itemsApproved: 0, monthApproved: 0, sums: {}, mealsSum: 0 };
+    for (const f of (category?.fields || [])) if (f.type === "number") t.sums[f.key] = 0;
+    for (const r of rows) {
       t.itemsApproved += safeNum(r.itemsApproved);
       t.monthApproved += safeNum(r.monthApproved);
-      for(const k of Object.keys(r.sums || {})) t.sums[k] = safeNum(t.sums[k]) + safeNum(r.sums[k]);
+      for (const k of Object.keys(r.sums || {})) t.sums[k] = safeNum(t.sums[k]) + safeNum(r.sums[k]);
       t.mealsSum += safeNum(r.mealsSum);
     }
     return t;
@@ -4204,23 +4175,23 @@ function DashboardView({ monthKey, category, rows, projects, employees, actions,
   const { projectBlocks, grand, grandCompletion } = useMemo(() => {
     const prjs = Array.isArray(projects) ? projects : [];
     const emps = Array.isArray(employees) ? employees : [];
-    const att  = attendance || {};
-    const zeroAgg = () => ({ present:0, absent:0, paid_leave:0, unpaid_leave:0, sick_leave:0, excuse:0, weekend:0, holiday:0, half_day:0, unset:0, totalDays:0, workDays:0 });
+    const att = attendance || {};
+    const zeroAgg = () => ({ present: 0, absent: 0, paid_leave: 0, unpaid_leave: 0, sick_leave: 0, excuse: 0, weekend: 0, holiday: 0, half_day: 0, unset: 0, totalDays: 0, workDays: 0 });
     const blocks = prjs.map(proj => {
       const projEmps = emps.filter(e => e.project === proj.name);
       const agg = zeroAgg();
       projEmps.forEach(emp => {
         const s = att[emp.id]?.[monthKey]?.stats || {};
-        agg.present += (s.present||0); agg.absent += (s.absent||0);
-        agg.paid_leave += (s.paid_leave||0); agg.unpaid_leave += (s.unpaid_leave||0);
-        agg.sick_leave += (s.sick_leave||0); agg.excuse += (s.excuse||0);
-        agg.weekend += (s.weekend||0); agg.holiday += (s.holiday||0);
-        agg.half_day += (s.half_day||0); agg.unset += (s.unset||0);
-        agg.totalDays += (s.totalDays||0); agg.workDays += (s.workDays||0);
+        agg.present += (s.present || 0); agg.absent += (s.absent || 0);
+        agg.paid_leave += (s.paid_leave || 0); agg.unpaid_leave += (s.unpaid_leave || 0);
+        agg.sick_leave += (s.sick_leave || 0); agg.excuse += (s.excuse || 0);
+        agg.weekend += (s.weekend || 0); agg.holiday += (s.holiday || 0);
+        agg.half_day += (s.half_day || 0); agg.unset += (s.unset || 0);
+        agg.totalDays += (s.totalDays || 0); agg.workDays += (s.workDays || 0);
       });
       return { proj, projEmps, agg };
     });
-    const g = { ...zeroAgg(), empCount:0 };
+    const g = { ...zeroAgg(), empCount: 0 };
     blocks.forEach(b => {
       g.present += b.agg.present; g.absent += b.agg.absent;
       g.paid_leave += b.agg.paid_leave; g.unpaid_leave += b.agg.unpaid_leave;
@@ -4237,106 +4208,106 @@ function DashboardView({ monthKey, category, rows, projects, employees, actions,
   /* trend: son 6 ay */
   const trendMonths = useMemo(() => {
     const [curY, curM] = monthKey.split("-").map(Number);
-    const labels = ["Oca","Şub","Mar","Nis","May","Haz","Tem","Ağu","Eyl","Ekim","Kas","Ara"];
+    const labels = ["Oca", "Şub", "Mar", "Nis", "May", "Haz", "Tem", "Ağu", "Eyl", "Ekim", "Kas", "Ara"];
     const out = [];
-    for(let i = 5; i >= 0; i--){
+    for (let i = 5; i >= 0; i--) {
       let m = curM - i, y = curY;
-      while(m < 1){ m += 12; y--; }
-      out.push({ mk:`${y}-${String(m).padStart(2,"0")}`, label: labels[m-1] + (y !== curY ? " '"+String(y).slice(2) : "") });
+      while (m < 1) { m += 12; y--; }
+      out.push({ mk: `${y}-${String(m).padStart(2, "0")}`, label: labels[m - 1] + (y !== curY ? " '" + String(y).slice(2) : "") });
     }
     return out;
   }, [monthKey]);
 
   const trendData = useMemo(() => {
     const emps = Array.isArray(employees) ? employees : [];
-    const att  = attendance || {};
+    const att = attendance || {};
     const projNames = new Set((Array.isArray(projects) ? projects : []).map(p => p.name));
     return trendMonths.map(({ mk, label }) => {
-      let present=0, absent=0, izin=0, workDays=0, totalDays=0, unset=0;
+      let present = 0, absent = 0, izin = 0, workDays = 0, totalDays = 0, unset = 0;
       emps.forEach(emp => {
-        if(!projNames.has(emp.project)) return;
+        if (!projNames.has(emp.project)) return;
         const s = att[emp.id]?.[mk]?.stats;
-        if(!s) return;
-        present += (s.present||0); absent += (s.absent||0);
-        izin += (s.paid_leave||0)+(s.unpaid_leave||0)+(s.sick_leave||0);
-        workDays += (s.workDays||0); totalDays += (s.totalDays||0); unset += (s.unset||0);
+        if (!s) return;
+        present += (s.present || 0); absent += (s.absent || 0);
+        izin += (s.paid_leave || 0) + (s.unpaid_leave || 0) + (s.sick_leave || 0);
+        workDays += (s.workDays || 0); totalDays += (s.totalDays || 0); unset += (s.unset || 0);
       });
-      return { label, present, absent, izin, workDays, completion: totalDays > 0 ? Number(((totalDays-unset)/totalDays*100).toFixed(0)) : 0 };
+      return { label, present, absent, izin, workDays, completion: totalDays > 0 ? Number(((totalDays - unset) / totalDays * 100).toFixed(0)) : 0 };
     });
   }, [trendMonths, employees, attendance, projects]);
 
   /* ─── shared styles ─── */
-  const heroKpi = { flex:"1 1 140px", background:"#fff", border:"1px solid #e5e7eb", borderRadius:16, padding:"18px 20px", display:"flex", flexDirection:"column", gap:4 };
-  const heroKpiDark = { background:"#1e293b", borderColor:"#334155" };
+  const heroKpi = { flex: "1 1 140px", background: "#fff", border: "1px solid #e5e7eb", borderRadius: 16, padding: "18px 20px", display: "flex", flexDirection: "column", gap: 4 };
+  const heroKpiDark = { background: "#1e293b", borderColor: "#334155" };
   const sectionTab = (active) => ({
-    padding:"10px 20px", border:"none", borderBottom: active ? "2.5px solid #3b82f6" : "2.5px solid transparent",
-    background:"transparent", cursor:"pointer", fontWeight: active ? 700 : 500, fontSize:14,
-    color: active ? "#1d4ed8" : "#64748b", transition:"all .15s", whiteSpace:"nowrap"
+    padding: "10px 20px", border: "none", borderBottom: active ? "2.5px solid #3b82f6" : "2.5px solid transparent",
+    background: "transparent", cursor: "pointer", fontWeight: active ? 700 : 500, fontSize: 14,
+    color: active ? "#1d4ed8" : "#64748b", transition: "all .15s", whiteSpace: "nowrap"
   });
 
   /* ─── RENDER ─── */
   return (
-    <div style={{display:"flex", flexDirection:"column", gap:16}}>
+    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
 
       {/* ════════════════ HERO HEADER ════════════════ */}
       <div style={{
-        background:"linear-gradient(135deg, #1e293b 0%, #0f172a 100%)",
-        borderRadius:20, padding:"24px 28px 20px", color:"#fff"
+        background: "linear-gradient(135deg, #1e293b 0%, #0f172a 100%)",
+        borderRadius: 20, padding: "24px 28px 20px", color: "#fff"
       }}>
-        <div style={{display:"flex", alignItems:"center", justifyContent:"space-between", flexWrap:"wrap", gap:8, marginBottom:18}}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 8, marginBottom: 18 }}>
           <div>
-            <div style={{fontSize:22, fontWeight:800, letterSpacing:"-.3px"}}>Dashboard</div>
-            <div style={{fontSize:13, color:"rgba(255,255,255,.55)", marginTop:2}}>
+            <div style={{ fontSize: 22, fontWeight: 800, letterSpacing: "-.3px" }}>Dashboard</div>
+            <div style={{ fontSize: 13, color: "rgba(255,255,255,.55)", marginTop: 2 }}>
               {category?.name} • {monthKey} • Sadece onaylı veriler
             </div>
           </div>
-          <div style={{display:"flex", gap:8}}>
-            <span style={{background:"rgba(16,185,129,.18)", color:"#34d399", padding:"4px 12px", borderRadius:999, fontSize:12, fontWeight:700}}>● Onaylı</span>
-            <span style={{background:"rgba(59,130,246,.18)", color:"#60a5fa", padding:"4px 12px", borderRadius:999, fontSize:12, fontWeight:700}}>{monthKey}</span>
+          <div style={{ display: "flex", gap: 8 }}>
+            <span style={{ background: "rgba(16,185,129,.18)", color: "#34d399", padding: "4px 12px", borderRadius: 999, fontSize: 12, fontWeight: 700 }}>● Onaylı</span>
+            <span style={{ background: "rgba(59,130,246,.18)", color: "#60a5fa", padding: "4px 12px", borderRadius: 999, fontSize: 12, fontWeight: 700 }}>{monthKey}</span>
           </div>
         </div>
 
         {/* KPI Pills Row */}
-        <div style={{display:"flex", gap:10, flexWrap:"wrap"}}>
+        <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
           {[
-            { label:"Toplam Proje", value: (projects||[]).length, color:"#60a5fa", bg:"rgba(59,130,246,.15)" },
-            { label:"Toplam Personel", value: grand.empCount, color:"#a78bfa", bg:"rgba(167,139,250,.15)" },
-            { label:"Onaylı Kayıt", value: totals.itemsApproved, color:"#34d399", bg:"rgba(16,185,129,.15)" },
-            { label:"Onaylı Aylık", value: totals.monthApproved, color:"#fbbf24", bg:"rgba(251,191,36,.15)" },
-            { label:"Geldi", value: grand.present, color:"#34d399", bg:"rgba(16,185,129,.15)" },
-            { label:"Gelmedi", value: grand.absent, color:"#f87171", bg:"rgba(239,68,68,.15)" },
-            { label:"Tamamlanma", value: grandCompletion+"%", color:"#fff", bg:"rgba(255,255,255,.10)" }
+            { label: "Toplam Proje", value: (projects || []).length, color: "#60a5fa", bg: "rgba(59,130,246,.15)" },
+            { label: "Toplam Personel", value: grand.empCount, color: "#a78bfa", bg: "rgba(167,139,250,.15)" },
+            { label: "Onaylı Kayıt", value: totals.itemsApproved, color: "#34d399", bg: "rgba(16,185,129,.15)" },
+            { label: "Onaylı Aylık", value: totals.monthApproved, color: "#fbbf24", bg: "rgba(251,191,36,.15)" },
+            { label: "Geldi", value: grand.present, color: "#34d399", bg: "rgba(16,185,129,.15)" },
+            { label: "Gelmedi", value: grand.absent, color: "#f87171", bg: "rgba(239,68,68,.15)" },
+            { label: "Tamamlanma", value: grandCompletion + "%", color: "#fff", bg: "rgba(255,255,255,.10)" }
           ].map(k => (
-            <div key={k.label} style={{ flex:"1 1 100px", background: k.bg, borderRadius:12, padding:"12px 14px" }}>
-              <div style={{fontSize:11, color:"rgba(255,255,255,.5)", fontWeight:600, textTransform:"uppercase", letterSpacing:".6px"}}>{k.label}</div>
-              <div style={{fontSize:22, fontWeight:800, color: k.color, marginTop:2}}>{k.value}</div>
+            <div key={k.label} style={{ flex: "1 1 100px", background: k.bg, borderRadius: 12, padding: "12px 14px" }}>
+              <div style={{ fontSize: 11, color: "rgba(255,255,255,.5)", fontWeight: 600, textTransform: "uppercase", letterSpacing: ".6px" }}>{k.label}</div>
+              <div style={{ fontSize: 22, fontWeight: 800, color: k.color, marginTop: 2 }}>{k.value}</div>
             </div>
           ))}
         </div>
 
         {/* Completion bar */}
-        <div style={{marginTop:16}}>
-          <div style={{display:"flex", justifyContent:"space-between", marginBottom:6}}>
-            <span style={{fontSize:12, color:"rgba(255,255,255,.5)", fontWeight:600}}>Genel Tamamlanma</span>
-            <span style={{fontSize:12, color:"#34d399", fontWeight:700}}>{grandCompletion}%</span>
+        <div style={{ marginTop: 16 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+            <span style={{ fontSize: 12, color: "rgba(255,255,255,.5)", fontWeight: 600 }}>Genel Tamamlanma</span>
+            <span style={{ fontSize: 12, color: "#34d399", fontWeight: 700 }}>{grandCompletion}%</span>
           </div>
-          <div style={{height:8, background:"rgba(255,255,255,.12)", borderRadius:999, overflow:"hidden"}}>
-            <div style={{height:"100%", width: grandCompletion+"%", background:"linear-gradient(90deg,#10b981,#3b82f6)", borderRadius:999, transition:"width .4s ease"}} />
+          <div style={{ height: 8, background: "rgba(255,255,255,.12)", borderRadius: 999, overflow: "hidden" }}>
+            <div style={{ height: "100%", width: grandCompletion + "%", background: "linear-gradient(90deg,#10b981,#3b82f6)", borderRadius: 999, transition: "width .4s ease" }} />
           </div>
         </div>
       </div>
 
       {/* ════════════════ SECTION TAB BAR ════════════════ */}
       <div style={{
-        display:"flex", gap:0, borderBottom:"1px solid #e5e7eb", background:"#fff",
-        borderRadius:"14px 14px 0 0", overflowX:"auto", overflowY:"hidden"
+        display: "flex", gap: 0, borderBottom: "1px solid #e5e7eb", background: "#fff",
+        borderRadius: "14px 14px 0 0", overflowX: "auto", overflowY: "hidden"
       }}>
         {[
-          { key:"genel",      label:"📊 Genel" },
-          { key:"aksiyonlar", label:"✅ Aksiyonlar" },
-          { key:"puantaj",    label:"📅 Puantaj" },
-          { key:"trend",      label:"📈 Trend" },
-          { key:"raporlar",   label:"📄 Raporlar" }
+          { key: "genel", label: "📊 Genel" },
+          { key: "aksiyonlar", label: "✅ Aksiyonlar" },
+          { key: "puantaj", label: "📅 Puantaj" },
+          { key: "trend", label: "📈 Trend" },
+          { key: "raporlar", label: "📄 Raporlar" }
         ].map(t => (
           <button key={t.key} type="button" style={sectionTab(dashTab === t.key)} onClick={() => setDashTab(t.key)}>
             {t.label}
@@ -4345,48 +4316,48 @@ function DashboardView({ monthKey, category, rows, projects, employees, actions,
       </div>
 
       {/* ════════════════ TAB CONTENT ════════════════ */}
-      <div className="card" style={{borderRadius:"0 0 16px 16px", borderTopLeftRadius:0, borderTopRightRadius:0}}>
+      <div className="card" style={{ borderRadius: "0 0 16px 16px", borderTopLeftRadius: 0, borderTopRightRadius: 0 }}>
 
         {/* ──── GENEL ──── */}
         {dashTab === "genel" && (
           <div>
             {/* Grafik satırı */}
-            <div style={{display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:14}}>
-              <div style={{fontWeight:700, fontSize:16}}>Kategori Özeti — {category?.name}</div>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
+              <div style={{ fontWeight: 700, fontSize: 16 }}>Kategori Özeti — {category?.name}</div>
               <Badge kind="ok">Proje Bazlı</Badge>
             </div>
-            <div style={{display:"grid", gridTemplateColumns:"repeat(auto-fill, minmax(200px, 1fr))", gap:10}}>
-              {(category?.fields || []).filter(f=>f.type==="number" && f.key!=="mealCount").map(f => (
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: 10 }}>
+              {(category?.fields || []).filter(f => f.type === "number" && f.key !== "mealCount").map(f => (
                 <BarChart key={f.key} title={f.label} data={rows.map(r => ({ label: r.name, value: safeNum(r.sums?.[f.key]) }))} />
               ))}
-              {(category?.special?.meals || (category?.fields||[]).some(f=>f.key==="mealCount") || totals.mealsSum>0) ? (
+              {(category?.special?.meals || (category?.fields || []).some(f => f.key === "mealCount") || totals.mealsSum > 0) ? (
                 <BarChart title="Yemek" data={rows.map(r => ({ label: r.name, value: safeNum(r.mealsSum) }))} />
               ) : null}
             </div>
 
             {/* Özet tablo */}
-            <div style={{marginTop:24}}>
-              <div style={{fontWeight:700, fontSize:15, marginBottom:10}}>Proje Özeti</div>
+            <div style={{ marginTop: 24 }}>
+              <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 10 }}>Proje Özeti</div>
               <div className="tableWrap">
                 <table>
                   <thead><tr>
                     <th>Proje</th>
                     <th>Onaylı {category?.itemLabel || "Kayıt"}</th>
                     <th>Onaylı Aylık</th>
-                    {(category?.fields || []).filter(f=>f.type==="number" && f.key!=="mealCount").map(f=>(<th key={f.key}>{f.label}</th>))}
-                    {(category?.special?.meals || (category?.fields||[]).some(f=>f.key==="mealCount")) ? <th>Yemek</th> : null}
+                    {(category?.fields || []).filter(f => f.type === "number" && f.key !== "mealCount").map(f => (<th key={f.key}>{f.label}</th>))}
+                    {(category?.special?.meals || (category?.fields || []).some(f => f.key === "mealCount")) ? <th>Yemek</th> : null}
                   </tr></thead>
                   <tbody>
-                    {rows.map(r=>(
+                    {rows.map(r => (
                       <tr key={r.id}>
                         <td><b>{r.name}</b></td>
                         <td>{r.itemsApproved}</td>
                         <td>{r.monthApproved}</td>
-                        {(category?.fields || []).filter(f=>f.type==="number" && f.key!=="mealCount").map(f=>(<td key={f.key}>{safeNum(r.sums?.[f.key])}</td>))}
-                        {(category?.special?.meals || (category?.fields||[]).some(f=>f.key==="mealCount")) ? <td>{r.mealsSum}</td> : null}
+                        {(category?.fields || []).filter(f => f.type === "number" && f.key !== "mealCount").map(f => (<td key={f.key}>{safeNum(r.sums?.[f.key])}</td>))}
+                        {(category?.special?.meals || (category?.fields || []).some(f => f.key === "mealCount")) ? <td>{r.mealsSum}</td> : null}
                       </tr>
                     ))}
-                    {rows.length===0 && <tr><td colSpan="99">Kayıt yok.</td></tr>}
+                    {rows.length === 0 && <tr><td colSpan="99">Kayıt yok.</td></tr>}
                   </tbody>
                 </table>
               </div>
@@ -4394,35 +4365,35 @@ function DashboardView({ monthKey, category, rows, projects, employees, actions,
 
             {/* Kişi bazlı — sadece experts */}
             {category?.key === "experts" && (
-              <div style={{marginTop:24}}>
-                <div style={{fontWeight:700, fontSize:15, marginBottom:10}}>Kişi Bazlı — Onaylı Aylık</div>
+              <div style={{ marginTop: 24 }}>
+                <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 10 }}>Kişi Bazlı — Onaylı Aylık</div>
                 <div className="tableWrap">
                   <table>
                     <thead><tr>
                       <th>Proje</th><th>Uzman</th>
-                      {(category?.fields || []).filter(f=>f.type==="number" && f.key!=="mealCount").map(f=>(<th key={f.key}>{f.label}</th>))}
-                      {(category?.special?.meals || (category?.fields||[]).some(f=>f.key==="mealCount")) ? <th>Yemek</th> : null}
+                      {(category?.fields || []).filter(f => f.type === "number" && f.key !== "mealCount").map(f => (<th key={f.key}>{f.label}</th>))}
+                      {(category?.special?.meals || (category?.fields || []).some(f => f.key === "mealCount")) ? <th>Yemek</th> : null}
                     </tr></thead>
                     <tbody>
                       {(() => {
                         const out = [];
-                        for(const p of (Array.isArray(projects) ? projects : [])){
-                          for(const it of (p.itemsByCategory?.[category.key] || [])){
-                            if(category.approval?.item && !it.approved) continue;
+                        for (const p of (Array.isArray(projects) ? projects : [])) {
+                          for (const it of (p.itemsByCategory?.[category.key] || [])) {
+                            if (category.approval?.item && !it.approved) continue;
                             const slot = it.months?.[monthKey];
-                            if(!slot || !slot.approved) continue;
+                            if (!slot || !slot.approved) continue;
                             const dft = slot.draft || {};
-                            const rec = { project: p.name, name: it.name, nums: {}, meals: category?.special?.meals ? (Object.prototype.hasOwnProperty.call(dft,"mealCount") ? safeNum(dft.mealCount) : (Array.isArray(dft.meals) ? dft.meals.length : 0)) : null };
+                            const rec = { project: p.name, name: it.name, nums: {}, meals: category?.special?.meals ? (Object.prototype.hasOwnProperty.call(dft, "mealCount") ? safeNum(dft.mealCount) : (Array.isArray(dft.meals) ? dft.meals.length : 0)) : null };
                             const hidden = Array.isArray(p?.fieldVisibility?.[category?.key]?.hiddenFieldKeys) ? p.fieldVisibility[category.key].hiddenFieldKeys : [];
-                            for(const f of (category.fields || [])) { if(!hidden.includes(f.key) && f.type === "number") rec.nums[f.key] = safeNum(dft[f.key]); }
+                            for (const f of (category.fields || [])) { if (!hidden.includes(f.key) && f.type === "number") rec.nums[f.key] = safeNum(dft[f.key]); }
                             out.push(rec);
                           }
                         }
-                        out.sort((a,b)=> (a.project+a.name).localeCompare(b.project+b.name,"tr"));
-                        return out.map((r,i)=>(
-                          <tr key={r.project+"_"+r.name+"_"+i}>
+                        out.sort((a, b) => (a.project + a.name).localeCompare(b.project + b.name, "tr"));
+                        return out.map((r, i) => (
+                          <tr key={r.project + "_" + r.name + "_" + i}>
                             <td><b>{r.project}</b></td><td>{r.name}</td>
-                            {(category?.fields||[]).filter(f=>f.type==="number"&&f.key!=="mealCount").map(f=>(<td key={f.key}>{safeNum(r.nums?.[f.key])}</td>))}
+                            {(category?.fields || []).filter(f => f.type === "number" && f.key !== "mealCount").map(f => (<td key={f.key}>{safeNum(r.nums?.[f.key])}</td>))}
                             {category?.special?.meals ? <td>{safeNum(r.meals)}</td> : null}
                           </tr>
                         ));
@@ -4438,52 +4409,52 @@ function DashboardView({ monthKey, category, rows, projects, employees, actions,
         {/* ──── AKSIYONLAR ──── */}
         {dashTab === "aksiyonlar" && (
           <div>
-            <div style={{display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:14}}>
-              <div style={{fontWeight:700, fontSize:16}}>Proje Aksiyon Durumu</div>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
+              <div style={{ fontWeight: 700, fontSize: 16 }}>Proje Aksiyon Durumu</div>
               <Badge kind="warn">Durum Bazlı</Badge>
             </div>
-            <div style={{display:"grid", gridTemplateColumns:"repeat(auto-fill, minmax(180px, 1fr))", gap:10}}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))", gap: 10 }}>
               {(Array.isArray(projects) ? projects : []).map(p => {
                 const list = (Array.isArray(actions) ? actions : []).filter(a => a?.project === p.name);
-                const openN = list.filter(a => (a.status||"open")==="open").length;
-                const progN = list.filter(a => (a.status||"open")==="in_progress").length;
-                const doneN = list.filter(a => (a.status||"open")==="done"||(a.status||"open")==="user_done").length;
-                const closedN = list.filter(a => (a.status||"open")==="closed").length;
+                const openN = list.filter(a => (a.status || "open") === "open").length;
+                const progN = list.filter(a => (a.status || "open") === "in_progress").length;
+                const doneN = list.filter(a => (a.status || "open") === "done" || (a.status || "open") === "user_done").length;
+                const closedN = list.filter(a => (a.status || "open") === "closed").length;
                 const total = list.length;
-                const doneRate = total > 0 ? Math.round((doneN+closedN)/total*100) : 0;
+                const doneRate = total > 0 ? Math.round((doneN + closedN) / total * 100) : 0;
                 return (
                   <div key={p.id} style={{
-                    background:"#fff", border:"1px solid #e5e7eb", borderRadius:14, padding:"16px 18px",
+                    background: "#fff", border: "1px solid #e5e7eb", borderRadius: 14, padding: "16px 18px",
                     borderTop: openN > 0 ? "3px solid #ef4444" : "3px solid #10b981"
                   }}>
-                    <div style={{display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:10}}>
-                      <div style={{fontWeight:700, fontSize:14}}>{p.name}</div>
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
+                      <div style={{ fontWeight: 700, fontSize: 14 }}>{p.name}</div>
                       <span style={{
                         background: openN > 0 ? "#fef2f2" : "#ecfdf5", color: openN > 0 ? "#dc2626" : "#16a34a",
-                        padding:"2px 10px", borderRadius:999, fontSize:12, fontWeight:700
+                        padding: "2px 10px", borderRadius: 999, fontSize: 12, fontWeight: 700
                       }}>{total} aksiyon</span>
                     </div>
 
                     {/* Mini donut-style satırlar */}
                     {[
-                      { label:"Açık", val:openN, color:"#ef4444", bg:"#fef2f2" },
-                      { label:"Devam", val:progN, color:"#f59e0b", bg:"#fffbeb" },
-                      { label:"Tamamlandı", val:doneN, color:"#10b981", bg:"#ecfdf5" },
-                      { label:"Kapalı", val:closedN, color:"#6366f1", bg:"#eef2ff" }
+                      { label: "Açık", val: openN, color: "#ef4444", bg: "#fef2f2" },
+                      { label: "Devam", val: progN, color: "#f59e0b", bg: "#fffbeb" },
+                      { label: "Tamamlandı", val: doneN, color: "#10b981", bg: "#ecfdf5" },
+                      { label: "Kapalı", val: closedN, color: "#6366f1", bg: "#eef2ff" }
                     ].map(s => (
-                      <div key={s.label} style={{display:"flex", alignItems:"center", gap:8, padding:"4px 0"}}>
-                        <div style={{width:8, height:8, borderRadius:999, background:s.color, flexShrink:0}} />
-                        <span style={{fontSize:13, flex:1, color:"#374151"}}>{s.label}</span>
-                        <span style={{fontSize:13, fontWeight:700, background:s.bg, color:s.color, padding:"1px 8px", borderRadius:999}}>{s.val}</span>
+                      <div key={s.label} style={{ display: "flex", alignItems: "center", gap: 8, padding: "4px 0" }}>
+                        <div style={{ width: 8, height: 8, borderRadius: 999, background: s.color, flexShrink: 0 }} />
+                        <span style={{ fontSize: 13, flex: 1, color: "#374151" }}>{s.label}</span>
+                        <span style={{ fontSize: 13, fontWeight: 700, background: s.bg, color: s.color, padding: "1px 8px", borderRadius: 999 }}>{s.val}</span>
                       </div>
                     ))}
 
                     {/* Mini progress */}
-                    <div style={{marginTop:10}}>
-                      <div style={{height:6, background:"#f3f4f6", borderRadius:999, overflow:"hidden"}}>
-                        <div style={{height:"100%", width: doneRate+"%", background:"linear-gradient(90deg,#10b981,#6366f1)", borderRadius:999, transition:"width .3s"}} />
+                    <div style={{ marginTop: 10 }}>
+                      <div style={{ height: 6, background: "#f3f4f6", borderRadius: 999, overflow: "hidden" }}>
+                        <div style={{ height: "100%", width: doneRate + "%", background: "linear-gradient(90deg,#10b981,#6366f1)", borderRadius: 999, transition: "width .3s" }} />
                       </div>
-                      <div style={{fontSize:11, color:"#9ca3af", marginTop:4, textAlign:"right"}}>{doneRate}% tamamlandı</div>
+                      <div style={{ fontSize: 11, color: "#9ca3af", marginTop: 4, textAlign: "right" }}>{doneRate}% tamamlandı</div>
                     </div>
                   </div>
                 );
@@ -4495,62 +4466,62 @@ function DashboardView({ monthKey, category, rows, projects, employees, actions,
         {/* ──── PUANTAJ ──── */}
         {dashTab === "puantaj" && (
           <div>
-            <div style={{display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:16}}>
-              <div style={{fontWeight:700, fontSize:16}}>Puantaj Özeti</div>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
+              <div style={{ fontWeight: 700, fontSize: 16 }}>Puantaj Özeti</div>
               <Badge kind="ok">{monthKey}</Badge>
             </div>
 
             {/* Proje kartları */}
-            <div style={{display:"grid", gridTemplateColumns:"repeat(auto-fill, minmax(240px, 1fr))", gap:10}}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))", gap: 10 }}>
               {projectBlocks.map(({ proj, projEmps, agg }) => {
                 const comp = agg.totalDays > 0 ? ((agg.totalDays - agg.unset) / agg.totalDays * 100).toFixed(0) : 0;
                 const att = attendance || {};
                 return (
                   <div key={proj.id} style={{
-                    background:"#fff", border:"1px solid #e5e7eb", borderRadius:14, padding:"16px 18px",
-                    borderLeft:"4px solid #3b82f6"
+                    background: "#fff", border: "1px solid #e5e7eb", borderRadius: 14, padding: "16px 18px",
+                    borderLeft: "4px solid #3b82f6"
                   }}>
-                    <div style={{display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:10}}>
-                      <div style={{fontWeight:700, fontSize:14}}>{proj.name}</div>
-                      <span style={{background:"#eff6ff", color:"#2563eb", padding:"2px 10px", borderRadius:999, fontSize:12, fontWeight:700}}>{projEmps.length} kişi</span>
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
+                      <div style={{ fontWeight: 700, fontSize: 14 }}>{proj.name}</div>
+                      <span style={{ background: "#eff6ff", color: "#2563eb", padding: "2px 10px", borderRadius: 999, fontSize: 12, fontWeight: 700 }}>{projEmps.length} kişi</span>
                     </div>
 
                     {/* 3 stat box */}
-                    <div style={{display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:6, marginBottom:10}}>
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 6, marginBottom: 10 }}>
                       {[
-                        { val: agg.present, label:"Geldi", color:"#10b981", bg:"#ecfdf5" },
-                        { val: agg.absent, label:"Gelmedi", color:"#ef4444", bg:"#fef2f2" },
-                        { val: agg.paid_leave+agg.unpaid_leave+agg.sick_leave, label:"İzin", color:"#3b82f6", bg:"#eff6ff" }
+                        { val: agg.present, label: "Geldi", color: "#10b981", bg: "#ecfdf5" },
+                        { val: agg.absent, label: "Gelmedi", color: "#ef4444", bg: "#fef2f2" },
+                        { val: agg.paid_leave + agg.unpaid_leave + agg.sick_leave, label: "İzin", color: "#3b82f6", bg: "#eff6ff" }
                       ].map(s => (
-                        <div key={s.label} style={{textAlign:"center", padding:"8px 4px", background:s.bg, borderRadius:10}}>
-                          <div style={{fontWeight:800, fontSize:18, color:s.color}}>{s.val}</div>
-                          <div style={{fontSize:11, color:"#6b7280"}}>{s.label}</div>
+                        <div key={s.label} style={{ textAlign: "center", padding: "8px 4px", background: s.bg, borderRadius: 10 }}>
+                          <div style={{ fontWeight: 800, fontSize: 18, color: s.color }}>{s.val}</div>
+                          <div style={{ fontSize: 11, color: "#6b7280" }}>{s.label}</div>
                         </div>
                       ))}
                     </div>
 
                     {/* Progress bar */}
-                    <div style={{height:8, background:"#f3f4f6", borderRadius:999, overflow:"hidden", marginBottom:4}}>
-                      <div style={{height:"100%", width: comp+"%", background:"linear-gradient(90deg,#10b981,#3b82f6)", borderRadius:999, transition:"width .3s"}} />
+                    <div style={{ height: 8, background: "#f3f4f6", borderRadius: 999, overflow: "hidden", marginBottom: 4 }}>
+                      <div style={{ height: "100%", width: comp + "%", background: "linear-gradient(90deg,#10b981,#3b82f6)", borderRadius: 999, transition: "width .3s" }} />
                     </div>
-                    <div style={{fontSize:11, color:"#9ca3af", display:"flex", justifyContent:"space-between"}}>
+                    <div style={{ fontSize: 11, color: "#9ca3af", display: "flex", justifyContent: "space-between" }}>
                       <span>{comp}% tamamlandı</span>
                       <span>{agg.workDays} iş günü</span>
                     </div>
 
                     {/* Personel mini liste */}
                     {projEmps.length > 0 && (
-                      <div style={{marginTop:12, paddingTop:10, borderTop:"1px solid #f3f4f6"}}>
+                      <div style={{ marginTop: 12, paddingTop: 10, borderTop: "1px solid #f3f4f6" }}>
                         {projEmps.map(emp => {
                           const es = att[emp.id]?.[monthKey]?.stats || {};
-                          const eComp = es.totalDays > 0 ? ((es.totalDays-(es.unset||0))/es.totalDays*100).toFixed(0) : 0;
+                          const eComp = es.totalDays > 0 ? ((es.totalDays - (es.unset || 0)) / es.totalDays * 100).toFixed(0) : 0;
                           return (
-                            <div key={emp.id} style={{display:"flex", alignItems:"center", justifyContent:"space-between", padding:"3px 0", fontSize:13}}>
-                              <span style={{color:"#374151"}}>{emp.name}</span>
-                              <div style={{display:"flex", alignItems:"center", gap:6}}>
-                                <span style={{color:"#10b981", fontWeight:700}}>{es.present||0}</span>
-                                {(es.absent||0)>0 && <span style={{color:"#ef4444", fontWeight:700}}>{es.absent}</span>}
-                                <span style={{color:"#9ca3af", fontSize:11}}>{eComp}%</span>
+                            <div key={emp.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "3px 0", fontSize: 13 }}>
+                              <span style={{ color: "#374151" }}>{emp.name}</span>
+                              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                                <span style={{ color: "#10b981", fontWeight: 700 }}>{es.present || 0}</span>
+                                {(es.absent || 0) > 0 && <span style={{ color: "#ef4444", fontWeight: 700 }}>{es.absent}</span>}
+                                <span style={{ color: "#9ca3af", fontSize: 11 }}>{eComp}%</span>
                               </div>
                             </div>
                           );
@@ -4563,8 +4534,8 @@ function DashboardView({ monthKey, category, rows, projects, employees, actions,
             </div>
 
             {/* Detay tablosu */}
-            <div style={{marginTop:24}}>
-              <div style={{fontWeight:700, fontSize:15, marginBottom:10}}>Personel Detay</div>
+            <div style={{ marginTop: 24 }}>
+              <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 10 }}>Personel Detay</div>
               <div className="tableWrap">
                 <table>
                   <thead><tr>
@@ -4575,21 +4546,21 @@ function DashboardView({ monthKey, category, rows, projects, employees, actions,
                   <tbody>
                     {projectBlocks.map(({ proj, projEmps }) =>
                       projEmps.map(emp => {
-                        const es = (attendance||{})[emp.id]?.[monthKey]?.stats || {};
-                        const eComp = es.totalDays > 0 ? ((es.totalDays-(es.unset||0))/es.totalDays*100).toFixed(1) : "-";
+                        const es = (attendance || {})[emp.id]?.[monthKey]?.stats || {};
+                        const eComp = es.totalDays > 0 ? ((es.totalDays - (es.unset || 0)) / es.totalDays * 100).toFixed(1) : "-";
                         return (
                           <tr key={emp.id}>
                             <td><b>{proj.name}</b></td><td>{emp.name}</td>
-                            <td>{es.workDays||0}</td><td>{es.present||0}</td><td>{es.half_day||0}</td>
-                            <td>{es.paid_leave||0}</td><td>{es.unpaid_leave||0}</td><td>{es.sick_leave||0}</td>
-                            <td>{es.excuse||0}</td>
-                            <td style={{color:"#ef4444", fontWeight:(es.absent||0)>0?700:400}}>{es.absent||0}</td>
-                            <td>{es.weekend||0}</td><td>{es.holiday||0}</td><td>{eComp}%</td>
+                            <td>{es.workDays || 0}</td><td>{es.present || 0}</td><td>{es.half_day || 0}</td>
+                            <td>{es.paid_leave || 0}</td><td>{es.unpaid_leave || 0}</td><td>{es.sick_leave || 0}</td>
+                            <td>{es.excuse || 0}</td>
+                            <td style={{ color: "#ef4444", fontWeight: (es.absent || 0) > 0 ? 700 : 400 }}>{es.absent || 0}</td>
+                            <td>{es.weekend || 0}</td><td>{es.holiday || 0}</td><td>{eComp}%</td>
                           </tr>
                         );
                       })
                     )}
-                    {grand.empCount===0 && <tr><td colSpan="13">Personel kayıt yok.</td></tr>}
+                    {grand.empCount === 0 && <tr><td colSpan="13">Personel kayıt yok.</td></tr>}
                   </tbody>
                 </table>
               </div>
@@ -4600,36 +4571,36 @@ function DashboardView({ monthKey, category, rows, projects, employees, actions,
         {/* ──── TREND ──── */}
         {dashTab === "trend" && (
           <div>
-            <div style={{display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:16}}>
-              <div style={{fontWeight:700, fontSize:16}}>Son 6 Ay Trend</div>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
+              <div style={{ fontWeight: 700, fontSize: 16 }}>Son 6 Ay Trend</div>
               <Badge kind="ok">Karşılaştırma</Badge>
             </div>
 
             {/* Trend bar groups */}
             {[
-              { title:"Çalışma Günü", key:"workDays", color:"#3b82f6" },
-              { title:"Geldi", key:"present", color:"#10b981" },
-              { title:"Gelmedi", key:"absent", color:"#ef4444" },
-              { title:"İzin", key:"izin", color:"#f59e0b" }
+              { title: "Çalışma Günü", key: "workDays", color: "#3b82f6" },
+              { title: "Geldi", key: "present", color: "#10b981" },
+              { title: "Gelmedi", key: "absent", color: "#ef4444" },
+              { title: "İzin", key: "izin", color: "#f59e0b" }
             ].map(metric => {
               const max = Math.max(1, ...trendData.map(d => d[metric.key]));
               return (
                 <div key={metric.key} style={{
-                  background:"#fff", border:"1px solid #e5e7eb", borderRadius:14, padding:"18px 20px", marginBottom:12
+                  background: "#fff", border: "1px solid #e5e7eb", borderRadius: 14, padding: "18px 20px", marginBottom: 12
                 }}>
-                  <div style={{display:"flex", alignItems:"center", gap:8, marginBottom:14}}>
-                    <div style={{width:10, height:10, borderRadius:999, background:metric.color}} />
-                    <div style={{fontWeight:700, fontSize:14, color:"#1e293b"}}>{metric.title}</div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
+                    <div style={{ width: 10, height: 10, borderRadius: 999, background: metric.color }} />
+                    <div style={{ fontWeight: 700, fontSize: 14, color: "#1e293b" }}>{metric.title}</div>
                   </div>
-                  <div style={{display:"flex", gap:6, alignItems:"flex-end", height:80}}>
+                  <div style={{ display: "flex", gap: 6, alignItems: "flex-end", height: 80 }}>
                     {trendData.map((d, i) => {
                       const val = d[metric.key];
                       const pct = Math.max(6, (val / max) * 72);
                       return (
-                        <div key={i} style={{flex:1, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"flex-end", height:"100%"}}>
-                          <div style={{fontSize:12, fontWeight:800, color:metric.color, marginBottom:4}}>{val}</div>
-                          <div style={{width:"70%", height: pct+"px", background:metric.color, borderRadius:"5px 5px 0 0", transition:"height .3s", opacity:.85}} />
-                          <div style={{fontSize:10, color:"#9ca3af", marginTop:4, textAlign:"center", whiteSpace:"nowrap"}}>{d.label}</div>
+                        <div key={i} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "flex-end", height: "100%" }}>
+                          <div style={{ fontSize: 12, fontWeight: 800, color: metric.color, marginBottom: 4 }}>{val}</div>
+                          <div style={{ width: "70%", height: pct + "px", background: metric.color, borderRadius: "5px 5px 0 0", transition: "height .3s", opacity: .85 }} />
+                          <div style={{ fontSize: 10, color: "#9ca3af", marginTop: 4, textAlign: "center", whiteSpace: "nowrap" }}>{d.label}</div>
                         </div>
                       );
                     })}
@@ -4639,52 +4610,52 @@ function DashboardView({ monthKey, category, rows, projects, employees, actions,
             })}
 
             {/* Tamamlanma trend — renk kodlu */}
-            <div style={{ background:"#fff", border:"1px solid #e5e7eb", borderRadius:14, padding:"18px 20px", marginBottom:12 }}>
-              <div style={{display:"flex", alignItems:"center", gap:8, marginBottom:14}}>
-                <div style={{fontWeight:700, fontSize:14, color:"#1e293b"}}>Tamamlanma Oranı (%)</div>
+            <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 14, padding: "18px 20px", marginBottom: 12 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
+                <div style={{ fontWeight: 700, fontSize: 14, color: "#1e293b" }}>Tamamlanma Oranı (%)</div>
               </div>
-              <div style={{display:"flex", gap:6, alignItems:"flex-end", height:80}}>
+              <div style={{ display: "flex", gap: 6, alignItems: "flex-end", height: 80 }}>
                 {trendData.map((d, i) => {
                   const pct = d.completion;
                   const barH = Math.max(6, (pct / 100) * 72);
                   const color = pct >= 80 ? "#10b981" : pct >= 60 ? "#f59e0b" : "#ef4444";
                   return (
-                    <div key={i} style={{flex:1, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"flex-end", height:"100%"}}>
-                      <div style={{fontSize:12, fontWeight:800, color, marginBottom:4}}>{pct}%</div>
-                      <div style={{width:"70%", height: barH+"px", background:color, borderRadius:"5px 5px 0 0", transition:"height .3s"}} />
-                      <div style={{fontSize:10, color:"#9ca3af", marginTop:4, textAlign:"center", whiteSpace:"nowrap"}}>{d.label}</div>
+                    <div key={i} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "flex-end", height: "100%" }}>
+                      <div style={{ fontSize: 12, fontWeight: 800, color, marginBottom: 4 }}>{pct}%</div>
+                      <div style={{ width: "70%", height: barH + "px", background: color, borderRadius: "5px 5px 0 0", transition: "height .3s" }} />
+                      <div style={{ fontSize: 10, color: "#9ca3af", marginTop: 4, textAlign: "center", whiteSpace: "nowrap" }}>{d.label}</div>
                     </div>
                   );
                 })}
               </div>
-              <div style={{display:"flex", gap:16, marginTop:12, justifyContent:"center"}}>
-                {[{c:"#10b981",t:"≥ 80%"},{c:"#f59e0b",t:"60–79%"},{c:"#ef4444",t:"< 60%"}].map(l => (
-                  <div key={l.t} style={{display:"flex", alignItems:"center", gap:5, fontSize:12}}>
-                    <div style={{width:10, height:10, borderRadius:3, background:l.c}} />
-                    <span style={{color:"#64748b"}}>{l.t}</span>
+              <div style={{ display: "flex", gap: 16, marginTop: 12, justifyContent: "center" }}>
+                {[{ c: "#10b981", t: "≥ 80%" }, { c: "#f59e0b", t: "60–79%" }, { c: "#ef4444", t: "< 60%" }].map(l => (
+                  <div key={l.t} style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 12 }}>
+                    <div style={{ width: 10, height: 10, borderRadius: 3, background: l.c }} />
+                    <span style={{ color: "#64748b" }}>{l.t}</span>
                   </div>
                 ))}
               </div>
             </div>
 
             {/* Proje bazlı tablo */}
-            <div style={{marginTop:8}}>
-              <div style={{fontWeight:700, fontSize:15, marginBottom:10}}>Proje Bazlı — İş Günü Trend</div>
+            <div style={{ marginTop: 8 }}>
+              <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 10 }}>Proje Bazlı — İş Günü Trend</div>
               <div className="tableWrap">
                 <table>
                   <thead><tr>
                     <th>Proje</th>
-                    {trendData.map((d,i) => <th key={i}>{d.label}</th>)}
+                    {trendData.map((d, i) => <th key={i}>{d.label}</th>)}
                   </tr></thead>
                   <tbody>
-                    {(Array.isArray(projects)?projects:[]).map(proj => {
-                      const projEmps = (Array.isArray(employees)?employees:[]).filter(e => e.project === proj.name);
+                    {(Array.isArray(projects) ? projects : []).map(proj => {
+                      const projEmps = (Array.isArray(employees) ? employees : []).filter(e => e.project === proj.name);
                       return (
                         <tr key={proj.id}>
                           <td><b>{proj.name}</b></td>
                           {trendMonths.map((tm, mi) => {
                             let wd = 0;
-                            projEmps.forEach(emp => { wd += ((attendance||{})[emp.id]?.[tm.mk]?.stats?.workDays || 0); });
+                            projEmps.forEach(emp => { wd += ((attendance || {})[emp.id]?.[tm.mk]?.stats?.workDays || 0); });
                             return <td key={mi}>{wd}</td>;
                           })}
                         </tr>
@@ -4700,30 +4671,30 @@ function DashboardView({ monthKey, category, rows, projects, employees, actions,
         {/* ──── RAPORLAR ──── */}
         {dashTab === "raporlar" && (
           <div>
-            <div style={{display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:16}}>
-              <div style={{fontWeight:700, fontSize:16}}>Aylık PDF Raporlar</div>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
+              <div style={{ fontWeight: 700, fontSize: 16 }}>Aylık PDF Raporlar</div>
               <Badge>{monthKey}</Badge>
             </div>
-            <div style={{color:"#6b7280", fontSize:14, marginBottom:16}}>
+            <div style={{ color: "#6b7280", fontSize: 14, marginBottom: 16 }}>
               Butona tıkla → rapor yeni sekmede açılır → tarayıcıdan PDF olarak kaydet.
             </div>
-            <div style={{display:"grid", gridTemplateColumns:"repeat(auto-fill, minmax(200px, 1fr))", gap:10}}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: 10 }}>
               {(Array.isArray(projects) ? projects : []).map(p => (
                 <button
                   key={p.id}
                   type="button"
                   onClick={() => openProjectMonthlyReport({ project: p, category, monthKey, employees })}
                   style={{
-                    background:"linear-gradient(135deg, #1e293b, #334155)", color:"#fff",
-                    border:"none", borderRadius:12, padding:"18px 16px", cursor:"pointer",
-                    textAlign:"left", transition:"transform .12s, box-shadow .12s"
+                    background: "linear-gradient(135deg, #1e293b, #334155)", color: "#fff",
+                    border: "none", borderRadius: 12, padding: "18px 16px", cursor: "pointer",
+                    textAlign: "left", transition: "transform .12s, box-shadow .12s"
                   }}
-                  onMouseEnter={e => { e.currentTarget.style.transform="translateY(-2px)"; e.currentTarget.style.boxShadow="0 6px 20px rgba(0,0,0,.25)"; }}
-                  onMouseLeave={e => { e.currentTarget.style.transform="translateY(0)"; e.currentTarget.style.boxShadow="none"; }}
+                  onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.boxShadow = "0 6px 20px rgba(0,0,0,.25)"; }}
+                  onMouseLeave={e => { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = "none"; }}
                 >
-                  <div style={{fontSize:11, color:"rgba(255,255,255,.5)", textTransform:"uppercase", letterSpacing:".8px", fontWeight:600}}>PDF Rapor</div>
-                  <div style={{fontSize:15, fontWeight:700, marginTop:4}}>{p.name}</div>
-                  <div style={{fontSize:12, color:"rgba(255,255,255,.45)", marginTop:6}}>{category?.name} • {monthKey}</div>
+                  <div style={{ fontSize: 11, color: "rgba(255,255,255,.5)", textTransform: "uppercase", letterSpacing: ".8px", fontWeight: 600 }}>PDF Rapor</div>
+                  <div style={{ fontSize: 15, fontWeight: 700, marginTop: 4 }}>{p.name}</div>
+                  <div style={{ fontSize: 12, color: "rgba(255,255,255,.45)", marginTop: 6 }}>{category?.name} • {monthKey}</div>
                 </button>
               ))}
             </div>
@@ -4734,7 +4705,7 @@ function DashboardView({ monthKey, category, rows, projects, employees, actions,
   );
 }
 
-function KPI({label, value}){
+function KPI({ label, value }) {
   return (
     <div className="kpi">
       <div className="k">{label}</div>
@@ -4743,27 +4714,27 @@ function KPI({label, value}){
   );
 }
 
-function BarChart({ title, data }){
+function BarChart({ title, data }) {
   const max = Math.max(1, ...(data || []).map(d => safeNum(d.value)));
   return (
-    <div className="card" style={{padding:14}}>
+    <div className="card" style={{ padding: 14 }}>
       <div className="cardTitleRow">
-        <h4 style={{margin:0}}>{title}</h4>
+        <h4 style={{ margin: 0 }}>{title}</h4>
         <Badge kind="ok">Sayı</Badge>
       </div>
-      <div style={{marginTop:10, display:"flex", flexDirection:"column", gap:8}}>
+      <div style={{ marginTop: 10, display: "flex", flexDirection: "column", gap: 8 }}>
         {(data || []).map(d => {
           const v = safeNum(d.value);
           const w = Math.max(2, Math.round((v / max) * 100));
           return (
-            <div key={d.label} style={{display:"grid", gridTemplateColumns:"130px 1fr 60px", gap:10, alignItems:"center"}}>
-              <div className="small" style={{whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis"}} title={d.label}>
+            <div key={d.label} style={{ display: "grid", gridTemplateColumns: "130px 1fr 60px", gap: 10, alignItems: "center" }}>
+              <div className="small" style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }} title={d.label}>
                 {d.label}
               </div>
-              <div style={{background:"rgba(11,94,215,.10)", borderRadius:10, height:12, overflow:"hidden"}}>
-                <div style={{width: w + "%", height:"100%", background:"rgba(11,94,215,.55)"}} />
+              <div style={{ background: "rgba(11,94,215,.10)", borderRadius: 10, height: 12, overflow: "hidden" }}>
+                <div style={{ width: w + "%", height: "100%", background: "rgba(11,94,215,.55)" }} />
               </div>
-              <div style={{textAlign:"right"}}><b>{String(v)}</b></div>
+              <div style={{ textAlign: "right" }}><b>{String(v)}</b></div>
             </div>
           );
         })}
@@ -4772,11 +4743,11 @@ function BarChart({ title, data }){
   );
 }
 
-function openProjectMonthlyReport({ project, category, monthKey, employees }){
+function openProjectMonthlyReport({ project, category, monthKey, employees }) {
   const html = buildMonthlyReportHTML({ project, category, monthKey, employees });
 
   const w = window.open("", "_blank");
-  if(!w){
+  if (!w) {
     alert("Popup engellendi. Tarayıcıda pop-up izni verip tekrar dene.");
     return;
   }
@@ -4791,7 +4762,7 @@ function openProjectMonthlyReport({ project, category, monthKey, employees }){
   }, 300);
 }
 
-function buildMonthlyReportHTML({ project, category, monthKey, employees }){
+function buildMonthlyReportHTML({ project, category, monthKey, employees }) {
   const prjName = project?.name || "-";
   const catName = category?.name || "-";
   const catKey = category?.key;
@@ -4806,33 +4777,33 @@ function buildMonthlyReportHTML({ project, category, monthKey, employees }){
     .map(it => ({ name: it.name, role: "Uzman" }));
 
   const staff = [...experts, ...manual]
-    .sort((a,b)=> (a.role+a.name).localeCompare(b.role+b.name, "tr"));
+    .sort((a, b) => (a.role + a.name).localeCompare(b.role + b.name, "tr"));
 
   // Kategori bazlı onaylı aylık tablo
   const items = (project?.itemsByCategory?.[catKey] || [])
     .filter(it => (!category?.approval?.item || it.approved === true))
     .map(it => {
       const slot = it.months?.[monthKey];
-      if(!slot || !slot.approved) return null;
+      if (!slot || !slot.approved) return null;
       const dft = slot.draft || {};
-      const nums = (category?.fields || []).filter(f=>f.type==="number")
+      const nums = (category?.fields || []).filter(f => f.type === "number")
         .map(f => ({ label: f.label, key: f.key, val: safeNum(dft[f.key]) }));
-      const texts = (category?.fields || []).filter(f=>f.type!=="number")
+      const texts = (category?.fields || []).filter(f => f.type !== "number")
         .map(f => ({ label: f.label, key: f.key, val: (dft[f.key] ?? "") }));
       const meals = category?.special?.meals ? ((Object.prototype.hasOwnProperty.call(dft, "mealCount") ? safeNum(dft.mealCount) : (Array.isArray(dft.meals) ? dft.meals.length : 0))) : null;
       return { name: it.name, nums, texts, meals };
     })
     .filter(Boolean);
 
-  const numFields = (category?.fields || []).filter(f=>f.type==="number");
+  const numFields = (category?.fields || []).filter(f => f.type === "number");
   const hasMeals = !!category?.special?.meals;
 
   const totals = {};
-  for(const f of numFields) totals[f.key] = 0;
+  for (const f of numFields) totals[f.key] = 0;
   let mealsTotal = 0;
-  for(const it of items){
-    for(const n of it.nums) totals[n.key] += safeNum(n.val);
-    if(hasMeals) mealsTotal += safeNum(it.meals);
+  for (const it of items) {
+    for (const n of it.nums) totals[n.key] += safeNum(n.val);
+    if (hasMeals) mealsTotal += safeNum(it.meals);
   }
 
   const style = `
@@ -4873,13 +4844,13 @@ function buildMonthlyReportHTML({ project, category, monthKey, employees }){
       <tr>
         <td><b>${escapeHtml(it.name)}</b></td>
         ${numFields.map(f => {
-          const x = it.nums.find(n => n.key === f.key);
-          return `<td>${escapeHtml(String(x?.val ?? 0))}</td>`;
-        }).join("")}
+      const x = it.nums.find(n => n.key === f.key);
+      return `<td>${escapeHtml(String(x?.val ?? 0))}</td>`;
+    }).join("")}
         ${hasMeals ? `<td>${escapeHtml(String(it.meals ?? 0))}</td>` : ``}
       </tr>
     `).join("")
-    : `<tr><td colspan="${1 + numFields.length + (hasMeals?1:0)}">Bu ay onaylı kayıt yok.</td></tr>`;
+    : `<tr><td colspan="${1 + numFields.length + (hasMeals ? 1 : 0)}">Bu ay onaylı kayıt yok.</td></tr>`;
 
   const totalsRow = `
     <tr>
@@ -4942,7 +4913,7 @@ function buildMonthlyReportHTML({ project, category, monthKey, employees }){
   `;
 }
 
-function escapeHtml(s){
+function escapeHtml(s) {
   return String(s ?? "")
     .replaceAll("&", "&amp;")
     .replaceAll("<", "&lt;")
@@ -4961,7 +4932,7 @@ function MonthlyControlsView({
   employees,
   setMonthlyField,
   submitMonth
-}){
+}) {
   const safeItems = Array.isArray(items) ? items : [];
   const hiddenKeys = Array.isArray(project?.fieldVisibility?.[category?.key]?.hiddenFieldKeys)
     ? project.fieldVisibility[category.key].hiddenFieldKeys
@@ -4982,7 +4953,7 @@ function MonthlyControlsView({
     return Array.from(new Set([...namesA, ...namesB]));
   }, [experts, employees, project]);
 
-  if(!project){
+  if (!project) {
     return <div className="card"><div className="small">Proje seçili değil.</div></div>;
   }
 
@@ -4990,19 +4961,19 @@ function MonthlyControlsView({
     <div className="card">
       <div className="cardTitleRow">
         <h2>{category?.name || "Aylık Kontroller"} • {project.name}</h2>
-        <div style={{display:"flex", gap:8, flexWrap:"wrap", justifyContent:"flex-end"}}>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "flex-end" }}>
           <Badge>{monthKey}</Badge>
           <Badge kind="warn">Admin onayı</Badge>
         </div>
       </div>
 
-      <div className="small" style={{marginTop:6}}>
+      <div className="small" style={{ marginTop: 6 }}>
         Kontrol satırlarına veriyi gir → her satır için <b>Onaya Gönder</b>.
       </div>
 
       <hr className="sep" />
 
-      <div style={{display:"grid", gap:12}}>
+      <div style={{ display: "grid", gap: 12 }}>
         {safeItems.map(it => {
           const slot = it.months?.[monthKey] || {};
           const draft = slot.draft || {};
@@ -5010,36 +4981,36 @@ function MonthlyControlsView({
           const submitted = !!slot.submitted;
 
           return (
-            <div key={it.id} className="card" style={{background:"#fff"}}>
+            <div key={it.id} className="card" style={{ background: "#fff" }}>
               <div className="cardTitleRow">
-                <h3 style={{margin:0}}>{it.name}</h3>
-                <div style={{display:"flex", gap:8, flexWrap:"wrap", justifyContent:"flex-end"}}>
+                <h3 style={{ margin: 0 }}>{it.name}</h3>
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "flex-end" }}>
                   {approved && <Badge kind="ok">Onaylı</Badge>}
                   {!approved && submitted && <Badge kind="warn">Bekliyor</Badge>}
                   {!approved && !submitted && <Badge kind="danger">Taslak</Badge>}
                 </div>
               </div>
 
-              <div style={{marginTop:10, display:"grid", gridTemplateColumns:"repeat(auto-fit, minmax(220px, 1fr))", gap:10}}>
+              <div style={{ marginTop: 10, display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 10 }}>
                 {fields.map(f => (
                   <div key={f.key}>
-                    <div className="small" style={{fontWeight:800, opacity:.85, marginBottom:6}}>{f.label}</div>
+                    <div className="small" style={{ fontWeight: 800, opacity: .85, marginBottom: 6 }}>{f.label}</div>
                     {f.type === "select" ? (
                       <select
                         className="input"
                         value={draft[f.key] || ""}
-                        onChange={e=>setMonthlyField(project.id, category.key, it.id, f.key, e.target.value)}
+                        onChange={e => setMonthlyField(project.id, category.key, it.id, f.key, e.target.value)}
                         disabled={!isAdmin && approved}
                       >
                         <option value="">Seç...</option>
-                        {( (f.key==='kontrol_eden') ? expertOptions : (f.options || []) ).map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                        {((f.key === 'kontrol_eden') ? expertOptions : (f.options || [])).map(opt => <option key={opt} value={opt}>{opt}</option>)}
                       </select>
                     ) : f.type === "date" ? (
                       <input
                         className="input"
                         type="date"
                         value={draft[f.key] || ""}
-                        onChange={e=>setMonthlyField(project.id, category.key, it.id, f.key, e.target.value)}
+                        onChange={e => setMonthlyField(project.id, category.key, it.id, f.key, e.target.value)}
                         disabled={!isAdmin && approved}
                       />
                     ) : f.type === "number" ? (
@@ -5047,14 +5018,14 @@ function MonthlyControlsView({
                         className="input"
                         type="number"
                         value={draft[f.key] ?? ""}
-                        onChange={e=>setMonthlyField(project.id, category.key, it.id, f.key, e.target.value)}
+                        onChange={e => setMonthlyField(project.id, category.key, it.id, f.key, e.target.value)}
                         disabled={!isAdmin && approved}
                       />
                     ) : (
                       <input
                         className="input"
                         value={draft[f.key] || ""}
-                        onChange={e=>setMonthlyField(project.id, category.key, it.id, f.key, e.target.value)}
+                        onChange={e => setMonthlyField(project.id, category.key, it.id, f.key, e.target.value)}
                         disabled={!isAdmin && approved}
                       />
                     )}
@@ -5062,10 +5033,10 @@ function MonthlyControlsView({
                 ))}
               </div>
 
-              <div style={{marginTop:12, display:"flex", gap:10, flexWrap:"wrap"}}>
+              <div style={{ marginTop: 12, display: "flex", gap: 10, flexWrap: "wrap" }}>
                 <button
                   className="btn primary"
-                  onClick={()=>submitMonth(project.id, category.key, it.id)}
+                  onClick={() => submitMonth(project.id, category.key, it.id)}
                   disabled={!isAdmin && approved}
                   title={approved ? "Onaylı veri kilitli." : "Admin onayına gönder"}
                 >
@@ -5094,7 +5065,7 @@ function ApprovalsView({
   rejectItem,
   approveMonth,
   rejectMonth
-}){
+}) {
   const items = Array.isArray(pendingItems) ? pendingItems : [];
   const months = Array.isArray(pendingMonths) ? pendingMonths : [];
 
@@ -5102,13 +5073,13 @@ function ApprovalsView({
     <div className="card">
       <div className="cardTitleRow">
         <h2>Onaylar</h2>
-        <div style={{display:"flex", gap:8, flexWrap:"wrap", justifyContent:"flex-end"}}>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "flex-end" }}>
           <Badge kind="warn">Bekleyen</Badge>
           <Badge>{monthKey}</Badge>
         </div>
       </div>
 
-      <div className="small" style={{marginTop:6}}>
+      <div className="small" style={{ marginTop: 6 }}>
         Burada item talepleri ve aylık veri onaylarını yönetirsin.
       </div>
 
@@ -5118,7 +5089,7 @@ function ApprovalsView({
         <Badge kind={items.length ? "danger" : "ok"}>{items.length}</Badge>
       </div>
 
-      <div style={{overflowX:"auto", marginTop:10}}>
+      <div style={{ overflowX: "auto", marginTop: 10 }}>
         <table className="table">
           <thead>
             <tr>
@@ -5138,9 +5109,9 @@ function ApprovalsView({
                 <td>{r.itemName}</td>
                 <td>{r.requestedBy || "-"}</td>
                 <td className="small">{fmtDateTime(r.createdAt)}</td>
-                <td style={{whiteSpace:"nowrap"}}>
-                  <button className="btn primary" onClick={()=>approveItem(r.projectId, r.catKey, r.itemId)}>Onayla</button>{" "}
-                  <button className="btn danger" onClick={()=>rejectItem(r.projectId, r.catKey, r.itemId)}>Reddet</button>
+                <td style={{ whiteSpace: "nowrap" }}>
+                  <button className="btn primary" onClick={() => approveItem(r.projectId, r.catKey, r.itemId)}>Onayla</button>{" "}
+                  <button className="btn danger" onClick={() => rejectItem(r.projectId, r.catKey, r.itemId)}>Reddet</button>
                 </td>
               </tr>
             ))}
@@ -5157,7 +5128,7 @@ function ApprovalsView({
         <Badge kind={months.length ? "warn" : "ok"}>{months.length}</Badge>
       </div>
 
-      <div style={{overflowX:"auto", marginTop:10}}>
+      <div style={{ overflowX: "auto", marginTop: 10 }}>
         <table className="table">
           <thead>
             <tr>
@@ -5177,9 +5148,9 @@ function ApprovalsView({
                 <td>{r.itemName}</td>
                 <td>{r.submittedBy || "-"}</td>
                 <td className="small">{fmtDateTime(r.submittedAt)}</td>
-                <td style={{whiteSpace:"nowrap"}}>
-                  <button className="btn primary" onClick={()=>approveMonth(r.projectId, r.catKey, r.itemId)}>Onayla</button>{" "}
-                  <button className="btn danger" onClick={()=>rejectMonth(r.projectId, r.catKey, r.itemId)}>Reddet</button>
+                <td style={{ whiteSpace: "nowrap" }}>
+                  <button className="btn primary" onClick={() => approveMonth(r.projectId, r.catKey, r.itemId)}>Onayla</button>{" "}
+                  <button className="btn danger" onClick={() => rejectMonth(r.projectId, r.catKey, r.itemId)}>Reddet</button>
                 </td>
               </tr>
             ))}
@@ -5207,8 +5178,8 @@ function EntryView({
   toggleMeal,
   submitMonth,
   hiddenFieldKeys
-}){
-  if(!project){
+}) {
+  if (!project) {
     return <div className="card">Proje bulunamadı.</div>;
   }
 
@@ -5221,42 +5192,42 @@ function EntryView({
   return (
     <>
       {isAdmin && (
-      <div className="card">
-        <div className="cardTitleRow">
-          <h2>Admin • Yedekleme</h2>
-        </div>
-        <div className="row" style={{gap:10, flexWrap:"wrap", marginTop:10}}>
-          <button className="btn primary" onClick={onDownloadBackup}>Yedek Al (JSON)</button>
+        <div className="card">
+          <div className="cardTitleRow">
+            <h2>Admin • Yedekleme</h2>
+          </div>
+          <div className="row" style={{ gap: 10, flexWrap: "wrap", marginTop: 10 }}>
+            <button className="btn primary" onClick={onDownloadBackup}>Yedek Al (JSON)</button>
 
-          <label className="btn" style={{cursor:"pointer"}}>
-            Yedek Yükle (JSON)
-            <input
-              type="file"
-              accept="application/json,.json"
-              style={{display:"none"}}
-              onChange={(e)=>{
-                const f = e.target.files?.[0];
-                e.target.value = "";
-                onImportBackup?.(f);
-              }}
-            />
-          </label>
-          <div className="small" style={{alignSelf:"center"}}>
-            Not: Yedek yükleme mevcut verinin üstüne yazar. Yüklemeden önce “Yedek Al” önerilir.
+            <label className="btn" style={{ cursor: "pointer" }}>
+              Yedek Yükle (JSON)
+              <input
+                type="file"
+                accept="application/json,.json"
+                style={{ display: "none" }}
+                onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  e.target.value = "";
+                  onImportBackup?.(f);
+                }}
+              />
+            </label>
+            <div className="small" style={{ alignSelf: "center" }}>
+              Not: Yedek yükleme mevcut verinin üstüne yazar. Yüklemeden önce “Yedek Al” önerilir.
+            </div>
           </div>
         </div>
-      </div>
       )}
 
       <div className="card">
         <div className="cardTitleRow">
           <h2>Veri Girişi • {category?.name}</h2>
-          <div style={{display:"flex", gap:8, flexWrap:"wrap", justifyContent:"flex-end"}}>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "flex-end" }}>
             <Badge>{project.name}</Badge>
             <Badge kind="ok">{monthKey}</Badge>
           </div>
         </div>
-        <div className="small" style={{marginTop:6}}>
+        <div className="small" style={{ marginTop: 6 }}>
           {category?.itemLabel || "Kayıt"} onaylıysa görünür. Aylık veriyi girip <b>Onaya Gönder</b> yap.
         </div>
       </div>
@@ -5268,7 +5239,7 @@ function EntryView({
           </div>
         </div>
       ) : (
-        (category && (category.key==="experts" || (category.special && category.special.meals))) ? (
+        (category && (category.key === "experts" || (category.special && category.special.meals))) ? (
           <ExpertsEntryCompactView
             isAdmin={isAdmin}
             monthKey={monthKey}
@@ -5284,135 +5255,135 @@ function EntryView({
           />
         ) : (
           items.map(it => {
-          const empId = it?.meta?.employeeId;
-          const emp = empId ? (employees || []).find(e => e.id === empId) : null;
-          const inactive = !!emp && emp.active === false;
+            const empId = it?.meta?.employeeId;
+            const emp = empId ? (employees || []).find(e => e.id === empId) : null;
+            const inactive = !!emp && emp.active === false;
 
-          const slot = it.months?.[monthKey];
-          const submitted = slot?.submitted === true;
-          const approved = slot?.approved === true;
-          const draft = slot?.draft || {};
-          const meals = Array.isArray(draft.meals) ? draft.meals : [];
+            const slot = it.months?.[monthKey];
+            const submitted = slot?.submitted === true;
+            const approved = slot?.approved === true;
+            const draft = slot?.draft || {};
+            const meals = Array.isArray(draft.meals) ? draft.meals : [];
 
-          return (
-            <div className="card" key={it.id}>
-              <div className="cardTitleRow">
-                <h3 style={{display:"flex", alignItems:"center", gap:10}}>{it.name}{inactive ? <Badge kind="danger">Pasif</Badge> : null}</h3>
-                <div style={{display:"flex", gap:8, flexWrap:"wrap", justifyContent:"flex-end"}}>
-                  {approved && <Badge kind="ok">Onaylandı</Badge>}
-                  {!approved && submitted && <Badge kind="warn">Onay Bekliyor</Badge>}
-                  {!approved && !submitted && <Badge>Draft</Badge>}
+            return (
+              <div className="card" key={it.id}>
+                <div className="cardTitleRow">
+                  <h3 style={{ display: "flex", alignItems: "center", gap: 10 }}>{it.name}{inactive ? <Badge kind="danger">Pasif</Badge> : null}</h3>
+                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "flex-end" }}>
+                    {approved && <Badge kind="ok">Onaylandı</Badge>}
+                    {!approved && submitted && <Badge kind="warn">Onay Bekliyor</Badge>}
+                    {!approved && !submitted && <Badge>Draft</Badge>}
+                  </div>
                 </div>
-              </div>
-              {inactive ? (
-                <div className="small" style={{marginTop:8, fontWeight:800, color:"rgba(127,29,29,.95)"}}>
-                  Bu personel pasife alındığı için bu kayda veri girişi yapılamaz.
-                </div>
-              ) : null}
+                {inactive ? (
+                  <div className="small" style={{ marginTop: 8, fontWeight: 800, color: "rgba(127,29,29,.95)" }}>
+                    Bu personel pasife alındığı için bu kayda veri girişi yapılamaz.
+                  </div>
+                ) : null}
 
-              <hr className="sep" />
+                <hr className="sep" />
 
-              {/* Fields */}
-              <div className="row" style={{flexWrap:"wrap"}}>
-                {visibleFields.map(f => (
-                  <div key={f.key} style={{minWidth:220, flex:"1 1 240px"}}>
-                    <div className="small" style={{fontWeight:900, marginBottom:6}}>
-                      {f.label}{f.unit ? ` (${f.unit})` : ""}
-                    </div>
+                {/* Fields */}
+                <div className="row" style={{ flexWrap: "wrap" }}>
+                  {visibleFields.map(f => (
+                    <div key={f.key} style={{ minWidth: 220, flex: "1 1 240px" }}>
+                      <div className="small" style={{ fontWeight: 900, marginBottom: 6 }}>
+                        {f.label}{f.unit ? ` (${f.unit})` : ""}
+                      </div>
 
-                    {f.type === "select" ? (() => {
-                      const selectOptions = (category?.key === "monthly_controls" && f.key === "kontrol_eden")
-                        ? [
+                      {f.type === "select" ? (() => {
+                        const selectOptions = (category?.key === "monthly_controls" && f.key === "kontrol_eden")
+                          ? [
                             "Seçiniz",
                             ...(employees || []).filter(e => e.active !== false && e.approved !== false && e.project === project.name).map(e => e.name),
                             ...(project.itemsByCategory?.experts || []).filter(x => x.approved).map(x => x.name)
-                          ].filter((v,i,a) => a.indexOf(v) === i)
-                        : (f.options || ["Seçiniz"]);
-                      return (
-                        <select
-                          className="input"
-                          value={draft[f.key] ?? ""}
-                          disabled={inactive || (!isAdmin && approved)}
-                          onChange={(ev)=>setMonthlyField(project.id, category.key, it.id, f.key, ev.target.value)}
-                        >
-                          {selectOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-                        </select>
-                      );
-                    })() : (
-                      <input
-                        className="input"
-                        type={f.type === "number" ? "number" : (f.type === "date" ? "date" : "text")}
-                        value={draft[f.key] ?? (f.type==="number" ? 0 : "")}
-                        disabled={inactive || (!isAdmin && approved)}
-                        onChange={(ev)=>setMonthlyField(project.id, category.key, it.id, f.key, ev.target.value)}
-                      />
-                    )}
-                  </div>
-                ))}
-              </div>
-
-              {/* Meals for experts */}
-              {category?.special?.meals && (
-                <>
-                  <hr className="sep" />
-                  <div className="cardTitleRow">
-                    <div style={{fontWeight:900}}>Yemek Takibi</div>
-                    <div className="small">Toplam: <b>{meals.length}</b></div>
-                  </div>
-
-                  <div className="mealGrid">
-                    {Array.from({length: monthDays}).map((_,i)=>{
-                      const day = i+1;
-                      const checked = meals.includes(day);
-                      return (
-                        <label
-                          key={day}
-                          className="mealCell"
-                          style={{ background: checked ? "rgba(11,94,215,.08)" : "rgba(255,255,255,.85)" }}
-                        >
-                          <input
-                            type="checkbox"
-                            checked={checked}
+                          ].filter((v, i, a) => a.indexOf(v) === i)
+                          : (f.options || ["Seçiniz"]);
+                        return (
+                          <select
+                            className="input"
+                            value={draft[f.key] ?? ""}
                             disabled={inactive || (!isAdmin && approved)}
-                            onChange={()=>toggleMeal(project.id, it.id, day)}
-                          />
-                          <span style={{fontSize:12}}>{day}</span>
-                        </label>
-                      );
-                    })}
-                  </div>
-                </>
-              )}
-
-              {!isAdmin && (
-                <div style={{marginTop:12, display:"flex", gap:10, flexWrap:"wrap"}}>
-                  <button
-                    className="btn primary"
-                    onClick={()=>submitMonth(project.id, category.key, it.id)}
-                    disabled={(!isAdmin && approved) || inactive}
-                    title={approved ? "Onaylı veri kilitli." : "Admin onayına gönder"}
-                  >
-                    Onaya Gönder
-                  </button>
-                  {approved && <Badge kind="ok">Bu ay onaylandı</Badge>}
-                  {!approved && submitted && <Badge kind="warn">Admin onayı bekleniyor</Badge>}
+                            onChange={(ev) => setMonthlyField(project.id, category.key, it.id, f.key, ev.target.value)}
+                          >
+                            {selectOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                          </select>
+                        );
+                      })() : (
+                        <input
+                          className="input"
+                          type={f.type === "number" ? "number" : (f.type === "date" ? "date" : "text")}
+                          value={draft[f.key] ?? (f.type === "number" ? 0 : "")}
+                          disabled={inactive || (!isAdmin && approved)}
+                          onChange={(ev) => setMonthlyField(project.id, category.key, it.id, f.key, ev.target.value)}
+                        />
+                      )}
+                    </div>
+                  ))}
                 </div>
-              )}
-            </div>
-          );
-        })
+
+                {/* Meals for experts */}
+                {category?.special?.meals && (
+                  <>
+                    <hr className="sep" />
+                    <div className="cardTitleRow">
+                      <div style={{ fontWeight: 900 }}>Yemek Takibi</div>
+                      <div className="small">Toplam: <b>{meals.length}</b></div>
+                    </div>
+
+                    <div className="mealGrid">
+                      {Array.from({ length: monthDays }).map((_, i) => {
+                        const day = i + 1;
+                        const checked = meals.includes(day);
+                        return (
+                          <label
+                            key={day}
+                            className="mealCell"
+                            style={{ background: checked ? "rgba(11,94,215,.08)" : "rgba(255,255,255,.85)" }}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={checked}
+                              disabled={inactive || (!isAdmin && approved)}
+                              onChange={() => toggleMeal(project.id, it.id, day)}
+                            />
+                            <span style={{ fontSize: 12 }}>{day}</span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </>
+                )}
+
+                {!isAdmin && (
+                  <div style={{ marginTop: 12, display: "flex", gap: 10, flexWrap: "wrap" }}>
+                    <button
+                      className="btn primary"
+                      onClick={() => submitMonth(project.id, category.key, it.id)}
+                      disabled={(!isAdmin && approved) || inactive}
+                      title={approved ? "Onaylı veri kilitli." : "Admin onayına gönder"}
+                    >
+                      Onaya Gönder
+                    </button>
+                    {approved && <Badge kind="ok">Bu ay onaylandı</Badge>}
+                    {!approved && submitted && <Badge kind="warn">Admin onayı bekleniyor</Badge>}
+                  </div>
+                )}
+              </div>
+            );
+          })
         )
       )}
     </>
   );
 }
 
-function ExpertsEntryCompactView({ isAdmin, monthKey, monthDays, project, category, items, employees, setMonthlyField, toggleMeal, submitMonth, hiddenFieldKeys }){
+function ExpertsEntryCompactView({ isAdmin, monthKey, monthDays, project, category, items, employees, setMonthlyField, toggleMeal, submitMonth, hiddenFieldKeys }) {
   const [search, setSearch] = React.useState("");
 
   const filtered = React.useMemo(() => {
     const q = (search || "").trim().toLowerCase();
-    if(!q) return (items || []);
+    if (!q) return (items || []);
     return (items || []).filter(it => (it.name || "").toLowerCase().includes(q));
   }, [items, search]);
 
@@ -5423,19 +5394,19 @@ function ExpertsEntryCompactView({ isAdmin, monthKey, monthDays, project, catego
   }, [category, hiddenFieldKeys]);
 
 
-  function isInactiveItem(it){
+  function isInactiveItem(it) {
     const empId = it?.meta?.employeeId;
-    if(!empId) return false;
+    if (!empId) return false;
     const e = (employees || []).find(x => x.id === empId);
     return !!e && e.active === false;
   }
 
-  function getSlot(it){
+  function getSlot(it) {
     const slot = it.months?.[monthKey];
     const draft = slot?.draft || {};
     const meals = Array.isArray(draft.meals) ? draft.meals : []; // geriye dönük destek
-    const mealCount = Number.isFinite(draft.mealCount) ? Number(draft.mealCount||0) : (meals.length || 0);
-    return { slot, draft, meals, mealCount, submitted: slot?.submitted===true, approved: slot?.approved===true };
+    const mealCount = Number.isFinite(draft.mealCount) ? Number(draft.mealCount || 0) : (meals.length || 0);
+    return { slot, draft, meals, mealCount, submitted: slot?.submitted === true, approved: slot?.approved === true };
   }
 
   const totalMeals = React.useMemo(() => {
@@ -5447,17 +5418,17 @@ function ExpertsEntryCompactView({ isAdmin, monthKey, monthDays, project, catego
       <div className="card">
         <div className="cardTitleRow">
           <h3>Uzman Veri Girişi</h3>
-          <div style={{display:"flex", gap:8, flexWrap:"wrap", justifyContent:"flex-end"}}>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "flex-end" }}>
             <Badge kind="info">Toplam Yemek: {totalMeals}</Badge>
             <Badge kind="default">{filtered.length} uzman</Badge>
           </div>
         </div>
 
-        <div className="row" style={{marginTop:12, gap:10, flexWrap:"wrap"}}>
-          <div style={{flex:"1 1 260px"}}>
-            <input className="input sm" value={search} onChange={e=>setSearch(e.target.value)} placeholder="Uzman ara..." />
+        <div className="row" style={{ marginTop: 12, gap: 10, flexWrap: "wrap" }}>
+          <div style={{ flex: "1 1 260px" }}>
+            <input className="input sm" value={search} onChange={e => setSearch(e.target.value)} placeholder="Uzman ara..." />
           </div>
-          <div className="small" style={{flex:"1 1 320px"}}>
+          <div className="small" style={{ flex: "1 1 320px" }}>
             Yemek artık <b>sayı</b> olarak girilir. (Gün seçimi kaldırıldı — istersen tekrar ekleriz.)
           </div>
         </div>
@@ -5466,20 +5437,20 @@ function ExpertsEntryCompactView({ isAdmin, monthKey, monthDays, project, catego
 
         <div className="stackList">
           {filtered.map(it => {
-        const inactive = isInactiveItem(it);
+            const inactive = isInactiveItem(it);
             const { draft, mealCount, submitted, approved } = getSlot(it);
 
             return (
               <div key={it.id} className="miniCard">
                 <div className="miniCardHead">
                   <div>
-                    <div style={{fontWeight:800}}>{it.name}{inactive && <Badge kind="danger">Pasif</Badge>}</div>
-                    <div className="small" style={{marginTop:2, opacity:.85}}>
+                    <div style={{ fontWeight: 800 }}>{it.name}{inactive && <Badge kind="danger">Pasif</Badge>}</div>
+                    <div className="small" style={{ marginTop: 2, opacity: .85 }}>
                       {approved ? "Onaylandı" : submitted ? "Onay bekliyor" : "Taslak"}
                     </div>
                   </div>
 
-                  <div style={{display:"flex", gap:8, alignItems:"center", flexWrap:"wrap", justifyContent:"flex-end"}}>
+                  <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", justifyContent: "flex-end" }}>
                     {approved && <Badge kind="ok">Onaylandı</Badge>}
                     {!approved && submitted && <Badge kind="warn">Bekliyor</Badge>}
                     {!approved && !submitted && <Badge kind="danger">Taslak</Badge>}
@@ -5499,7 +5470,7 @@ function ExpertsEntryCompactView({ isAdmin, monthKey, monthDays, project, catego
 
                 <div className="miniGrid">
                   {visibleFields.map(f => {
-                    if(f.key === "mealCount") {
+                    if (f.key === "mealCount") {
                       return (
                         <div key={f.key}>
                           <div className="lbl">{f.label}</div>
@@ -5509,12 +5480,12 @@ function ExpertsEntryCompactView({ isAdmin, monthKey, monthDays, project, catego
                             min="0"
                             value={mealCount}
                             disabled={(!isAdmin && approved) || inactive}
-                            onChange={e=>setMonthlyField(project.id, category.key, it.id, monthKey, "mealCount", Number(e.target.value||0))}
+                            onChange={e => setMonthlyField(project.id, category.key, it.id, monthKey, "mealCount", Number(e.target.value || 0))}
                           />
                         </div>
                       );
                     }
-                    
+
                     return (
                       <div key={f.key}>
                         <div className="lbl">{f.label}</div>
@@ -5523,7 +5494,7 @@ function ExpertsEntryCompactView({ isAdmin, monthKey, monthDays, project, catego
                           type="number"
                           value={draft[f.key] ?? 0}
                           disabled={(!isAdmin && approved) || inactive}
-                          onChange={e=>setMonthlyField(project.id, category.key, it.id, monthKey, f.key, Number(e.target.value||0))}
+                          onChange={e => setMonthlyField(project.id, category.key, it.id, monthKey, f.key, Number(e.target.value || 0))}
                         />
                       </div>
                     );
@@ -5533,42 +5504,42 @@ function ExpertsEntryCompactView({ isAdmin, monthKey, monthDays, project, catego
             );
           })}
 
-          {filtered.length===0 && <div className="small">Kayıt yok.</div>}
+          {filtered.length === 0 && <div className="small">Kayıt yok.</div>}
         </div>
       </div>
     </>
   );
 }
 
-function AdminView(props){
+function AdminView(props) {
   const {
-onDownloadBackup,
-  onImportBackup,
-isAdmin,
-  monthKey,
-  categories,
-  projects,
-  docTemplates,
-  docRegisterTypes,
-  adminAddDocRegisterType,
-  adminUpdateDocRegisterType,
-  adminDeleteDocRegisterType,
-  adminAddDocTemplate,
-  adminDeleteDocTemplate,
-  catName, setCatName,
-  catItemLabel, setCatItemLabel,
-  adminAddCategory,
-  activeCategory,
-  catFieldLabel, setCatFieldLabel,
-  catFieldType, setCatFieldType,
-  catFieldOptions, setCatFieldOptions,
-  catFieldUnit, setCatFieldUnit,
-  adminAddField,
-  adminDeleteField,
-  adminDeleteCategory,
-  adminAddProject,
-  adminSetProjectCategories,
-  adminSetProjectHiddenFields
+    onDownloadBackup,
+    onImportBackup,
+    isAdmin,
+    monthKey,
+    categories,
+    projects,
+    docTemplates,
+    docRegisterTypes,
+    adminAddDocRegisterType,
+    adminUpdateDocRegisterType,
+    adminDeleteDocRegisterType,
+    adminAddDocTemplate,
+    adminDeleteDocTemplate,
+    catName, setCatName,
+    catItemLabel, setCatItemLabel,
+    adminAddCategory,
+    activeCategory,
+    catFieldLabel, setCatFieldLabel,
+    catFieldType, setCatFieldType,
+    catFieldOptions, setCatFieldOptions,
+    catFieldUnit, setCatFieldUnit,
+    adminAddField,
+    adminDeleteField,
+    adminDeleteCategory,
+    adminAddProject,
+    adminSetProjectCategories,
+    adminSetProjectHiddenFields
 
   } = props;
 
@@ -5580,12 +5551,12 @@ isAdmin,
 
   // Proje yönetimi local state
   const [newProjectName, setNewProjectName] = useState("");
-  const [newProjectCatKeys, setNewProjectCatKeys] = useState(() => safeCategories.map(c=>c.key));
+  const [newProjectCatKeys, setNewProjectCatKeys] = useState(() => safeCategories.map(c => c.key));
 
   const [selectedProjectId, setSelectedProjectId] = useState(safeProjects?.[0]?.id || "");
   const [selectedProjectCatKeys, setSelectedProjectCatKeys] = useState(() => {
     const p = safeProjects?.[0];
-    const keys = Array.isArray(p?.enabledCategoryKeys) ? p.enabledCategoryKeys : safeCategories.map(c=>c.key);
+    const keys = Array.isArray(p?.enabledCategoryKeys) ? p.enabledCategoryKeys : safeCategories.map(c => c.key);
     return keys;
   });
 
@@ -5607,8 +5578,8 @@ isAdmin,
   useEffect(() => {
     // kategori listesi değişirse yeni proje seçimlerini güncelle
     setNewProjectCatKeys(prev => {
-      const all = safeCategories.map(c=>c.key);
-      if(!prev || prev.length === 0) return all;
+      const all = safeCategories.map(c => c.key);
+      if (!prev || prev.length === 0) return all;
       // eski anahtarlar varsa koru, yoksa düşür
       const set = new Set(all);
       const next = prev.filter(k => set.has(k));
@@ -5618,20 +5589,20 @@ isAdmin,
 
   useEffect(() => {
     // seçili proje değişince checkbox'ları projeden oku
-    if(!safeProjects.length) return;
+    if (!safeProjects.length) return;
     const pid = selectedProjectId || safeProjects[0].id;
-    if(!pid) return;
-    const p = safeProjects.find(x=>x.id===pid) || safeProjects[0];
-    const keys = Array.isArray(p?.enabledCategoryKeys) ? p.enabledCategoryKeys : safeCategories.map(c=>c.key);
+    if (!pid) return;
+    const p = safeProjects.find(x => x.id === pid) || safeProjects[0];
+    const keys = Array.isArray(p?.enabledCategoryKeys) ? p.enabledCategoryKeys : safeCategories.map(c => c.key);
     setSelectedProjectCatKeys(keys);
-    if(!selectedProjectId) setSelectedProjectId(pid);
+    if (!selectedProjectId) setSelectedProjectId(pid);
   }, [safeProjects, safeCategories, selectedProjectId]);
 
 
   const summaryRows = useMemo(() => {
     const out = [];
-    for(const p of safeProjects){
-      for(const c of safeCategories){
+    for (const p of safeProjects) {
+      for (const c of safeCategories) {
         const arr = p.itemsByCategory?.[c.key] || [];
         const total = arr.length;
         const approvedItems = arr.filter(it => !c.approval?.item || it.approved).length;
@@ -5639,12 +5610,12 @@ isAdmin,
         let approvedMonths = 0;
         let pendingMonths = 0;
 
-        for(const it of arr){
-          if(c.approval?.item && !it.approved) continue;
+        for (const it of arr) {
+          if (c.approval?.item && !it.approved) continue;
           const slot = it.months?.[monthKey];
-          if(!slot) continue;
-          if(slot.approved) approvedMonths++;
-          else if(slot.submitted) pendingMonths++;
+          if (!slot) continue;
+          if (slot.approved) approvedMonths++;
+          else if (slot.submitted) pendingMonths++;
         }
 
         out.push({
@@ -5666,8 +5637,8 @@ isAdmin,
 
   useEffect(() => {
     // kategori listesi değişirse seçimi düzelt
-    if(!safeCategories || safeCategories.length === 0) return;
-    if(!safeCategories.some(c => c.key === deleteCatKey)){
+    if (!safeCategories || safeCategories.length === 0) return;
+    if (!safeCategories.some(c => c.key === deleteCatKey)) {
       setDeleteCatKey(safeCategories[0].key);
     }
   }, [categories]);
@@ -5679,38 +5650,38 @@ isAdmin,
           <h2>Admin • Kategori Yönetimi</h2>
           <Badge>{monthKey}</Badge>
         </div>
-        <div className="small" style={{marginTop:6}}>
+        <div className="small" style={{ marginTop: 6 }}>
           Yeni kategori oluşturabilir, alanlar ekleyebilirsin. (Uzman/Araç gibi)
         </div>
 
         <hr className="sep" />
 
         {isAdmin && (
-          <div className="card" style={{marginTop:12}}>
+          <div className="card" style={{ marginTop: 12 }}>
             <div className="cardTitleRow">
               <h3>🏗️ Proje Yönetimi</h3>
               <Badge kind="warn">Sadece Admin</Badge>
             </div>
 
-            <div className="small" style={{marginTop:6}}>
+            <div className="small" style={{ marginTop: 6 }}>
               Yeni proje ekleyebilir ve her proje için hangi kategorilerin görüneceğini seçebilirsin.
             </div>
 
-            <div style={{height:10}} />
+            <div style={{ height: 10 }} />
 
             {/* Yeni proje ekleme */}
-            <div className="row" style={{flexWrap:"wrap", gap:8}}>
+            <div className="row" style={{ flexWrap: "wrap", gap: 8 }}>
               <input
                 className="input"
                 value={newProjectName}
-                onChange={e=>setNewProjectName(e.target.value)}
+                onChange={e => setNewProjectName(e.target.value)}
                 placeholder="Yeni proje adı (örn: Petkim)"
-                style={{minWidth:260}}
+                style={{ minWidth: 260 }}
               />
               <button
                 className="btn"
                 onClick={() => {
-                  const keys = newProjectCatKeys.length ? newProjectCatKeys : safeCategories.map(c=>c.key);
+                  const keys = newProjectCatKeys.length ? newProjectCatKeys : safeCategories.map(c => c.key);
                   adminAddProject(newProjectName, keys);
                   setNewProjectName("");
                 }}
@@ -5719,19 +5690,19 @@ isAdmin,
               </button>
             </div>
 
-            <div className="small" style={{marginTop:8, opacity:.85}}>Yeni projede açık olacak kategoriler:</div>
-            <div className="row" style={{flexWrap:"wrap", gap:10, marginTop:6}}>
+            <div className="small" style={{ marginTop: 8, opacity: .85 }}>Yeni projede açık olacak kategoriler:</div>
+            <div className="row" style={{ flexWrap: "wrap", gap: 10, marginTop: 6 }}>
               {safeCategories.map(c => {
                 const checked = newProjectCatKeys.includes(c.key);
                 return (
-                  <label key={c.key} className="pill" style={{display:"inline-flex", alignItems:"center", gap:8}}>
+                  <label key={c.key} className="pill" style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
                     <input
                       type="checkbox"
                       checked={checked}
                       onChange={() => {
                         setNewProjectCatKeys(prev => {
                           const set = new Set(prev || []);
-                          if(set.has(c.key)) set.delete(c.key);
+                          if (set.has(c.key)) set.delete(c.key);
                           else set.add(c.key);
                           return Array.from(set);
                         });
@@ -5743,19 +5714,19 @@ isAdmin,
               })}
             </div>
 
-            <hr className="sep" style={{marginTop:14}} />
+            <hr className="sep" style={{ marginTop: 14 }} />
 
             {/* Var olan projelerde kategori görünürlüğü */}
             <div className="cardTitleRow">
               <h4>Mevcut Proje • Kategori Yetkisi</h4>
             </div>
 
-            <div className="row" style={{flexWrap:"wrap", gap:8, marginTop:8}}>
+            <div className="row" style={{ flexWrap: "wrap", gap: 8, marginTop: 8 }}>
               <select
                 className="input"
                 value={selectedProjectId || ""}
-                onChange={(e)=>setSelectedProjectId(e.target.value)}
-                style={{minWidth:260}}
+                onChange={(e) => setSelectedProjectId(e.target.value)}
+                style={{ minWidth: 260 }}
               >
                 {safeProjects.map(p => (
                   <option key={p.id} value={p.id}>{p.name}</option>
@@ -5770,18 +5741,18 @@ isAdmin,
               </button>
             </div>
 
-            <div className="row" style={{flexWrap:"wrap", gap:10, marginTop:10}}>
+            <div className="row" style={{ flexWrap: "wrap", gap: 10, marginTop: 10 }}>
               {safeCategories.map(c => {
                 const checked = selectedProjectCatKeys.includes(c.key);
                 return (
-                  <label key={c.key} className="pill" style={{display:"inline-flex", alignItems:"center", gap:8}}>
+                  <label key={c.key} className="pill" style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
                     <input
                       type="checkbox"
                       checked={checked}
                       onChange={() => {
                         setSelectedProjectCatKeys(prev => {
                           const set = new Set(prev || []);
-                          if(set.has(c.key)) set.delete(c.key);
+                          if (set.has(c.key)) set.delete(c.key);
                           else set.add(c.key);
                           return Array.from(set);
                         });
@@ -5792,17 +5763,17 @@ isAdmin,
                 );
               })}
             </div>
-            <div style={{height:14}} />
-            <div className="small" style={{marginTop:6}}>
+            <div style={{ height: 14 }} />
+            <div className="small" style={{ marginTop: 6 }}>
               Proje bazlı <b>alan</b> görünürlüğü: Örn. SOCAR "Takip" görsün, Tüpraş görmesin.
             </div>
 
-            <div className="row" style={{flexWrap:"wrap", gap:8, marginTop:10, alignItems:"center"}}>
-              <label className="small" style={{minWidth:120}}>Kategori</label>
+            <div className="row" style={{ flexWrap: "wrap", gap: 8, marginTop: 10, alignItems: "center" }}>
+              <label className="small" style={{ minWidth: 120 }}>Kategori</label>
               <select
                 className="select"
                 value={selectedProjectFieldCatKey}
-                onChange={(e)=>setSelectedProjectFieldCatKey(e.target.value)}
+                onChange={(e) => setSelectedProjectFieldCatKey(e.target.value)}
               >
                 {safeCategories.map(c => (
                   <option key={c.key} value={c.key}>{c.name}</option>
@@ -5818,18 +5789,18 @@ isAdmin,
               </button>
             </div>
 
-            <div className="row" style={{flexWrap:"wrap", gap:10, marginTop:10}}>
+            <div className="row" style={{ flexWrap: "wrap", gap: 10, marginTop: 10 }}>
               {(selectedFieldCategory?.fields || []).map(f => {
                 const isHidden = (localHiddenKeys || []).includes(f.key);
                 return (
-                  <label key={f.key} className="pill" style={{display:"inline-flex", alignItems:"center", gap:8}}>
+                  <label key={f.key} className="pill" style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
                     <input
                       type="checkbox"
                       checked={!isHidden}
                       onChange={() => {
                         setLocalHiddenKeys(prev => {
                           const set = new Set(prev || []);
-                          if(set.has(f.key)) set.delete(f.key);
+                          if (set.has(f.key)) set.delete(f.key);
                           else set.add(f.key);
                           return Array.from(set);
                         });
@@ -5845,31 +5816,31 @@ isAdmin,
         )}
 
         {isAdmin && (
-          <div className="card" style={{marginTop:12}}>
+          <div className="card" style={{ marginTop: 12 }}>
             <div className="cardTitleRow">
               <h3>📌 Doküman Tanımları</h3>
               <Badge kind="warn">Sadece Admin</Badge>
             </div>
 
-            <div className="row" style={{flexWrap:"wrap", marginTop:10}}>
+            <div className="row" style={{ flexWrap: "wrap", marginTop: 10 }}>
               <input
                 className="input"
                 value={newDocName}
-                onChange={e=>setNewDocName(e.target.value)}
+                onChange={e => setNewDocName(e.target.value)}
                 placeholder="Yeni doküman adı (örn: KVKK Aydınlatma Metni)"
-                style={{minWidth:320}}
+                style={{ minWidth: 320 }}
               />
-              <button className="btn primary" onClick={()=>{ adminAddDocTemplate(String(newDocName||"").trim()); setNewDocName(""); }} disabled={!String(newDocName||"").trim()}>
+              <button className="btn primary" onClick={() => { adminAddDocTemplate(String(newDocName || "").trim()); setNewDocName(""); }} disabled={!String(newDocName || "").trim()}>
                 Doküman Ekle
               </button>
             </div>
 
-            <div className="tableWrap" style={{marginTop:10}}>
+            <div className="tableWrap" style={{ marginTop: 10 }}>
               <table>
                 <thead>
                   <tr>
                     <th>Doküman</th>
-                    <th style={{width:120}}>İşlem</th>
+                    <th style={{ width: 120 }}>İşlem</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -5877,18 +5848,18 @@ isAdmin,
                     <tr key={dt.key}>
                       <td><b>{dt.name}</b> <span className="small">({dt.key})</span></td>
                       <td>
-                        <button className="btn danger" onClick={()=>adminDeleteDocTemplate(dt.key)}>Sil</button>
+                        <button className="btn danger" onClick={() => adminDeleteDocTemplate(dt.key)}>Sil</button>
                       </td>
                     </tr>
                   ))}
-                  {(docTemplates || []).length===0 && (
+                  {(docTemplates || []).length === 0 && (
                     <tr><td colSpan="2">Henüz doküman tanımı yok.</td></tr>
                   )}
                 </tbody>
               </table>
             </div>
 
-            <div className="small" style={{marginTop:10}}>
+            <div className="small" style={{ marginTop: 10 }}>
               Bu alandan yeni bir doküman tanımı eklediğinde, tüm projelerde “Dokümanlar” listesinə otomatik yansır.
             </div>
           </div>
@@ -5896,13 +5867,13 @@ isAdmin,
 
 
         {isAdmin && (
-          <div className="card" style={{marginTop:12}}>
+          <div className="card" style={{ marginTop: 12 }}>
             <div className="cardTitleRow">
               <h3>🗂️ Evrak Takip • Evrak Türleri</h3>
               <Badge kind="warn">Sadece Admin</Badge>
             </div>
 
-            <div className="small" style={{marginTop:6}}>
+            <div className="small" style={{ marginTop: 6 }}>
               Evrak adını ve geçerlilik süresini tanımla. Sistem bitiş tarihini hesaplar ve yaklaşınca uyarı üretir.
             </div>
 
@@ -5917,14 +5888,14 @@ isAdmin,
 
 
         <div className="row">
-          <input className="input" value={catName} onChange={e=>setCatName(e.target.value)} placeholder="Yeni kategori adı (örn: Ekipman)" />
-          <input className="input" value={catItemLabel} onChange={e=>setCatItemLabel(e.target.value)} placeholder="Kayıt etiketi (örn: Ekipman)" />
+          <input className="input" value={catName} onChange={e => setCatName(e.target.value)} placeholder="Yeni kategori adı (örn: Ekipman)" />
+          <input className="input" value={catItemLabel} onChange={e => setCatItemLabel(e.target.value)} placeholder="Kayıt etiketi (örn: Ekipman)" />
         </div>
 
-        <div style={{marginTop:10}}>
+        <div style={{ marginTop: 10 }}>
           <button className="btn primary" onClick={adminAddCategory}>Kategori Ekle</button>
         </div>
-        
+
         <hr className="sep" />
 
         <div className="cardTitleRow">
@@ -5938,13 +5909,13 @@ isAdmin,
           </button>
         </div>
 
-        <div className="small" style={{marginTop:6}}>
+        <div className="small" style={{ marginTop: 6 }}>
           Silme modu açıkken seçtiğin kategori tüm projelerden kaldırılır. (Geri alınamaz)
         </div>
 
         {deleteMode && (
-          <div style={{marginTop:10}} className="row">
-            <select className="input" value={deleteCatKey || ""} onChange={e=>setDeleteCatKey(e.target.value)}>
+          <div style={{ marginTop: 10 }} className="row">
+            <select className="input" value={deleteCatKey || ""} onChange={e => setDeleteCatKey(e.target.value)}>
               {(categories || []).map(c => <option key={c.key} value={c.key}>{c.name} ({c.key})</option>)}
             </select>
             <button className="btn danger" onClick={() => adminDeleteCategory(deleteCatKey)}>
@@ -5960,15 +5931,15 @@ isAdmin,
           <h2>Alan Yönetimi • {activeCategory?.name}</h2>
           <Badge>{activeCategory?.key}</Badge>
         </div>
-        <div className="small" style={{marginTop:6}}>
+        <div className="small" style={{ marginTop: 6 }}>
           Bu kategoriye aylık doldurulacak alanlar ekle. (KM, bakım tarihi, durum vb.)
         </div>
 
         <hr className="sep" />
 
         <div className="row">
-          <input className="input" value={catFieldLabel} onChange={e=>setCatFieldLabel(e.target.value)} placeholder="Alan adı (örn: Servis KM)" />
-          <select className="input" value={catFieldType} onChange={e=>setCatFieldType(e.target.value)}>
+          <input className="input" value={catFieldLabel} onChange={e => setCatFieldLabel(e.target.value)} placeholder="Alan adı (örn: Servis KM)" />
+          <select className="input" value={catFieldType} onChange={e => setCatFieldType(e.target.value)}>
             <option value="number">Sayı</option>
             <option value="text">Metin</option>
             <option value="date">Tarih</option>
@@ -5976,14 +5947,14 @@ isAdmin,
           </select>
         </div>
 
-        <div style={{height:10}} />
+        <div style={{ height: 10 }} />
 
         <div className="row">
-          <input className="input" value={catFieldUnit} onChange={e=>setCatFieldUnit(e.target.value)} placeholder="Birim (opsiyonel) örn: km" />
-          <input className="input" value={catFieldOptions} onChange={e=>setCatFieldOptions(e.target.value)} placeholder="Seçim seçenekleri (virgül) örn: Aktif,Serviste,Arızalı" disabled={catFieldType !== "select"} />
+          <input className="input" value={catFieldUnit} onChange={e => setCatFieldUnit(e.target.value)} placeholder="Birim (opsiyonel) örn: km" />
+          <input className="input" value={catFieldOptions} onChange={e => setCatFieldOptions(e.target.value)} placeholder="Seçim seçenekleri (virgül) örn: Aktif,Serviste,Arızalı" disabled={catFieldType !== "select"} />
         </div>
 
-        <div style={{marginTop:10, display:"flex", gap:10, flexWrap:"wrap"}}>
+        <div style={{ marginTop: 10, display: "flex", gap: 10, flexWrap: "wrap" }}>
           <button className="btn primary" onClick={adminAddField}>Alan Ekle</button>
           <Badge kind="warn">Alan silmek veri de siler</Badge>
         </div>
@@ -6003,17 +5974,17 @@ isAdmin,
               </tr>
             </thead>
             <tbody>
-              {(activeCategory?.fields || []).map(f=>(
+              {(activeCategory?.fields || []).map(f => (
                 <tr key={f.key}>
                   <td><code>{f.key}</code></td>
                   <td>{f.label}</td>
                   <td>{f.type}</td>
                   <td>{f.unit || "-"}</td>
-                  <td>{f.type==="select" ? (f.options || []).join(", ") : "-"}</td>
-                  <td><button className="btn danger" onClick={()=>adminDeleteField(f.key)}>Sil</button></td>
+                  <td>{f.type === "select" ? (f.options || []).join(", ") : "-"}</td>
+                  <td><button className="btn danger" onClick={() => adminDeleteField(f.key)}>Sil</button></td>
                 </tr>
               ))}
-              {(activeCategory?.fields || []).length===0 && <tr><td colSpan={6}>Bu kategoride alan yok.</td></tr>}
+              {(activeCategory?.fields || []).length === 0 && <tr><td colSpan={6}>Bu kategoride alan yok.</td></tr>}
             </tbody>
           </table>
         </div>
@@ -6040,7 +6011,7 @@ isAdmin,
               </tr>
             </thead>
             <tbody>
-              {summaryRows.map(r=>(
+              {summaryRows.map(r => (
                 <tr key={r.id}>
                   <td><b>{r.project}</b></td>
                   <td>{r.category}</td>
@@ -6050,7 +6021,7 @@ isAdmin,
                   <td>{r.pendingMonths}</td>
                 </tr>
               ))}
-              {summaryRows.length===0 && <tr><td colSpan={6}>Veri yok.</td></tr>}
+              {summaryRows.length === 0 && <tr><td colSpan={6}>Veri yok.</td></tr>}
             </tbody>
           </table>
         </div>
@@ -6059,7 +6030,7 @@ isAdmin,
   );
 }
 
-function AnnouncementsView({ isAdmin, auth, announcements, projects, addAnnouncement }){
+function AnnouncementsView({ isAdmin, auth, announcements, projects, addAnnouncement }) {
   const [scopeType, setScopeType] = React.useState("all");
   const [scopeValue, setScopeValue] = React.useState("");
   const [title, setTitle] = React.useState("");
@@ -6068,10 +6039,10 @@ function AnnouncementsView({ isAdmin, auth, announcements, projects, addAnnounce
   const visible = React.useMemo(() => {
     const list = Array.isArray(announcements) ? announcements : [];
     return list.filter(a => {
-      if(!a) return false;
-      if(a.scopeType === "all") return true;
-      if(a.scopeType === "project") return (auth && auth.project) === a.scopeValue;
-      if(a.scopeType === "user") return (auth && auth.username) === a.scopeValue;
+      if (!a) return false;
+      if (a.scopeType === "all") return true;
+      if (a.scopeType === "project") return (auth && auth.project) === a.scopeValue;
+      if (a.scopeType === "user") return (auth && auth.username) === a.scopeValue;
       return true;
     });
   }, [announcements, auth]);
@@ -6083,17 +6054,17 @@ function AnnouncementsView({ isAdmin, auth, announcements, projects, addAnnounce
           <h2>Duyurular</h2>
           <Badge kind="info">Güncel</Badge>
         </div>
-        <div className="small" style={{marginTop:6}}>
+        <div className="small" style={{ marginTop: 6 }}>
           {isAdmin ? "Duyuru yayınlayabilir ve kullanıcıları bilgilendirebilirsin." : "Admin tarafından yayınlanan duyurular burada görünür."}
         </div>
 
         {isAdmin && (
           <>
             <hr className="sep" />
-            <div className="row" style={{gap:10, flexWrap:"wrap"}}>
-              <div style={{flex:"1 1 160px"}}>
+            <div className="row" style={{ gap: 10, flexWrap: "wrap" }}>
+              <div style={{ flex: "1 1 160px" }}>
                 <span className="lbl">Hedef</span>
-                <select className="input" value={scopeType} onChange={e=>{ setScopeType(e.target.value); setScopeValue(""); }}>
+                <select className="input" value={scopeType} onChange={e => { setScopeType(e.target.value); setScopeValue(""); }}>
                   <option value="all">Tüm Kullanıcılar</option>
                   <option value="project">Proje</option>
                   <option value="user">Tek Kullanıcı</option>
@@ -6101,9 +6072,9 @@ function AnnouncementsView({ isAdmin, auth, announcements, projects, addAnnounce
               </div>
 
               {scopeType === "project" && (
-                <div style={{flex:"1 1 220px"}}>
+                <div style={{ flex: "1 1 220px" }}>
                   <span className="lbl">Proje</span>
-                  <select className="input" value={scopeValue} onChange={e=>setScopeValue(e.target.value)}>
+                  <select className="input" value={scopeValue} onChange={e => setScopeValue(e.target.value)}>
                     <option value="">Seçiniz…</option>
                     {projects.map(p => <option key={p} value={p}>{p}</option>)}
                   </select>
@@ -6111,32 +6082,32 @@ function AnnouncementsView({ isAdmin, auth, announcements, projects, addAnnounce
               )}
 
               {scopeType === "user" && (
-                <div style={{flex:"1 1 220px"}}>
+                <div style={{ flex: "1 1 220px" }}>
                   <span className="lbl">Kullanıcı (username)</span>
-                  <input className="input" value={scopeValue} onChange={e=>setScopeValue(e.target.value)} placeholder="örn: ugur / okan / faruk" />
+                  <input className="input" value={scopeValue} onChange={e => setScopeValue(e.target.value)} placeholder="örn: ugur / okan / faruk" />
                 </div>
               )}
             </div>
 
-            <div className="row" style={{marginTop:10}}>
-              <div style={{flex:1}}>
+            <div className="row" style={{ marginTop: 10 }}>
+              <div style={{ flex: 1 }}>
                 <span className="lbl">Başlık</span>
-                <input className="input" value={title} onChange={e=>setTitle(e.target.value)} placeholder="Duyuru başlığı" />
+                <input className="input" value={title} onChange={e => setTitle(e.target.value)} placeholder="Duyuru başlığı" />
               </div>
             </div>
 
-            <div className="row" style={{marginTop:10}}>
-              <div style={{flex:1}}>
+            <div className="row" style={{ marginTop: 10 }}>
+              <div style={{ flex: 1 }}>
                 <span className="lbl">Mesaj</span>
-                <textarea className="input" value={body} onChange={e=>setBody(e.target.value)} placeholder="Duyuru içeriği..." />
+                <textarea className="input" value={body} onChange={e => setBody(e.target.value)} placeholder="Duyuru içeriği..." />
               </div>
             </div>
 
-            <div className="row" style={{marginTop:10, justifyContent:"flex-end"}}>
+            <div className="row" style={{ marginTop: 10, justifyContent: "flex-end" }}>
               <button
                 className="btn primary"
                 onClick={() => {
-                  if(scopeType!=="all" && !scopeValue){ alert("Hedef seçimi eksik."); return; }
+                  if (scopeType !== "all" && !scopeValue) { alert("Hedef seçimi eksik."); return; }
                   addAnnouncement({ scopeType, scopeValue, title, body });
                   setTitle(""); setBody("");
                 }}
@@ -6154,37 +6125,37 @@ function AnnouncementsView({ isAdmin, auth, announcements, projects, addAnnounce
 
         <div className="list">
           {visible.map(a => (
-            <div key={a.id} className="item" style={{alignItems:"flex-start"}}>
+            <div key={a.id} className="item" style={{ alignItems: "flex-start" }}>
               <div className="itemLeft">
-                <div style={{display:"flex", gap:8, flexWrap:"wrap", alignItems:"center"}}>
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
                   <b>{a.title}</b>
                   <Badge kind="default">{new Date(a.createdAt).toLocaleString("tr-TR")}</Badge>
                 </div>
-                <div className="small" style={{marginTop:6, whiteSpace:"pre-wrap"}}>{a.body}</div>
+                <div className="small" style={{ marginTop: 6, whiteSpace: "pre-wrap" }}>{a.body}</div>
               </div>
               <div className="itemActions">
                 <Badge kind="info">{a.scopeType === "all" ? "Tüm" : a.scopeType === "project" ? `Proje: ${a.scopeValue}` : `Kullanıcı: ${a.scopeValue}`}</Badge>
               </div>
             </div>
           ))}
-          {visible.length===0 && <div className="small">Henüz duyuru yok.</div>}
+          {visible.length === 0 && <div className="small">Henüz duyuru yok.</div>}
         </div>
       </div>
     </>
   );
 }
 
-function ContactView({ 
-  isAdmin, 
-  auth, 
-  contacts, 
-  contactText, 
-  setContactText, 
-  sendContact, 
-  adminSendMessage, 
-  projects, 
-  users 
-}){
+function ContactView({
+  isAdmin,
+  auth,
+  contacts,
+  contactText,
+  setContactText,
+  sendContact,
+  adminSendMessage,
+  projects,
+  users
+}) {
   const safeContacts = Array.isArray(contacts) ? contacts : [];
   const safeUsers = Array.isArray(users) ? users : [];
   const safeProjects = Array.isArray(projects) ? projects : [];
@@ -6196,7 +6167,7 @@ function ContactView({
           <h2>İletişim</h2>
           <Badge kind={isAdmin ? "ok" : "warn"}>{isAdmin ? "Admin Görür" : "Mesaj Gönder"}</Badge>
         </div>
-        <div className="small" style={{marginTop:6}}>
+        <div className="small" style={{ marginTop: 6 }}>
           Kullanıcı mesajları sadece admin tarafından görüntülenir.
         </div>
 
@@ -6206,10 +6177,10 @@ function ContactView({
             <textarea
               className="input"
               value={contactText}
-              onChange={e=>setContactText(e.target.value)}
+              onChange={e => setContactText(e.target.value)}
               placeholder="Mesajınız..."
             />
-            <div style={{marginTop:10}}>
+            <div style={{ marginTop: 10 }}>
               <button className="btn primary" onClick={sendContact}>Gönder</button>
             </div>
           </>
@@ -6223,14 +6194,14 @@ function ContactView({
               <h3>Admin Mesajı Gönder</h3>
               <Badge kind="info">Bildirim</Badge>
             </div>
-            <div className="small" style={{marginTop:6}}>
+            <div className="small" style={{ marginTop: 6 }}>
               Buradan kullanıcılara duyuru/mesaj gönderebilirsin. Mesajlar bildirim olarak düşer.
             </div>
 
             <AdminMessageComposer
               projects={safeProjects}
               users={safeUsers}
-              onSend={(payload)=>adminSendMessage(payload)}
+              onSend={(payload) => adminSendMessage(payload)}
             />
           </div>
 
@@ -6244,12 +6215,12 @@ function ContactView({
               {safeContacts.length === 0 ? (
                 <div className="small">Henüz mesaj yok.</div>
               ) : (
-                safeContacts.slice(0, 80).map(c=>(
-                  <div key={c.id} className="item" style={{alignItems:"flex-start"}}>
+                safeContacts.slice(0, 80).map(c => (
+                  <div key={c.id} className="item" style={{ alignItems: "flex-start" }}>
                     <div className="itemLeft">
                       <b>{c.fromUser}</b>
                       <span className="small">{c.fromProject} • {formatDT(c.createdAt)}</span>
-                      <div style={{marginTop:8, whiteSpace:"pre-wrap"}}>{c.message}</div>
+                      <div style={{ marginTop: 8, whiteSpace: "pre-wrap" }}>{c.message}</div>
                     </div>
                     <Badge kind="warn">Kayıt</Badge>
                   </div>
@@ -6263,21 +6234,21 @@ function ContactView({
   );
 }
 
-function ProjectUserMapping({ authUsers, projects, onUpsert, onDelete }){
+function ProjectUserMapping({ authUsers, projects, onUpsert, onDelete }) {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [project, setProject] = useState(projects?.[0]?.name || "SOCAR");
 
   useEffect(() => {
-    if(projects && projects.length && !projects.some(p => p.name === project)){
+    if (projects && projects.length && !projects.some(p => p.name === project)) {
       setProject(projects[0].name);
     }
   }, [projects]);
 
-  const rows = (authUsers || []).slice().sort((a,b)=> (a.username||"").localeCompare(b.username||""));
+  const rows = (authUsers || []).slice().sort((a, b) => (a.username || "").localeCompare(b.username || ""));
 
   return (
-    <div className="card" style={{marginTop:12}}>
+    <div className="card" style={{ marginTop: 12 }}>
       <div className="cardTitleRow">
         <h3>Proje Kullanıcı Tanımlama</h3>
         <span className="pill">Admin</span>
@@ -6286,35 +6257,35 @@ function ProjectUserMapping({ authUsers, projects, onUpsert, onDelete }){
       <div className="grid2">
         <div>
           <label className="label">E-mail</label>
-          <input className="input" value={username} onChange={e=>setUsername(e.target.value)} placeholder="socar_ahmet" />
+          <input className="input" value={username} onChange={e => setUsername(e.target.value)} placeholder="socar_ahmet" />
         </div>
         <div>
           <label className="label">Şifre</label>
-          <input className="input" value={password} onChange={e=>setPassword(e.target.value)} placeholder="••••••" />
+          <input className="input" value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••" />
         </div>
         <div>
           <label className="label">Proje</label>
-          <select className="input" value={project} onChange={e=>setProject(e.target.value)}>
-            {(projects||[]).map(p => <option key={p.name} value={p.name}>{p.name}</option>)}
+          <select className="input" value={project} onChange={e => setProject(e.target.value)}>
+            {(projects || []).map(p => <option key={p.name} value={p.name}>{p.name}</option>)}
           </select>
         </div>
-        <div style={{display:"flex", alignItems:"flex-end", gap:8}}>
-          <button className="btn ok" type="button" onClick={()=>{ onUpsert(username, password, project); setUsername(""); setPassword(""); }}>
+        <div style={{ display: "flex", alignItems: "flex-end", gap: 8 }}>
+          <button className="btn ok" type="button" onClick={() => { onUpsert(username, password, project); setUsername(""); setPassword(""); }}>
             Kaydet
           </button>
-          <div className="small" style={{opacity:.8}}>Aynı proje verilerini görür.</div>
+          <div className="small" style={{ opacity: .8 }}>Aynı proje verilerini görür.</div>
         </div>
       </div>
 
-      <div style={{marginTop:12}}>
-        <div className="small" style={{marginBottom:6, opacity:.85}}>Tanımlı kullanıcılar</div>
+      <div style={{ marginTop: 12 }}>
+        <div className="small" style={{ marginBottom: 6, opacity: .85 }}>Tanımlı kullanıcılar</div>
         <div className="tableWrap">
           <table className="table">
             <thead>
               <tr>
                 <th>Kullanıcı</th>
                 <th>Proje</th>
-                <th style={{width:120}}>İşlem</th>
+                <th style={{ width: 120 }}>İşlem</th>
               </tr>
             </thead>
             <tbody>
@@ -6325,7 +6296,7 @@ function ProjectUserMapping({ authUsers, projects, onUpsert, onDelete }){
                   <td><b>{u.username}</b></td>
                   <td>{u.project}</td>
                   <td>
-                    <button className="btn danger" type="button" onClick={()=>onDelete(u.username)}>Sil</button>
+                    <button className="btn danger" type="button" onClick={() => onDelete(u.username)}>Sil</button>
                   </td>
                 </tr>
               ))}
@@ -6345,7 +6316,7 @@ function EmployeesView({ isAdmin, auth, employees, projects, updateState }) {
 
   const filtered = useMemo(() => {
     const manualRaw = (Array.isArray(employees) ? employees : []);
-    const manual = manualRaw.map(e => ({...e, source:"employees"}));
+    const manual = manualRaw.map(e => ({ ...e, source: "employees" }));
 
     // Adminin eklediği çalışan -> experts kaydıyla linkleniyorsa,
     // aynı kişiyi iki kez göstermeyelim (duplicate fix)
@@ -6355,11 +6326,11 @@ function EmployeesView({ isAdmin, auth, employees, projects, updateState }) {
 
     // Uzmanlar (experts) -> çalışan gibi göster (aktif uzmanlar)
     const expertList = [];
-    for(const p of (Array.isArray(projects) ? projects : [])){
+    for (const p of (Array.isArray(projects) ? projects : [])) {
       const arr = p.itemsByCategory?.experts || [];
-      for(const it of arr){
-        if(it?.approved !== true) continue;
-        if(linkedExpertIds.has(it.id)) continue;
+      for (const it of arr) {
+        if (it?.approved !== true) continue;
+        if (linkedExpertIds.has(it.id)) continue;
         expertList.push({
           id: "exp_" + it.id,
           name: it.name,
@@ -6377,18 +6348,18 @@ function EmployeesView({ isAdmin, auth, employees, projects, updateState }) {
     let arr = [...expertList, ...manual];
 
     // kullanıcı sadece kendi projesi + aktif + onaylı
-    if(!isAdmin){
+    if (!isAdmin) {
       arr = arr.filter(e =>
         canonProj(e.project) === canonProj(auth.project) &&
         e.active !== false &&
         e.approved === true
       );
-    }else{
+    } else {
       // admin için opsiyonel proje filtresi
-      if(projectFilter) arr = arr.filter(e => e.project === projectFilter);
+      if (projectFilter) arr = arr.filter(e => e.project === projectFilter);
     }
 
-    if(ql){
+    if (ql) {
       arr = arr.filter(e => {
         const n = (e.name || "").toLowerCase();
         const r = (e.role || "").toLowerCase();
@@ -6401,24 +6372,24 @@ function EmployeesView({ isAdmin, auth, employees, projects, updateState }) {
 
   const grouped = useMemo(() => {
     const map = {};
-    for(const e of filtered){
+    for (const e of filtered) {
       const key = e.project || "—";
       map[key] ||= [];
       map[key].push(e);
     }
-    for(const k of Object.keys(map)){
-      map[k].sort((a,b)=> String(a.name||"").localeCompare(String(b.name||""), "tr"));
+    for (const k of Object.keys(map)) {
+      map[k].sort((a, b) => String(a.name || "").localeCompare(String(b.name || ""), "tr"));
     }
     return map;
   }, [filtered]);
 
-  function addEmployee(name, role, project){
+  function addEmployee(name, role, project) {
     updateState(d => {
       d.employees ||= [];
 
       const empId = uid("emp");
-      const cleanName = (name||"").trim();
-      const cleanRole = (role||"").trim();
+      const cleanName = (name || "").trim();
+      const cleanRole = (role || "").trim();
       const cleanProject = project;
 
       // 1 Manuel çalışan kaydı (admin eklediği) -> default onaylı
@@ -6439,23 +6410,23 @@ function EmployeesView({ isAdmin, auth, employees, projects, updateState }) {
       // 2 Veri girişi için: aynı kişiyi ilgili projenin "Uzmanlar (experts)" kategorisine de ekle
       // Böylece kullanıcılar/veri girişi ekranı kişiyi görür ve aylık veri girilebilir.
       const prj = (d.projects || []).find(p => p.name === cleanProject);
-      if(prj){
+      if (prj) {
         prj.itemsByCategory ||= {};
         prj.itemsByCategory.experts ||= [];
 
         // aynı isimde uzman varsa tekrar ekleme
         const exists = (prj.itemsByCategory.experts || []).find(x =>
-          String(x.name||"").trim().toLowerCase() === cleanName.toLowerCase()
+          String(x.name || "").trim().toLowerCase() === cleanName.toLowerCase()
         );
 
-        if(exists){
+        if (exists) {
           // zaten varsa sadece linkle
           emp.expertItemId = exists.id;
           // admin eklediyse onaylı olduğundan emin ol
           exists.approved = true;
           exists.approvedAt ||= new Date().toISOString();
           exists.approvedBy ||= auth.username;
-        }else{
+        } else {
           const itemId = uid("item");
           prj.itemsByCategory.experts.push({
             id: itemId,
@@ -6474,41 +6445,41 @@ function EmployeesView({ isAdmin, auth, employees, projects, updateState }) {
     });
   }
 
-  function toggleActive(empId){
+  function toggleActive(empId) {
     updateState(d => {
       const e = (d.employees || []).find(x => x.id === empId);
-      if(!e) return;
+      if (!e) return;
       e.active = !e.active;
     });
   }
 
-  function deleteEmployee(row){
-    if(!isAdmin) return;
+  function deleteEmployee(row) {
+    if (!isAdmin) return;
 
     const msg = row.source === "employees"
       ? `Çalışan kaydı silinsin mi?\n(Bu işlem aylık uzman verilerini silmez.)\n${row.project} • ${row.name}`
       : `UZMAN kaydı silinsin mi?\n(DİKKAT: Aylık veriler de silinir.)\n${row.project} • ${row.name}`;
 
-    if(!confirm(msg)) return;
+    if (!confirm(msg)) return;
 
     updateState(d => {
       d.employees ||= [];
 
-      if(row.source === "employees"){
+      if (row.source === "employees") {
         // Manuel çalışan sil: sadece employees kaydını kaldır.
         // Uzman (experts) tarafındaki aylık veriler KALSIN.
         d.employees = (d.employees || []).filter(x => x.id !== row.id);
 
-      }else if(row.source === "experts"){
+      } else if (row.source === "experts") {
         // Uzman sil: ilgili projeden experts kaydını kaldır (aylık veriler de gider).
         const p = (d.projects || []).find(pp => pp.id === row.projectId);
-        if(!p) return;
+        if (!p) return;
         p.itemsByCategory ||= {};
         p.itemsByCategory.experts = (p.itemsByCategory.experts || []).filter(x => x.id !== row.itemId);
 
         // Bu uzmana bağlı manuel çalışan kaydı varsa sadece linki kopar (employees kaydı dursun)
         d.employees = (d.employees || []).map(e => (
-          e.expertItemId === row.itemId ? ({...e, expertItemId: null}) : e
+          e.expertItemId === row.itemId ? ({ ...e, expertItemId: null }) : e
         ));
       }
     });
@@ -6518,33 +6489,33 @@ function EmployeesView({ isAdmin, auth, employees, projects, updateState }) {
     <div className="card">
       <div className="cardTitleRow">
         <h2>👷 Çalışanlar</h2>
-        <div style={{display:"flex", gap:8, flexWrap:"wrap", justifyContent:"flex-end"}}>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "flex-end" }}>
           <Badge>{isAdmin ? "Tüm Projeler" : auth.project}</Badge>
           <Badge kind="ok">{filtered.length}</Badge>
         </div>
       </div>
 
-      <div className="small" style={{marginTop:6}}>
+      <div className="small" style={{ marginTop: 6 }}>
         Çalışanlar proje bazlı listelenir. (İsim • Görev)
       </div>
 
       <hr className="sep" />
 
-      <div className="row" style={{flexWrap:"wrap"}}>
+      <div className="row" style={{ flexWrap: "wrap" }}>
         <input
           className="input"
           value={q}
-          onChange={e=>setQ(e.target.value)}
+          onChange={e => setQ(e.target.value)}
           placeholder="İsim / görev / proje ara..."
-          style={{minWidth:240, flex:"1 1 260px"}}
+          style={{ minWidth: 240, flex: "1 1 260px" }}
         />
 
         {isAdmin && (
           <select
             className="input"
             value={projectFilter}
-            onChange={e=>setProjectFilter(e.target.value)}
-            style={{minWidth:220, flex:"0 0 220px"}}
+            onChange={e => setProjectFilter(e.target.value)}
+            style={{ minWidth: 220, flex: "0 0 220px" }}
           >
             <option value="">Tüm Projeler</option>
             {projects.map(p => (
@@ -6562,14 +6533,14 @@ function EmployeesView({ isAdmin, auth, employees, projects, updateState }) {
       {Object.keys(grouped).length === 0 ? (
         <div className="small">Çalışan yok.</div>
       ) : (
-        Object.keys(grouped).sort((a,b)=>a.localeCompare(b,"tr")).map(prj => (
-          <div key={prj} style={{marginTop:10}}>
+        Object.keys(grouped).sort((a, b) => a.localeCompare(b, "tr")).map(prj => (
+          <div key={prj} style={{ marginTop: 10 }}>
             <div className="cardTitleRow">
-              <h3 style={{margin:0}}>{prj}</h3>
+              <h3 style={{ margin: 0 }}>{prj}</h3>
               <Badge kind="warn">{grouped[prj].length}</Badge>
             </div>
 
-            <div className="tableWrap" style={{marginTop:8}}>
+            <div className="tableWrap" style={{ marginTop: 8 }}>
               <table>
                 <thead>
                   <tr>
@@ -6581,22 +6552,22 @@ function EmployeesView({ isAdmin, auth, employees, projects, updateState }) {
                 </thead>
                 <tbody>
                   {grouped[prj].map(e => (
-                    <tr key={e.id} style={{opacity: e.active ? 1 : .65}}>
-                      <td style={{display:"flex", alignItems:"center", gap:8}}><div className="avatar" style={{width:26, height:26, fontSize:12}} title={e.name}>{(String(e.name||"U").slice(0,1)).toUpperCase()}</div><b>{e.name}</b></td>
+                    <tr key={e.id} style={{ opacity: e.active ? 1 : .65 }}>
+                      <td style={{ display: "flex", alignItems: "center", gap: 8 }}><div className="avatar" style={{ width: 26, height: 26, fontSize: 12 }} title={e.name}>{(String(e.name || "U").slice(0, 1)).toUpperCase()}</div><b>{e.name}</b></td>
                       <td>{e.role || "-"}</td>
                       <td>
                         <Badge kind={e.active ? "ok" : "warn"}>{e.active ? "Aktif" : "Pasif"}</Badge>
                       </td>
                       {isAdmin ? (
-                        <td style={{textAlign:"right"}}>
+                        <td style={{ textAlign: "right" }}>
                           {e.source === "employees" ? (
-                            <button className="btn" onClick={()=>toggleActive(e.id)}>
+                            <button className="btn" onClick={() => toggleActive(e.id)}>
                               {e.active ? "Pasif Yap" : "Aktif Yap"}
                             </button>
                           ) : (
                             <Badge kind="ok">Uzman</Badge>
                           )}
-                          <button className="btn danger" style={{marginLeft:8}} onClick={()=>deleteEmployee(e)}>
+                          <button className="btn danger" style={{ marginLeft: 8 }} onClick={() => deleteEmployee(e)}>
                             Sil
                           </button>
                         </td>
@@ -6613,11 +6584,11 @@ function EmployeesView({ isAdmin, auth, employees, projects, updateState }) {
   );
 }
 
-function EmployeeAddForm({ projects, onAdd }){
+function EmployeeAddForm({ projects, onAdd }) {
   const [name, setName] = useState("");
   const [role, setRole] = useState("");
   const [project, setProject] = useState("");
-return (
+  return (
     <>
       <hr className="sep" />
       <div className="cardTitleRow">
@@ -6625,9 +6596,9 @@ return (
         <Badge kind="ok">Admin</Badge>
       </div>
 
-      <div className="row" style={{flexWrap:"wrap"}}>
-        <input className="input" placeholder="Ad Soyad" value={name} onChange={e=>setName(e.target.value)} style={{minWidth:220, flex:"1 1 240px"}} />
-        <select className="input" value={role} onChange={e=>setRole(e.target.value)} style={{minWidth:220, flex:"1 1 240px"}}>
+      <div className="row" style={{ flexWrap: "wrap" }}>
+        <input className="input" placeholder="Ad Soyad" value={name} onChange={e => setName(e.target.value)} style={{ minWidth: 220, flex: "1 1 240px" }} />
+        <select className="input" value={role} onChange={e => setRole(e.target.value)} style={{ minWidth: 220, flex: "1 1 240px" }}>
           <option value="">Görev</option>
           <option value="Ekip Lideri">Ekip Lideri</option>
           <option value="Ekip Lider Yardımcısı">Ekip Lider Yardımcısı</option>
@@ -6635,7 +6606,7 @@ return (
           <option value="Proje Lider Yardımcısı">Proje Lider Yardımcısı</option>
           <option value="İskele Kontrol Uzmanı">İskele Kontrol Uzmanı</option>
         </select>
-        <select className="input" value={project} onChange={e=>setProject(e.target.value)} style={{minWidth:220, flex:"0 0 220px"}}>
+        <select className="input" value={project} onChange={e => setProject(e.target.value)} style={{ minWidth: 220, flex: "0 0 220px" }}>
           <option value="">Proje</option>
           {projects.map(p => (
             <option key={p.id} value={p.name}>{p.name}</option>
@@ -6644,11 +6615,11 @@ return (
         <button
           className="btn primary"
           onClick={() => {
-            if(!name.trim() || !project) return;
+            if (!name.trim() || !project) return;
             onAdd(name, role, project);
             setName(""); setRole(""); setProject("");
           }}
-          style={{flex:"0 0 auto"}}
+          style={{ flex: "0 0 auto" }}
         >
           Ekle
         </button>
@@ -6667,76 +6638,76 @@ function DocsView({
   docTemplates,
   employeeDocs,
   updateState
-}){
+}) {
   // For docs tracking we need a stable "project key" to filter employees.
   // Employees are stored with employee.project = project.name (not project_code).
   const myProject = useMemo(() => {
-    if(isAdmin) return null;
+    if (isAdmin) return null;
     return findProjectAny(projects, auth?.project) || null; // auth.project is project_code
   }, [isAdmin, projects, auth?.project]);
 
   const [projectName, setProjectName] = useState(() => {
-    if(isAdmin) return (projects?.[0]?.name || "");
+    if (isAdmin) return (projects?.[0]?.name || "");
     return myProject?.name || myProject?.id || "";
   });
   const [employeeId, setEmployeeId] = useState("");
 
   // Keep project selection in sync
   useEffect(() => {
-    if(isAdmin){
-      if(projects?.length && !projects.some(p => p.name === projectName)){
+    if (isAdmin) {
+      if (projects?.length && !projects.some(p => p.name === projectName)) {
         setProjectName(projects[0]?.name || "");
       }
       return;
     }
     const nm = myProject?.name || myProject?.id || "";
-    if(projectName !== nm) setProjectName(nm);
+    if (projectName !== nm) setProjectName(nm);
   }, [isAdmin, projects, myProject, projectName]);
 
   const projectEmployees = useMemo(() => {
     // Doküman takibi: pasif personel de listelensin (etiketle gösterilir)
-    if(!projectName) return [];
+    if (!projectName) return [];
     const code = String(auth?.project || "").trim();
     const mineName = myProject?.name || "";
     const mineId = myProject?.id || "";
     return (employees || []).filter(e => {
       const p = e?.project || "";
       // Primary: employee.project == project.name
-      if(p === projectName) return true;
+      if (p === projectName) return true;
       // Fallbacks for older data / mismatches
-      if(mineName && p === mineName) return true;
-      if(mineId && p === mineId) return true;
-      if(code && p === code) return true; // if someone stored project_code into employee.project
+      if (mineName && p === mineName) return true;
+      if (mineId && p === mineId) return true;
+      if (code && p === code) return true; // if someone stored project_code into employee.project
       return false;
     });
   }, [employees, projectName, auth?.project, myProject]);
 
   useEffect(() => {
-    if(projectEmployees.length === 0){
+    if (projectEmployees.length === 0) {
       setEmployeeId("");
       return;
     }
-    if(employeeId && projectEmployees.some(e => e.id === employeeId)) return;
+    if (employeeId && projectEmployees.some(e => e.id === employeeId)) return;
     setEmployeeId(projectEmployees[0].id);
   }, [projectEmployees]);
 
   const selectedEmp = useMemo(() => projectEmployees.find(e => e.id === employeeId) || null, [projectEmployees, employeeId]);
 
-  function setDocSigned(empId, docKey, signed){
+  function setDocSigned(empId, docKey, signed) {
     updateState(d => {
       d.employeeDocs ||= {};
       d.employeeDocs[empId] ||= {};
-      d.employeeDocs[empId][docKey] ||= { signed:false, signedAt:"" };
+      d.employeeDocs[empId][docKey] ||= { signed: false, signedAt: "" };
       d.employeeDocs[empId][docKey].signed = !!signed;
-      if(!signed) d.employeeDocs[empId][docKey].signedAt = "";
+      if (!signed) d.employeeDocs[empId][docKey].signedAt = "";
     });
   }
 
-  function setDocDate(empId, docKey, dateStr){
+  function setDocDate(empId, docKey, dateStr) {
     updateState(d => {
       d.employeeDocs ||= {};
       d.employeeDocs[empId] ||= {};
-      d.employeeDocs[empId][docKey] ||= { signed:false, signedAt:"" };
+      d.employeeDocs[empId][docKey] ||= { signed: false, signedAt: "" };
       d.employeeDocs[empId][docKey].signedAt = dateStr || "";
       d.employeeDocs[empId][docKey].signed = !!(dateStr || "").trim();
     });
@@ -6744,12 +6715,12 @@ function DocsView({
 
   const summary = useMemo(() => {
     const t = { total: 0, signed: 0 };
-    if(!selectedEmp) return t;
-    for(const dt of (docTemplates || [])){
+    if (!selectedEmp) return t;
+    for (const dt of (docTemplates || [])) {
       t.total++;
       const rec = employeeDocs?.[selectedEmp.id]?.[dt.key];
       const ok = !!rec?.signed && !!String(rec?.signedAt || "").trim();
-      if(ok) t.signed++;
+      if (ok) t.signed++;
     }
     return t;
   }, [selectedEmp, docTemplates, employeeDocs]);
@@ -6759,28 +6730,28 @@ function DocsView({
       <div className="card">
         <div className="cardTitleRow">
           <h2>📄 Doküman Takibi</h2>
-          <div style={{display:"flex", gap:8, flexWrap:"wrap", justifyContent:"flex-end"}}>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "flex-end" }}>
             <Badge kind="ok">İmza Tarihli</Badge>
             {selectedEmp ? <Badge>{summary.signed}/{summary.total}</Badge> : <Badge kind="warn">Çalışan yok</Badge>}
           </div>
         </div>
 
-        <div className="small" style={{marginTop:6}}>
+        <div className="small" style={{ marginTop: 6 }}>
           Her çalışan için imzalanması gereken evrakların durumu ve imza tarihi burada takip edilir.
         </div>
 
         <hr className="sep" />
 
-        <div className="row" style={{flexWrap:"wrap"}}>
+        <div className="row" style={{ flexWrap: "wrap" }}>
           {isAdmin ? (
-            <select className="input" value={projectName} onChange={e=>setProjectName(e.target.value)}>
+            <select className="input" value={projectName} onChange={e => setProjectName(e.target.value)}>
               {(projects || []).map(p => <option key={p.id} value={p.name}>{p.name}</option>)}
             </select>
           ) : (
             <input className="input" value={projectName} disabled />
           )}
 
-          <select className="input" value={employeeId} onChange={e=>setEmployeeId(e.target.value)} disabled={projectEmployees.length===0}>
+          <select className="input" value={employeeId} onChange={e => setEmployeeId(e.target.value)} disabled={projectEmployees.length === 0}>
             {projectEmployees.map(e => (
               <option key={e.id} value={e.id}>
                 {e.name} {e.role ? `• ${e.role}` : ""}{e.active === false ? " (Pasif)" : ""}
@@ -6811,18 +6782,18 @@ function DocsView({
               </thead>
               <tbody>
                 {(docTemplates || []).map(dt => {
-                  const rec = employeeDocs?.[selectedEmp.id]?.[dt.key] || { signed:false, signedAt:"" };
-                  const ok = !!rec.signed && !!String(rec.signedAt||"").trim();
+                  const rec = employeeDocs?.[selectedEmp.id]?.[dt.key] || { signed: false, signedAt: "" };
+                  const ok = !!rec.signed && !!String(rec.signedAt || "").trim();
                   return (
                     <tr key={dt.key}>
-                      <td style={{minWidth:320}}><b>{dt.name}</b></td>
+                      <td style={{ minWidth: 320 }}><b>{dt.name}</b></td>
                       <td>
                         <input
                           type="checkbox"
                           checked={!!rec.signed}
                           onChange={e => setDocSigned(selectedEmp.id, dt.key, e.target.checked)}
                         />
-                        {ok ? <span className="small" style={{marginLeft:8}}>(tamam)</span> : <span className="small" style={{marginLeft:8}}>(eksik)</span>}
+                        {ok ? <span className="small" style={{ marginLeft: 8 }}>(tamam)</span> : <span className="small" style={{ marginLeft: 8 }}>(eksik)</span>}
                       </td>
                       <td>
                         <input
@@ -6835,7 +6806,7 @@ function DocsView({
                     </tr>
                   );
                 })}
-                {(docTemplates || []).length===0 && <tr><td colSpan="3">Evrak tanımı yok.</td></tr>}
+                {(docTemplates || []).length === 0 && <tr><td colSpan="3">Evrak tanımı yok.</td></tr>}
               </tbody>
             </table>
           </div>
@@ -6847,37 +6818,37 @@ function DocsView({
 
 /* ===================== OPTIONS ===================== *//* ===================== OPTIONS ===================== */
 
-function yearOptions(){
+function yearOptions() {
   const y = new Date().getFullYear();
-  return [y-2, y-1, y, y+1, y+2];
+  return [y - 2, y - 1, y, y + 1, y + 2];
 }
-function monthOptions(){
+function monthOptions() {
   return [
-    {key:"01", label:"Ocak"},
-    {key:"02", label:"Şubat"},
-    {key:"03", label:"Mart"},
-    {key:"04", label:"Nisan"},
-    {key:"05", label:"Mayıs"},
-    {key:"06", label:"Haziran"},
-    {key:"07", label:"Temmuz"},
-    {key:"08", label:"Ağustos"},
-    {key:"09", label:"Eylül"},
-    {key:"10", label:"Ekim"},
-    {key:"11", label:"Kasım"},
-    {key:"12", label:"Aralık"}
+    { key: "01", label: "Ocak" },
+    { key: "02", label: "Şubat" },
+    { key: "03", label: "Mart" },
+    { key: "04", label: "Nisan" },
+    { key: "05", label: "Mayıs" },
+    { key: "06", label: "Haziran" },
+    { key: "07", label: "Temmuz" },
+    { key: "08", label: "Ağustos" },
+    { key: "09", label: "Eylül" },
+    { key: "10", label: "Ekim" },
+    { key: "11", label: "Kasım" },
+    { key: "12", label: "Aralık" }
   ];
 }
 
 /* ===================== ACTIONS (Corrective / Action List) ===================== */
 
 
-function DocTrackingView({ isAdmin, auth, projects, employees, docRegisterTypes, employeeDocRegister, updateState }){
+function DocTrackingView({ isAdmin, auth, projects, employees, docRegisterTypes, employeeDocRegister, updateState }) {
   const today = isoDate(new Date());
   const safeTypes = useMemo(() => (Array.isArray(docRegisterTypes) ? docRegisterTypes : []).filter(t => t && t.active !== false), [docRegisterTypes]);
 
   const visibleEmployees = useMemo(() => {
     const arr = Array.isArray(employees) ? employees : [];
-    if(isAdmin){
+    if (isAdmin) {
       // admin: ham liste; aşağıda projectFilter ile süzülecek
       return arr;
     }
@@ -6911,20 +6882,20 @@ function DocTrackingView({ isAdmin, auth, projects, employees, docRegisterTypes,
   }, [projects, employees]);
 
   const [projectFilter, setProjectFilter] = useState(() => {
-    if(!isAdmin) return mineProjectName;
+    if (!isAdmin) return mineProjectName;
     return (allProjectNames[0] || "");
   });
 
   useEffect(() => {
     // kullanıcı için proje kilitli (proje adı)
-    if(!isAdmin){
+    if (!isAdmin) {
       const p = mineProjectName;
-      if(p && projectFilter !== p) setProjectFilter(p);
+      if (p && projectFilter !== p) setProjectFilter(p);
       return;
     }
     // admin için seçili proje geçerli değilse ilkine çek
-    if(projectFilter && allProjectNames.includes(projectFilter)) return;
-    if(allProjectNames[0]) setProjectFilter(allProjectNames[0]);
+    if (projectFilter && allProjectNames.includes(projectFilter)) return;
+    if (allProjectNames[0]) setProjectFilter(allProjectNames[0]);
   }, [isAdmin, mineProjectName, allProjectNames]);
 
   // proje bazlı filtre
@@ -6934,11 +6905,11 @@ function DocTrackingView({ isAdmin, auth, projects, employees, docRegisterTypes,
   const employeesInProject = isAdmin
     ? (curProjectName ? (visibleEmployees || []).filter(e => String(e.project || "").trim() === curProjectName) : (visibleEmployees || []))
     : (visibleEmployees || []);
-const filteredEmployees = employeesInProject;
+  const filteredEmployees = employeesInProject;
 
   const [empId, setEmpId] = useState(() => (filteredEmployees[0]?.id || ""));
   useEffect(() => {
-    if(!filteredEmployees.some(e => e.id === empId)){
+    if (!filteredEmployees.some(e => e.id === empId)) {
       setEmpId(filteredEmployees[0]?.id || "");
     }
   }, [filteredEmployees, empId]);
@@ -6949,33 +6920,33 @@ const filteredEmployees = employeesInProject;
 
   const alerts = useMemo(() => {
     const out = [];
-    for(const e of employeesInProject){
+    for (const e of employeesInProject) {
       const r = (employeeDocRegister && employeeDocRegister[e.id]) ? employeeDocRegister[e.id] : {};
-      for(const t of safeTypes){
+      for (const t of safeTypes) {
         const rec = r?.[t.id];
-        if(!rec?.expiresAt) continue;
+        if (!rec?.expiresAt) continue;
         const left = diffDays(today, rec.expiresAt);
-        if(left === null) continue;
-        if(left < 0){
-          out.push({ level:"danger", employee:e.name, project:e.project, doc:t.name, expiresAt:rec.expiresAt, left });
-        }else if(left <= Number(t.warnDays||0)){
-          out.push({ level:"warn", employee:e.name, project:e.project, doc:t.name, expiresAt:rec.expiresAt, left });
+        if (left === null) continue;
+        if (left < 0) {
+          out.push({ level: "danger", employee: e.name, project: e.project, doc: t.name, expiresAt: rec.expiresAt, left });
+        } else if (left <= Number(t.warnDays || 0)) {
+          out.push({ level: "warn", employee: e.name, project: e.project, doc: t.name, expiresAt: rec.expiresAt, left });
         }
       }
     }
-    out.sort((a,b)=> (a.left - b.left));
+    out.sort((a, b) => (a.left - b.left));
     return out.slice(0, 50);
   }, [employeesInProject, employeeDocRegister, safeTypes, today]);
 
-  function setIssue(typeId, issueDate, validityDays){
+  function setIssue(typeId, issueDate, validityDays) {
     updateState(d => {
-      if(!d.employeeDocRegister) d.employeeDocRegister = {};
-      if(!d.employeeDocRegister[empId]) d.employeeDocRegister[empId] = {};
-      if(!issueDate){
-        if(d.employeeDocRegister[empId][typeId]) delete d.employeeDocRegister[empId][typeId];
+      if (!d.employeeDocRegister) d.employeeDocRegister = {};
+      if (!d.employeeDocRegister[empId]) d.employeeDocRegister[empId] = {};
+      if (!issueDate) {
+        if (d.employeeDocRegister[empId][typeId]) delete d.employeeDocRegister[empId][typeId];
         return;
       }
-      const expiresAt = addDays(issueDate, Number(validityDays||0));
+      const expiresAt = addDays(issueDate, Number(validityDays || 0));
       d.employeeDocRegister[empId][typeId] = { issueDate, expiresAt };
     });
   }
@@ -6987,15 +6958,15 @@ const filteredEmployees = employeesInProject;
           <h2>🗂️ Personel Evrak Takip</h2>
           <Badge>{today}</Badge>
         </div>
-        <div className="small" style={{marginTop:6}}>
+        <div className="small" style={{ marginTop: 6 }}>
           Evrak türleri admin panelinden tanımlanır. Tarih girince bitiş tarihi otomatik hesaplanır; yaklaşınca uyarı görünür.
         </div>
 
         <hr className="sep" />
 
-        
-        <div className="row" style={{flexWrap:"wrap", gap:12, alignItems:"flex-end", marginTop:10}}>
-          <div style={{flex:"1 1 260px"}}>
+
+        <div className="row" style={{ flexWrap: "wrap", gap: 12, alignItems: "flex-end", marginTop: 10 }}>
+          <div style={{ flex: "1 1 260px" }}>
             <span className="lbl">Proje</span>
             <select
               className="input"
@@ -7009,16 +6980,16 @@ const filteredEmployees = employeesInProject;
               ))}
             </select>
           </div>
-          <div style={{display:"flex", gap:10, alignItems:"center", flex:"0 0 auto"}}>
-            <Badge kind="default">Yaklaşan: {alerts.filter(a=>a.level==="warn").length}</Badge>
-            <Badge kind="danger">Süresi Dolan: {alerts.filter(a=>a.level==="danger").length}</Badge>
+          <div style={{ display: "flex", gap: 10, alignItems: "center", flex: "0 0 auto" }}>
+            <Badge kind="default">Yaklaşan: {alerts.filter(a => a.level === "warn").length}</Badge>
+            <Badge kind="danger">Süresi Dolan: {alerts.filter(a => a.level === "danger").length}</Badge>
           </div>
         </div>
 
-<div className="row" style={{flexWrap:"wrap", alignItems:"flex-end"}}>
-          <div style={{flex:"1 1 320px"}}>
+        <div className="row" style={{ flexWrap: "wrap", alignItems: "flex-end" }}>
+          <div style={{ flex: "1 1 320px" }}>
             <span className="lbl">Personel</span>
-            <select className="input" value={empId || ""} onChange={e=>setEmpId(e.target.value)}>
+            <select className="input" value={empId || ""} onChange={e => setEmpId(e.target.value)}>
               {filteredEmployees.map(e => (
                 <option key={e.id} value={e.id}>
                   {e.name} — {e.project}{e.active === false ? " (Pasif)" : ""}
@@ -7027,7 +6998,7 @@ const filteredEmployees = employeesInProject;
             </select>
           </div>
           {emp && (
-            <div style={{display:"flex", gap:10, alignItems:"center"}}>
+            <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
               <Pill kind={empInactive ? "danger" : "ok"}>{empInactive ? "Pasif" : "Aktif"}</Pill>
               <span className="small">{emp.role || "Personel"}</span>
             </div>
@@ -7035,32 +7006,32 @@ const filteredEmployees = employeesInProject;
         </div>
 
         {empInactive && (
-          <div className="small" style={{marginTop:10}}>
+          <div className="small" style={{ marginTop: 10 }}>
             <Badge kind="danger">Pasif personel</Badge> olduğu için bu ekranda tarih girişi kapalı.
           </div>
         )}
 
-        <div className="tableWrap" style={{marginTop:12}}>
+        <div className="tableWrap" style={{ marginTop: 12 }}>
           <table>
             <thead>
               <tr>
                 <th>Evrak</th>
-                <th style={{width:160}}>Veriliş</th>
-                <th style={{width:160}}>Bitiş</th>
-                <th style={{width:140}}>Durum</th>
+                <th style={{ width: 160 }}>Veriliş</th>
+                <th style={{ width: 160 }}>Bitiş</th>
+                <th style={{ width: 140 }}>Durum</th>
               </tr>
             </thead>
             <tbody>
               {safeTypes.map(t => {
                 const rec = reg?.[t.id] || {};
-                const expiresAt = rec.expiresAt || (rec.issueDate ? addDays(rec.issueDate, Number(t.validityDays||0)) : "");
+                const expiresAt = rec.expiresAt || (rec.issueDate ? addDays(rec.issueDate, Number(t.validityDays || 0)) : "");
                 const left = expiresAt ? diffDays(today, expiresAt) : null;
 
                 let badgeKind = "default";
                 let statusText = "—";
-                if(expiresAt && left !== null){
-                  if(left < 0){ badgeKind = "danger"; statusText = `Süresi Doldu (${Math.abs(left)}g)`; }
-                  else if(left <= Number(t.warnDays||0)){ badgeKind = "warn"; statusText = `Yaklaşıyor (${left}g)`; }
+                if (expiresAt && left !== null) {
+                  if (left < 0) { badgeKind = "danger"; statusText = `Süresi Doldu (${Math.abs(left)}g)`; }
+                  else if (left <= Number(t.warnDays || 0)) { badgeKind = "warn"; statusText = `Yaklaşıyor (${left}g)`; }
                   else { badgeKind = "ok"; statusText = `Geçerli (${left}g)`; }
                 }
 
@@ -7075,7 +7046,7 @@ const filteredEmployees = employeesInProject;
                         className="input"
                         type="date"
                         value={rec.issueDate || ""}
-                        onChange={e=>setIssue(t.id, e.target.value, t.validityDays)}
+                        onChange={e => setIssue(t.id, e.target.value, t.validityDays)}
                         disabled={empInactive}
                       />
                     </td>
@@ -7088,7 +7059,7 @@ const filteredEmployees = employeesInProject;
                   </tr>
                 );
               })}
-              {safeTypes.length===0 && (
+              {safeTypes.length === 0 && (
                 <tr><td colSpan="4">Henüz evrak türü tanımlı değil. (Admin &gt; Evrak Takip • Evrak Türleri)</td></tr>
               )}
             </tbody>
@@ -7099,19 +7070,19 @@ const filteredEmployees = employeesInProject;
       <div className="card">
         <div className="cardTitleRow">
           <h3>Proje Bazlı Uyarılar</h3>
-          <Badge kind={alerts.some(a=>a.level==="danger") ? "danger" : alerts.some(a=>a.level==="warn") ? "warn" : "ok"}>
+          <Badge kind={alerts.some(a => a.level === "danger") ? "danger" : alerts.some(a => a.level === "warn") ? "warn" : "ok"}>
             {alerts.length} kayıt
           </Badge>
         </div>
 
-        <div className="tableWrap" style={{marginTop:10}}>
+        <div className="tableWrap" style={{ marginTop: 10 }}>
           <table>
             <thead>
               <tr>
                 <th>Personel</th>
                 <th>Evrak</th>
-                <th style={{width:140}}>Bitiş</th>
-                <th style={{width:140}}>Kalan</th>
+                <th style={{ width: 140 }}>Bitiş</th>
+                <th style={{ width: 140 }}>Kalan</th>
               </tr>
             </thead>
             <tbody>
@@ -7123,7 +7094,7 @@ const filteredEmployees = employeesInProject;
                   <td><Badge kind={a.level === "danger" ? "danger" : "warn"}>{a.left < 0 ? `${Math.abs(a.left)}g geçti` : `${a.left}g`}</Badge></td>
                 </tr>
               ))}
-              {alerts.length===0 && (
+              {alerts.length === 0 && (
                 <tr><td colSpan="4">Şu an yaklaşan / süresi dolmuş evrak yok.</td></tr>
               )}
             </tbody>
@@ -7135,7 +7106,7 @@ const filteredEmployees = employeesInProject;
 }
 
 
-function ActionsView({ auth, projects, employees, actions, updateState }){
+function ActionsView({ auth, projects, employees, actions, updateState }) {
   const isAdmin = auth?.role === "admin";
 
   // kullanıcı: proje sabit; admin: seçebilir
@@ -7156,37 +7127,37 @@ function ActionsView({ auth, projects, employees, actions, updateState }){
 
   // keep selected project valid & lock for user
   React.useEffect(() => {
-    if(!projects?.length) return;
-    if(!isAdmin){
+    if (!projects?.length) return;
+    if (!isAdmin) {
       setProjectName(auth?.project || projects[0]?.name || "SOCAR");
       return;
     }
-    if(!projects.some(p => p.name === projectName)){
+    if (!projects.some(p => p.name === projectName)) {
       setProjectName(projects[0].name);
     }
   }, [projects, isAdmin, auth?.project]);
 
   const STATUS_META = {
-    open:       { label:"Açık",                 kind:"danger" },
-    in_progress:{ label:"Devam",                kind:"warn"   },
-    done:       { label:"Tamamlandı",           kind:"ok"     },
-    user_done:  { label:"Kullanıcı Tamamladı",  kind:"ok"     },
-    closed:     { label:"Admin Kapattı",        kind:"ok"     }
+    open: { label: "Açık", kind: "danger" },
+    in_progress: { label: "Devam", kind: "warn" },
+    done: { label: "Tamamlandı", kind: "ok" },
+    user_done: { label: "Kullanıcı Tamamladı", kind: "ok" },
+    closed: { label: "Admin Kapattı", kind: "ok" }
   };
 
   const PRIORITY_META = {
-    "Yüksek": { kind:"danger" },
-    "Orta":   { kind:"warn"   },
-    "Düşük":  { kind:"default"}
+    "Yüksek": { kind: "danger" },
+    "Orta": { kind: "warn" },
+    "Düşük": { kind: "default" }
   };
 
-  function statusBadgeKind(st){
+  function statusBadgeKind(st) {
     return (STATUS_META[st] || STATUS_META.open).kind;
   }
-  function statusLabel(st){
+  function statusLabel(st) {
     return (STATUS_META[st] || STATUS_META.open).label;
   }
-  function priorityKind(p){
+  function priorityKind(p) {
     return (PRIORITY_META[p] || PRIORITY_META["Orta"]).kind;
   }
 
@@ -7200,7 +7171,7 @@ function ActionsView({ auth, projects, employees, actions, updateState }){
       .filter(a => priorityFilter === "all" ? true : (a.priority || "Orta") === priorityFilter)
       .filter(a => typeFilter === "all" ? true : (a.type || "Düzeltici Faaliyet") === typeFilter)
       .filter(a => {
-        if(!s) return true;
+        if (!s) return true;
         return (
           (a.title || "").toLowerCase().includes(s) ||
           (a.notes || "").toLowerCase().includes(s) ||
@@ -7208,13 +7179,13 @@ function ActionsView({ auth, projects, employees, actions, updateState }){
           (a.priority || "").toLowerCase().includes(s)
         );
       })
-      .sort((a,b) => (b.createdAt || "").localeCompare(a.createdAt || ""));
+      .sort((a, b) => (b.createdAt || "").localeCompare(a.createdAt || ""));
   }, [actions, projectName, statusFilter, priorityFilter, typeFilter, q]);
 
-  function createAction(){
-    if(!isAdmin) return;
+  function createAction() {
+    if (!isAdmin) return;
     const t = (title || "").trim();
-    if(!t) return;
+    if (!t) return;
 
     updateState(d => {
       d.actions ||= [];
@@ -7241,69 +7212,69 @@ function ActionsView({ auth, projects, employees, actions, updateState }){
         read: false,
         level: "info"
       });
-      if(d.notifications.length > 300) d.notifications.length = 300;
+      if (d.notifications.length > 300) d.notifications.length = 300;
     });
 
     setTitle(""); setDueDate(""); setPriority("Orta"); setAtype("Düzeltici Faaliyet");
   }
 
-  function updateAction(id, patch){
-    if(!isAdmin) return;
+  function updateAction(id, patch) {
+    if (!isAdmin) return;
     updateState(d => {
       d.actions ||= [];
       const a = d.actions.find(x => x.id === id);
-      if(!a) return;
+      if (!a) return;
       Object.assign(a, patch);
       a.updatedAt = new Date().toISOString();
       a.updatedBy = auth.username || "admin";
     });
   }
 
-function userMarkDone(id){
-  // kullanıcı: sadece kendi projesindeki aksiyon için "Kullanıcı Tamamladı" bildirimi
-  if(isAdmin) return;
-  updateState(d => {
-    d.actions ||= [];
-    const a = d.actions.find(x => x.id === id);
-    if(!a) return;
-    if(a.project !== projectName) return;
-    if(a.status === "closed") return;
-    a.status = "user_done";
-    a.userDoneAt = new Date().toISOString();
-    a.userDoneBy = auth?.username || "user";
-    // kullanıcı not ekleyemiyor; kısa log alanı
-    const line = `Kullanıcı tamamladı: ${formatDT(a.userDoneAt)} • ${a.userDoneBy}`;
-    a.notes = (a.notes && String(a.notes).trim()) ? (String(a.notes).trim() + "\n" + line) : line;
-    a.updatedAt = a.userDoneAt;
-    a.updatedBy = a.userDoneBy;
-    // admin'e bildirim
-    d.notifications ||= [];
-    d.notifications.unshift({
-      id: uid("n"),
-      to: "admin",
-      title: "Kullanıcı tamamladı bildirimi",
-      body: `${a.project}: ${a.title}`,
-      createdAt: new Date().toISOString(),
-      read: false,
-      level: "warn"
+  function userMarkDone(id) {
+    // kullanıcı: sadece kendi projesindeki aksiyon için "Kullanıcı Tamamladı" bildirimi
+    if (isAdmin) return;
+    updateState(d => {
+      d.actions ||= [];
+      const a = d.actions.find(x => x.id === id);
+      if (!a) return;
+      if (a.project !== projectName) return;
+      if (a.status === "closed") return;
+      a.status = "user_done";
+      a.userDoneAt = new Date().toISOString();
+      a.userDoneBy = auth?.username || "user";
+      // kullanıcı not ekleyemiyor; kısa log alanı
+      const line = `Kullanıcı tamamladı: ${formatDT(a.userDoneAt)} • ${a.userDoneBy}`;
+      a.notes = (a.notes && String(a.notes).trim()) ? (String(a.notes).trim() + "\n" + line) : line;
+      a.updatedAt = a.userDoneAt;
+      a.updatedBy = a.userDoneBy;
+      // admin'e bildirim
+      d.notifications ||= [];
+      d.notifications.unshift({
+        id: uid("n"),
+        to: "admin",
+        title: "Kullanıcı tamamladı bildirimi",
+        body: `${a.project}: ${a.title}`,
+        createdAt: new Date().toISOString(),
+        read: false,
+        level: "warn"
+      });
+      if (d.notifications.length > 300) d.notifications.length = 300;
     });
-    if(d.notifications.length > 300) d.notifications.length = 300;
-  });
-}
+  }
 
-  function deleteAction(id){
-    if(!isAdmin) return;
-    if(!confirm("Aksiyonu silmek istiyor musun?")) return;
+  function deleteAction(id) {
+    if (!isAdmin) return;
+    if (!confirm("Aksiyonu silmek istiyor musun?")) return;
     updateState(d => {
       d.actions ||= [];
       d.actions = d.actions.filter(x => x.id !== id);
     });
   }
 
-  function quickSetStatus(id, st){
-    if(!isAdmin) return;
+  function quickSetStatus(id, st) {
+    if (!isAdmin) return;
     const patch = { status: st };
-    if(st === "closed"){
+    if (st === "closed") {
       patch.closedAt = new Date().toISOString();
       patch.closedBy = auth.username || "admin";
     }
@@ -7314,18 +7285,18 @@ function userMarkDone(id){
     <div className="card">
       <div className="cardTitleRow">
         <h2>📝 Aksiyonlar</h2>
-        <div style={{display:"flex", gap:8, flexWrap:"wrap", justifyContent:"flex-end"}}>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "flex-end" }}>
           <Badge kind={isAdmin ? "ok" : "warn"}>{isAdmin ? "Admin" : "Kullanıcı (Sadece Görüntüleme)"}</Badge>
           <Badge>{projectName}</Badge>
           <Badge kind={filtered.length ? "warn" : "ok"}>{filtered.length}</Badge>
         </div>
       </div>
 
-      <div className="row" style={{marginTop: 10, flexWrap:"wrap"}}>
-        <div style={{minWidth: 220, flex:"0 0 220px"}}>
+      <div className="row" style={{ marginTop: 10, flexWrap: "wrap" }}>
+        <div style={{ minWidth: 220, flex: "0 0 220px" }}>
           <label className="lbl">Proje</label>
           {isAdmin ? (
-            <select className="input" value={projectName} onChange={e=>setProjectName(e.target.value)}>
+            <select className="input" value={projectName} onChange={e => setProjectName(e.target.value)}>
               {projects.map(p => <option key={p.id} value={p.name}>{p.name}</option>)}
             </select>
           ) : (
@@ -7333,9 +7304,9 @@ function userMarkDone(id){
           )}
         </div>
 
-        <div style={{minWidth: 160, flex:"0 0 160px"}}>
+        <div style={{ minWidth: 160, flex: "0 0 160px" }}>
           <label className="lbl">Durum</label>
-          <select className="input" value={statusFilter} onChange={e=>setStatusFilter(e.target.value)}>
+          <select className="input" value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>
             <option value="all">Hepsi</option>
             <option value="open">Açık</option>
             <option value="in_progress">Devam</option>
@@ -7345,9 +7316,9 @@ function userMarkDone(id){
           </select>
         </div>
 
-        <div style={{minWidth: 160, flex:"0 0 160px"}}>
+        <div style={{ minWidth: 160, flex: "0 0 160px" }}>
           <label className="lbl">Öncelik</label>
-          <select className="input" value={priorityFilter} onChange={e=>setPriorityFilter(e.target.value)}>
+          <select className="input" value={priorityFilter} onChange={e => setPriorityFilter(e.target.value)}>
             <option value="all">Hepsi</option>
             <option value="Yüksek">Yüksek</option>
             <option value="Orta">Orta</option>
@@ -7355,9 +7326,9 @@ function userMarkDone(id){
           </select>
         </div>
 
-        <div style={{minWidth: 200, flex:"0 0 200px"}}>
+        <div style={{ minWidth: 200, flex: "0 0 200px" }}>
           <label className="lbl">Tür</label>
-          <select className="input" value={typeFilter} onChange={e=>setTypeFilter(e.target.value)}>
+          <select className="input" value={typeFilter} onChange={e => setTypeFilter(e.target.value)}>
             <option value="all">Hepsi</option>
             <option value="Düzeltici Faaliyet">Düzeltici Faaliyet</option>
             <option value="Önleyici Faaliyet">Önleyici Faaliyet</option>
@@ -7365,56 +7336,56 @@ function userMarkDone(id){
           </select>
         </div>
 
-        <div style={{flex: 1, minWidth: 240}}>
+        <div style={{ flex: 1, minWidth: 240 }}>
           <label className="lbl">Ara</label>
-          <input className="input" placeholder="Başlık / not / tür / öncelik..." value={q} onChange={e=>setQ(e.target.value)} />
+          <input className="input" placeholder="Başlık / not / tür / öncelik..." value={q} onChange={e => setQ(e.target.value)} />
         </div>
       </div>
 
       {isAdmin && (
         <>
           <hr className="sep" />
-          <div className="card" style={{background:"#fff"}}>
-            <div className="cardTitleRow" style={{marginBottom:8}}>
-              <h3 style={{margin:0}}>➕ Yeni Aksiyon (Proje Bazlı)</h3>
+          <div className="card" style={{ background: "#fff" }}>
+            <div className="cardTitleRow" style={{ marginBottom: 8 }}>
+              <h3 style={{ margin: 0 }}>➕ Yeni Aksiyon (Proje Bazlı)</h3>
               <Badge kind="ok">Admin</Badge>
             </div>
 
-            <div className="row" style={{flexWrap:"wrap"}}>
-              <div style={{flex: 1, minWidth: 260}}>
+            <div className="row" style={{ flexWrap: "wrap" }}>
+              <div style={{ flex: 1, minWidth: 260 }}>
                 <label className="lbl">Başlık</label>
-                <input className="input" value={title} onChange={e=>setTitle(e.target.value)} placeholder="Örn: Yangın tüplerinin doluluk kontrolü yapılacak" />
+                <input className="input" value={title} onChange={e => setTitle(e.target.value)} placeholder="Örn: Yangın tüplerinin doluluk kontrolü yapılacak" />
               </div>
 
-              <div style={{minWidth: 210}}>
+              <div style={{ minWidth: 210 }}>
                 <label className="lbl">Tür</label>
-                <select className="input" value={atype} onChange={e=>setAtype(e.target.value)}>
+                <select className="input" value={atype} onChange={e => setAtype(e.target.value)}>
                   <option>Düzeltici Faaliyet</option>
                   <option>Önleyici Faaliyet</option>
                   <option>Aksiyon</option>
                 </select>
               </div>
 
-              <div style={{minWidth: 150}}>
+              <div style={{ minWidth: 150 }}>
                 <label className="lbl">Öncelik</label>
-                <select className="input" value={priority} onChange={e=>setPriority(e.target.value)}>
+                <select className="input" value={priority} onChange={e => setPriority(e.target.value)}>
                   <option>Yüksek</option>
                   <option>Orta</option>
                   <option>Düşük</option>
                 </select>
               </div>
 
-              <div style={{minWidth: 180}}>
+              <div style={{ minWidth: 180 }}>
                 <label className="lbl">Hedef Tarih</label>
-                <input className="input" type="date" value={dueDate} onChange={e=>setDueDate(e.target.value)} />
+                <input className="input" type="date" value={dueDate} onChange={e => setDueDate(e.target.value)} />
               </div>
 
-              <div style={{minWidth: 140, display:"flex", alignItems:"flex-end"}}>
+              <div style={{ minWidth: 140, display: "flex", alignItems: "flex-end" }}>
                 <button className="btn primary" type="button" onClick={createAction}>Oluştur</button>
               </div>
             </div>
 
-            <div className="small" style={{marginTop:10}}>
+            <div className="small" style={{ marginTop: 10 }}>
               Not: Aksiyonlar proje bazlıdır. Sorumlu kişi alanı kaldırıldı.
             </div>
           </div>
@@ -7424,7 +7395,7 @@ function userMarkDone(id){
       <hr className="sep" />
 
       {/* Responsive, scroll'suz liste */}
-      <div className="list" style={{gap:10}}>
+      <div className="list" style={{ gap: 10 }}>
         {filtered.length === 0 ? (
           <div className="small">Bu projede filtrelere uyan aksiyon yok.</div>
         ) : (
@@ -7433,49 +7404,49 @@ function userMarkDone(id){
             const pr = a.priority || "Orta";
             const bg =
               st === "open" ? "rgba(220,53,69,.06)" :
-              st === "in_progress" ? "rgba(255,193,7,.10)" :
-              st === "done" ? "rgba(25,135,84,.08)" :
-              "rgba(108,117,125,.08)";
+                st === "in_progress" ? "rgba(255,193,7,.10)" :
+                  st === "done" ? "rgba(25,135,84,.08)" :
+                    "rgba(108,117,125,.08)";
 
             return (
-              <div key={a.id} className="item" style={{alignItems:"stretch", background:bg, borderRadius:14, padding:12, position:"relative"}}>
+              <div key={a.id} className="item" style={{ alignItems: "stretch", background: bg, borderRadius: 14, padding: 12, position: "relative" }}>
                 <div className="actionCornerTag" data-kind={statusBadgeKind(st)}>
                   {statusLabel(st)}
                 </div>
-                <div className="itemLeft" style={{gap:6}}>
-                  <div style={{display:"flex", alignItems:"center", gap:8, flexWrap:"wrap"}}>
+                <div className="itemLeft" style={{ gap: 6 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
                     <Badge kind={statusBadgeKind(st)}>{statusLabel(st)}</Badge>
                     <Badge kind={priorityKind(pr)}>{pr}</Badge>
                     <Badge>{a.type || "Düzeltici Faaliyet"}</Badge>
                     {a.dueDate ? <Badge kind="warn">Hedef: {a.dueDate}</Badge> : <Badge>Hedef: -</Badge>}
                   </div>
 
-                  <div style={{display:"flex", gap:8, alignItems:"baseline", flexWrap:"wrap", marginTop:4}}>
-                    <b style={{fontSize:15}}>{a.title}</b>
-                    <span className="small" style={{opacity:.8}}>
+                  <div style={{ display: "flex", gap: 8, alignItems: "baseline", flexWrap: "wrap", marginTop: 4 }}>
+                    <b style={{ fontSize: 15 }}>{a.title}</b>
+                    <span className="small" style={{ opacity: .8 }}>
                       {a.createdAt ? `• ${formatDT(a.createdAt)}` : ""}
                       {a.createdBy ? ` • ${a.createdBy}` : ""}
                     </span>
                   </div>
 
-                  <div style={{marginTop:8}}>
+                  <div style={{ marginTop: 8 }}>
                     {isAdmin ? (
                       <textarea
                         className="input"
-                        style={{minHeight:54}}
+                        style={{ minHeight: 54 }}
                         placeholder="Not / açıklama..."
                         value={a.notes || ""}
-                        onChange={e=>updateAction(a.id, { notes: e.target.value })}
+                        onChange={e => updateAction(a.id, { notes: e.target.value })}
                       />
                     ) : (
-                      <div className="small" style={{whiteSpace:"pre-wrap"}}>
+                      <div className="small" style={{ whiteSpace: "pre-wrap" }}>
                         {String(a.notes || "").trim() ? a.notes : "Not yok."}
                       </div>
                     )}
                   </div>
 
                   {a.updatedAt && (
-                    <div className="small" style={{opacity:.75, marginTop:6}}>
+                    <div className="small" style={{ opacity: .75, marginTop: 6 }}>
                       Güncelleme: {formatDT(a.updatedAt)} {a.updatedBy ? `• ${a.updatedBy}` : ""}
                     </div>
                   )}
@@ -7483,12 +7454,12 @@ function userMarkDone(id){
 
                 {/* Admin controls */}
                 {isAdmin && (
-                  <div className="itemActions" style={{minWidth:220, justifyContent:"flex-end", flexWrap:"wrap"}}>
+                  <div className="itemActions" style={{ minWidth: 220, justifyContent: "flex-end", flexWrap: "wrap" }}>
                     <select
                       className="input"
-                      style={{padding:"8px 10px", minWidth:140}}
+                      style={{ padding: "8px 10px", minWidth: 140 }}
                       value={st}
-                      onChange={e=>updateAction(a.id, { status: e.target.value })}
+                      onChange={e => updateAction(a.id, { status: e.target.value })}
                       title="Durum"
                     >
                       <option value="open">Açık</option>
@@ -7498,26 +7469,26 @@ function userMarkDone(id){
                       <option value="closed">Admin Kapattı</option>
                     </select>
 
-                    <button className="btn" type="button" onClick={()=>quickSetStatus(a.id, "in_progress")}>Devam</button>
-                    <button className="btn" type="button" onClick={()=>quickSetStatus(a.id, "done")}>Tamam</button>
-                    <button className="btn" type="button" onClick={()=>quickSetStatus(a.id, "closed")}>Kapat</button>
-                    <button className="btn danger" type="button" onClick={()=>deleteAction(a.id)}>Sil</button>
+                    <button className="btn" type="button" onClick={() => quickSetStatus(a.id, "in_progress")}>Devam</button>
+                    <button className="btn" type="button" onClick={() => quickSetStatus(a.id, "done")}>Tamam</button>
+                    <button className="btn" type="button" onClick={() => quickSetStatus(a.id, "closed")}>Kapat</button>
+                    <button className="btn danger" type="button" onClick={() => deleteAction(a.id)}>Sil</button>
                   </div>
                 )}
 
-{!isAdmin && (
-  <div className="itemActions" style={{minWidth:220, justifyContent:"flex-end", flexWrap:"wrap"}}>
-    {st !== "closed" && st !== "user_done" ? (
-      <button className="btn ok" type="button" onClick={()=>userMarkDone(a.id)}>
-        Tamamlandı Bildir
-      </button>
-    ) : (
-      <span className="small" style={{opacity:.8}}>
-        {st === "user_done" ? "Admin kapanışı bekleniyor" : "Kapalı"}
-      </span>
-    )}
-  </div>
-)}
+                {!isAdmin && (
+                  <div className="itemActions" style={{ minWidth: 220, justifyContent: "flex-end", flexWrap: "wrap" }}>
+                    {st !== "closed" && st !== "user_done" ? (
+                      <button className="btn ok" type="button" onClick={() => userMarkDone(a.id)}>
+                        Tamamlandı Bildir
+                      </button>
+                    ) : (
+                      <span className="small" style={{ opacity: .8 }}>
+                        {st === "user_done" ? "Admin kapanışı bekleniyor" : "Kapalı"}
+                      </span>
+                    )}
+                  </div>
+                )}
 
               </div>
             );
@@ -7526,7 +7497,7 @@ function userMarkDone(id){
       </div>
 
       {!isAdmin && (
-        <div className="small" style={{marginTop:10}}>
+        <div className="small" style={{ marginTop: 10 }}>
           Kullanıcı sadece kendi projesinin aksiyonlarını görüntüler. Düzenleme ve ekleme admin yetkisindedir.
         </div>
       )}
@@ -7539,7 +7510,7 @@ function userMarkDone(id){
 // Simple ErrorBoundary to avoid blank screen on runtime errors
 
 function VehiclesAdminView({ isAdmin, auth, categories, projects, updateState, pushToast }) {
-  if(!isAdmin) return null;
+  if (!isAdmin) return null;
 
   const vehiclesCat = useMemo(() => {
     return (categories || []).find(c => c && c.key === "vehicles");
@@ -7551,7 +7522,7 @@ function VehiclesAdminView({ isAdmin, auth, categories, projects, updateState, p
 
   // Keep selected project valid when projects change
   useEffect(() => {
-    if(projectId && (projects || []).some(p => p.id === projectId)) return;
+    if (projectId && (projects || []).some(p => p.id === projectId)) return;
     setProjectId((projects && projects[0] ? projects[0].id : ""));
   }, [projects]);
 
@@ -7559,32 +7530,32 @@ function VehiclesAdminView({ isAdmin, auth, categories, projects, updateState, p
 
   const list = useMemo(() => {
     const p = selectedProject;
-    if(!p) return [];
+    if (!p) return [];
     const arr = (p.itemsByCategory && p.itemsByCategory["vehicles"]) ? p.itemsByCategory["vehicles"] : [];
     const ql = (q || "").trim().toLowerCase();
     return (arr || []).filter(it => {
-      if(!ql) return true;
+      if (!ql) return true;
       return String(it?.name || "").toLowerCase().includes(ql);
     });
   }, [selectedProject, q]);
 
-  function addVehicle(){
+  function addVehicle() {
     const name = (vehicleName || "").trim();
-    if(!name){
+    if (!name) {
       pushToast && pushToast("Araç adı/plaka zorunlu.", "warn");
       return;
     }
     const pid = projectId;
-    if(!pid){
+    if (!pid) {
       pushToast && pushToast("Proje seçmelisin.", "warn");
       return;
     }
 
     updateState(d => {
       const p = (d.projects || []).find(x => x.id === pid);
-      if(!p) return;
-      if(!p.itemsByCategory) p.itemsByCategory = {};
-      if(!Array.isArray(p.itemsByCategory.vehicles)) p.itemsByCategory.vehicles = [];
+      if (!p) return;
+      if (!p.itemsByCategory) p.itemsByCategory = {};
+      if (!Array.isArray(p.itemsByCategory.vehicles)) p.itemsByCategory.vehicles = [];
       p.itemsByCategory.vehicles.push({
         id: uid("item"),
         name,
@@ -7599,13 +7570,13 @@ function VehiclesAdminView({ isAdmin, auth, categories, projects, updateState, p
     pushToast && pushToast("Araç eklendi.", "ok");
   }
 
-  function approveVehicle(itemId){
+  function approveVehicle(itemId) {
     updateState(d => {
       const p = (d.projects || []).find(x => x.id === projectId);
-      if(!p) return;
+      if (!p) return;
       const arr = p.itemsByCategory?.vehicles || [];
       const it = arr.find(x => x.id === itemId);
-      if(!it) return;
+      if (!it) return;
       it.approved = true;
       it.approvedAt = new Date().toISOString();
       it.approvedBy = auth?.username || "admin";
@@ -7613,32 +7584,32 @@ function VehiclesAdminView({ isAdmin, auth, categories, projects, updateState, p
     pushToast && pushToast("Araç onaylandı.", "ok");
   }
 
-  function deleteVehicle(itemId){
-    if(!confirm("Bu aracı silmek istiyor musun?")) return;
+  function deleteVehicle(itemId) {
+    if (!confirm("Bu aracı silmek istiyor musun?")) return;
     updateState(d => {
       const p = (d.projects || []).find(x => x.id === projectId);
-      if(!p) return;
+      if (!p) return;
       const arr = p.itemsByCategory?.vehicles || [];
       p.itemsByCategory.vehicles = arr.filter(x => x.id !== itemId);
     });
     pushToast && pushToast("Araç silindi.", "ok");
   }
 
-  function renameVehicle(itemId, nextName){
+  function renameVehicle(itemId, nextName) {
     const name = (nextName || "").trim();
-    if(!name) return;
+    if (!name) return;
     updateState(d => {
       const p = (d.projects || []).find(x => x.id === projectId);
-      if(!p) return;
+      if (!p) return;
       const it = (p.itemsByCategory?.vehicles || []).find(x => x.id === itemId);
-      if(!it) return;
+      if (!it) return;
       it.name = name;
     });
     pushToast && pushToast("Araç güncellendi.", "ok");
   }
 
   return (
-    <div className="card" style={{marginTop:12}}>
+    <div className="card" style={{ marginTop: 12 }}>
       <div className="cardHeader">
         <div>
           <div className="h2">Araç Yönetimi</div>
@@ -7646,31 +7617,31 @@ function VehiclesAdminView({ isAdmin, auth, categories, projects, updateState, p
         </div>
       </div>
 
-      <div className="grid" style={{gridTemplateColumns:"repeat(auto-fit,minmax(220px,1fr))", gap:10}}>
+      <div className="grid" style={{ gridTemplateColumns: "repeat(auto-fit,minmax(220px,1fr))", gap: 10 }}>
         <div className="field">
           <label>Proje</label>
-          <select value={projectId} onChange={e=>setProjectId(e.target.value)}>
+          <select value={projectId} onChange={e => setProjectId(e.target.value)}>
             {(projects || []).map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
           </select>
         </div>
 
         <div className="field">
           <label>Araç ara</label>
-          <input value={q} onChange={e=>setQ(e.target.value)} placeholder="Plaka / ad..." />
+          <input value={q} onChange={e => setQ(e.target.value)} placeholder="Plaka / ad..." />
         </div>
 
         <div className="field">
           <label>Yeni araç (plaka/ad)</label>
-          <div style={{display:"flex", gap:8}}>
-            <input value={vehicleName} onChange={e=>setVehicleName(e.target.value)} placeholder="34 ABC 123 • Ford Transit" />
+          <div style={{ display: "flex", gap: 8 }}>
+            <input value={vehicleName} onChange={e => setVehicleName(e.target.value)} placeholder="34 ABC 123 • Ford Transit" />
             <button className="btn primary" onClick={addVehicle}>Ekle</button>
           </div>
         </div>
       </div>
 
-      <div style={{marginTop:12}}>
+      <div style={{ marginTop: 12 }}>
         {!vehiclesCat && (
-          <div className="muted" style={{marginBottom:8}}>
+          <div className="muted" style={{ marginBottom: 8 }}>
             Not: "vehicles" kategorisi bulunamadı. Admin → Kategori Tanımları kısmından "Araçlar" kategorisini oluşturmalısın.
           </div>
         )}
@@ -7682,10 +7653,10 @@ function VehiclesAdminView({ isAdmin, auth, categories, projects, updateState, p
             <table className="table">
               <thead>
                 <tr>
-                  <th style={{width:"40%"}}>Araç</th>
+                  <th style={{ width: "40%" }}>Araç</th>
                   <th>Durum</th>
                   <th>İsteyen</th>
-                  <th style={{width:210}}>İşlem</th>
+                  <th style={{ width: 210 }}>İşlem</th>
                 </tr>
               </thead>
               <tbody>
@@ -7697,7 +7668,7 @@ function VehiclesAdminView({ isAdmin, auth, categories, projects, updateState, p
                     <td>
                       <EditableText
                         value={it.name}
-                        onSave={(val)=>renameVehicle(it.id, val)}
+                        onSave={(val) => renameVehicle(it.id, val)}
                       />
                     </td>
                     <td>
@@ -7705,9 +7676,9 @@ function VehiclesAdminView({ isAdmin, auth, categories, projects, updateState, p
                     </td>
                     <td className="muted">{it.requestedBy || "-"}</td>
                     <td>
-                      <div style={{display:"flex", gap:8, flexWrap:"wrap"}}>
-                        {!it.approved && <button className="btn" onClick={()=>approveVehicle(it.id)}>Onayla</button>}
-                        <button className="btn danger" onClick={()=>deleteVehicle(it.id)}>Sil</button>
+                      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                        {!it.approved && <button className="btn" onClick={() => approveVehicle(it.id)}>Onayla</button>}
+                        <button className="btn danger" onClick={() => deleteVehicle(it.id)}>Sil</button>
                       </div>
                     </td>
                   </tr>
@@ -7728,32 +7699,32 @@ function EditableText({ value, onSave }) {
 
   useEffect(() => setV(value || ""), [value]);
 
-  if(!editing){
+  if (!editing) {
     return (
-      <div style={{display:"flex", alignItems:"center", gap:8}}>
-        <div style={{fontWeight:600}}>{value || "-"}</div>
-        <button className="btn" onClick={()=>setEditing(true)}>Düzenle</button>
+      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <div style={{ fontWeight: 600 }}>{value || "-"}</div>
+        <button className="btn" onClick={() => setEditing(true)}>Düzenle</button>
       </div>
     );
   }
 
   return (
-    <div style={{display:"flex", alignItems:"center", gap:8}}>
-      <input value={v} onChange={e=>setV(e.target.value)} />
-      <button className="btn primary" onClick={()=>{ onSave && onSave(v); setEditing(false); }}>Kaydet</button>
-      <button className="btn" onClick={()=>{ setV(value || ""); setEditing(false); }}>İptal</button>
+    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+      <input value={v} onChange={e => setV(e.target.value)} />
+      <button className="btn primary" onClick={() => { onSave && onSave(v); setEditing(false); }}>Kaydet</button>
+      <button className="btn" onClick={() => { setV(value || ""); setEditing(false); }}>İptal</button>
     </div>
   );
 }
 
 /* ===================== PUANTAJ GÖRÜNÜMLERİ ===================== */
 
-function AttendanceView({ 
-  isAdmin, 
-  auth, 
-  employees, 
-  projects, 
-  monthKey, 
+function AttendanceView({
+  isAdmin,
+  auth,
+  employees,
+  projects,
+  monthKey,
   monthDays,
   attendance,
   setAttendanceDay,
@@ -7771,11 +7742,11 @@ function AttendanceView({
 
   const projectEmployees = useMemo(() => {
     const list = employees || [];
-    if(isAdmin && selectedProject){
+    if (isAdmin && selectedProject) {
       const pName = (projects || []).find(p => p.id === selectedProject)?.name;
       return pName ? list.filter(e => e.project === pName) : list;
     }
-    if(!isAdmin && myProjectName){
+    if (!isAdmin && myProjectName) {
       return list.filter(e => e.project === myProjectName);
     }
     return list;
@@ -7783,23 +7754,23 @@ function AttendanceView({
 
   // Seçilen personel bu kullanıcının projesi mi? → yazma izni
   const canEdit = useMemo(() => {
-    if(isAdmin) return true;
-    if(!selectedEmployee) return false;
+    if (isAdmin) return true;
+    if (!selectedEmployee) return false;
     const emp = (employees || []).find(e => e.id === selectedEmployee);
     return emp?.project === myProjectName;
   }, [isAdmin, selectedEmployee, employees, myProjectName]);
-  
+
   const employee = useMemo(() => {
     return (employees || []).find(e => e.id === selectedEmployee) || null;
   }, [employees, selectedEmployee]);
-  
+
   const monthData = useMemo(() => {
-    if(!selectedEmployee) return null;
+    if (!selectedEmployee) return null;
     return attendance?.[selectedEmployee]?.[monthKey] || { days: {}, stats: {} };
   }, [attendance, selectedEmployee, monthKey]);
-  
+
   const [year, month] = monthKey.split("-").map(Number);
-  
+
   return (
     <div className="card">
       <div className="cardHeader">
@@ -7807,12 +7778,12 @@ function AttendanceView({
           <div className="h2">📅 Aylık Puantaj Takibi</div>
           <div className="muted">
             Personel devam durumu ve izin takibi - {monthKey}
-            {!isAdmin && myProjectName && <span style={{marginLeft:10, color:"#3b82f6", fontWeight:600}}>• {myProjectName}</span>}
+            {!isAdmin && myProjectName && <span style={{ marginLeft: 10, color: "#3b82f6", fontWeight: 600 }}>• {myProjectName}</span>}
           </div>
         </div>
       </div>
-      
-      <div className="grid" style={{gridTemplateColumns:"repeat(auto-fit,minmax(200px,1fr))", gap:10, marginTop:12}}>
+
+      <div className="grid" style={{ gridTemplateColumns: "repeat(auto-fit,minmax(200px,1fr))", gap: 10, marginTop: 12 }}>
         {isAdmin && (
           <div className="field">
             <label>Proje</label>
@@ -7824,7 +7795,7 @@ function AttendanceView({
             </select>
           </div>
         )}
-        
+
         <div className="field">
           <label>Personel</label>
           <select value={selectedEmployee} onChange={e => setSelectedEmployee(e.target.value)}>
@@ -7836,7 +7807,7 @@ function AttendanceView({
             ))}
           </select>
         </div>
-        
+
         <div className="field">
           <label>Görünüm</label>
           <select value={viewMode} onChange={e => setViewMode(e.target.value)}>
@@ -7846,29 +7817,29 @@ function AttendanceView({
           </select>
         </div>
       </div>
-      
+
       {!selectedEmployee ? (
-        <div className="muted" style={{marginTop:20, padding:20, textAlign:"center"}}>
+        <div className="muted" style={{ marginTop: 20, padding: 20, textAlign: "center" }}>
           👆 Yukarıdan personel seçin
         </div>
       ) : (
         <>
           {canEdit && (
-            <div className="row" style={{gap:8, marginTop:12, flexWrap:"wrap"}}>
-              <button 
-                className="btn" 
+            <div className="row" style={{ gap: 8, marginTop: 12, flexWrap: "wrap" }}>
+              <button
+                className="btn"
                 onClick={() => autoMarkWeekends(selectedEmployee, monthKey, year, month)}
               >
                 🗓️ Hafta Sonlarını İşaretle
               </button>
-              <button 
-                className="btn" 
+              <button
+                className="btn"
                 onClick={() => autoMarkHolidays(selectedEmployee, monthKey, year, month)}
               >
                 🎉 Resmi Tatilleri İşaretle
               </button>
-              <button 
-                className="btn primary" 
+              <button
+                className="btn primary"
                 onClick={() => exportAttendanceToExcel(selectedEmployee, monthKey)}
               >
                 📥 Excel İndir
@@ -7876,11 +7847,11 @@ function AttendanceView({
             </div>
           )}
           {!canEdit && (
-            <div className="small" style={{marginTop:10, color:"#f59e0b"}}>
+            <div className="small" style={{ marginTop: 10, color: "#f59e0b" }}>
               ⚠️ Bu personel başka bir projede — sadece görüntüleme modunda.
             </div>
           )}
-          
+
           {viewMode === "grid" && (
             <AttendanceGridView
               employee={employee}
@@ -7891,7 +7862,7 @@ function AttendanceView({
               setAttendanceDay={setAttendanceDay}
             />
           )}
-          
+
           {viewMode === "calendar" && (
             <AttendanceCalendarView
               employee={employee}
@@ -7904,7 +7875,7 @@ function AttendanceView({
               setAttendanceDay={setAttendanceDay}
             />
           )}
-          
+
           {viewMode === "summary" && (
             <AttendanceSummaryView
               employee={employee}
@@ -7922,21 +7893,21 @@ function AttendanceGridView({ employee, monthKey, monthDays, monthData, isAdmin,
   const [selectedDay, setSelectedDay] = useState(null);
   const [status, setStatus] = useState("present");
   const [note, setNote] = useState("");
-  
+
   const days = Array.from({ length: monthDays }, (_, i) => i + 1);
-  
-  function handleSave(){
-    if(!selectedDay) return;
+
+  function handleSave() {
+    if (!selectedDay) return;
     setAttendanceDay(employee.id, monthKey, selectedDay, status, note);
     setSelectedDay(null);
     setStatus("present");
     setNote("");
   }
-  
+
   return (
-    <div style={{marginTop:16}}>
+    <div style={{ marginTop: 16 }}>
       {monthData.stats && (
-        <div className="grid" style={{gridTemplateColumns:"repeat(auto-fit,minmax(120px,1fr))", gap:8, marginBottom:16}}>
+        <div className="grid" style={{ gridTemplateColumns: "repeat(auto-fit,minmax(120px,1fr))", gap: 8, marginBottom: 16 }}>
           <StatCard label="Çalışma Günü" value={monthData.stats.workDays || 0} color="#10b981" />
           <StatCard label="Geldi" value={monthData.stats.present || 0} color="#3b82f6" />
           <StatCard label="İzin" value={(monthData.stats.paid_leave || 0) + (monthData.stats.sick_leave || 0)} color="#f59e0b" />
@@ -7944,16 +7915,16 @@ function AttendanceGridView({ employee, monthKey, monthDays, monthData, isAdmin,
           <StatCard label="Tamamlanma" value={`${monthData.stats.completionRate || 0}%`} color="#8b5cf6" />
         </div>
       )}
-      
+
       <div className="tableWrap">
         <table className="table">
           <thead>
             <tr>
-              <th style={{width:60}}>Gün</th>
-              <th style={{width:100}}>Haftanın Günü</th>
+              <th style={{ width: 60 }}>Gün</th>
+              <th style={{ width: 100 }}>Haftanın Günü</th>
               <th>Durum</th>
-              <th style={{width:"40%"}}>Not</th>
-              {isAdmin && <th style={{width:80}}>İşlem</th>}
+              <th style={{ width: "40%" }}>Not</th>
+              {isAdmin && <th style={{ width: 80 }}>İşlem</th>}
             </tr>
           </thead>
           <tbody>
@@ -7962,12 +7933,12 @@ function AttendanceGridView({ employee, monthKey, monthDays, monthData, isAdmin,
               const [year, month] = monthKey.split("-").map(Number);
               const date = new Date(year, month - 1, day);
               const dayName = date.toLocaleDateString("tr-TR", { weekday: "short" });
-              
+
               return (
                 <tr key={day} style={{
                   background: dayData?.status ? ATTENDANCE_COLORS[dayData.status] + "15" : "transparent"
                 }}>
-                  <td style={{fontWeight:600}}>{day}</td>
+                  <td style={{ fontWeight: 600 }}>{day}</td>
                   <td className="small">{dayName}</td>
                   <td>
                     {dayData?.status ? (
@@ -7984,8 +7955,8 @@ function AttendanceGridView({ employee, monthKey, monthDays, monthData, isAdmin,
                   <td className="small muted">{dayData?.note || "-"}</td>
                   {isAdmin && (
                     <td>
-                      <button 
-                        className="btn" 
+                      <button
+                        className="btn"
                         onClick={() => {
                           setSelectedDay(day);
                           setStatus(dayData?.status || "present");
@@ -8002,7 +7973,7 @@ function AttendanceGridView({ employee, monthKey, monthDays, monthData, isAdmin,
           </tbody>
         </table>
       </div>
-      
+
       {isAdmin && selectedDay && (
         <div style={{
           position: "fixed",
@@ -8031,10 +8002,10 @@ function AttendanceGridView({ employee, monthKey, monthDays, monthData, isAdmin,
               paddingBottom: 16,
               borderBottom: "2px solid #e5e7eb"
             }}>
-              <h3 style={{margin:0}}>{employee.name} - {selectedDay} {monthKey}</h3>
+              <h3 style={{ margin: 0 }}>{employee.name} - {selectedDay} {monthKey}</h3>
               <button className="btn" onClick={() => setSelectedDay(null)}>✕</button>
             </div>
-            
+
             <div className="field">
               <label>Durum</label>
               <select value={status} onChange={e => setStatus(e.target.value)}>
@@ -8043,18 +8014,18 @@ function AttendanceGridView({ employee, monthKey, monthDays, monthData, isAdmin,
                 ))}
               </select>
             </div>
-            
+
             <div className="field">
               <label>Not / Açıklama</label>
-              <textarea 
-                value={note} 
+              <textarea
+                value={note}
                 onChange={e => setNote(e.target.value)}
                 placeholder="İsteğe bağlı açıklama..."
                 rows={3}
               />
             </div>
-            
-            <div className="row" style={{gap:8, marginTop:16}}>
+
+            <div className="row" style={{ gap: 8, marginTop: 16 }}>
               <button className="btn primary" onClick={handleSave}>Kaydet</button>
               <button className="btn" onClick={() => setSelectedDay(null)}>İptal</button>
             </div>
@@ -8072,24 +8043,24 @@ function AttendanceCalendarView({ employee, monthKey, year, month, monthDays, mo
   // 🕐 v005: Mesai saatleri
   const [startTime, setStartTime] = useState("08:00");
   const [endTime, setEndTime] = useState("16:00");
-  
+
   const firstDay = new Date(year, month - 1, 1).getDay();
   const calendarDays = [];
   const startOffset = firstDay === 0 ? 6 : firstDay - 1;
-  
-  for(let i = 0; i < startOffset; i++){
+
+  for (let i = 0; i < startOffset; i++) {
     calendarDays.push(null);
   }
-  
-  for(let i = 1; i <= monthDays; i++){
+
+  for (let i = 1; i <= monthDays; i++) {
     calendarDays.push(i);
   }
-  
+
   // Modal açıldığında mevcut veriyi yükle
   React.useEffect(() => {
-    if(selectedDay){
+    if (selectedDay) {
       const dayData = monthData.days?.[selectedDay];
-      if(dayData){
+      if (dayData) {
         setStatus(dayData.status || "present");
         setNote(dayData.note || "");
         setStartTime(dayData.startTime || "08:00");
@@ -8097,9 +8068,9 @@ function AttendanceCalendarView({ employee, monthKey, year, month, monthDays, mo
       }
     }
   }, [selectedDay, monthData]);
-  
-  function handleSave(){
-    if(!selectedDay) return;
+
+  function handleSave() {
+    if (!selectedDay) return;
     const overtime = calculateOvertime(startTime, endTime);
     // Mesai saatleri ile birlikte kaydet
     setAttendanceDay(employee.id, monthKey, selectedDay, status, note, startTime, endTime, overtime);
@@ -8109,77 +8080,77 @@ function AttendanceCalendarView({ employee, monthKey, year, month, monthDays, mo
     setStartTime("08:00");
     setEndTime("16:00");
   }
-  
+
   return (
-    <div style={{marginTop:16}}>
+    <div style={{ marginTop: 16 }}>
       <div style={{
-        display:"grid",
-        gridTemplateColumns:"repeat(7, 1fr)",
-        gap:8,
-        marginBottom:8
+        display: "grid",
+        gridTemplateColumns: "repeat(7, 1fr)",
+        gap: 8,
+        marginBottom: 8
       }}>
         {["Pzt", "Sal", "Çar", "Per", "Cum", "Cmt", "Paz"].map(d => (
           <div key={d} style={{
-            textAlign:"center",
-            fontWeight:700,
-            fontSize:14,
-            color:"#6b7280",
-            padding:"8px 0"
+            textAlign: "center",
+            fontWeight: 700,
+            fontSize: 14,
+            color: "#6b7280",
+            padding: "8px 0"
           }}>
             {d}
           </div>
         ))}
       </div>
-      
+
       <div style={{
-        display:"grid",
-        gridTemplateColumns:"repeat(7, 1fr)",
-        gap:8
+        display: "grid",
+        gridTemplateColumns: "repeat(7, 1fr)",
+        gap: 8
       }}>
         {calendarDays.map((day, idx) => {
-          if(!day) {
+          if (!day) {
             return <div key={`empty-${idx}`} />;
           }
-          
+
           const dayData = monthData.days?.[day];
           const bgColor = dayData?.status ? ATTENDANCE_COLORS[dayData.status] : "#f3f4f6";
-          
+
           return (
             <button
               key={day}
               onClick={() => isAdmin && setSelectedDay(day)}
               style={{
-                padding:12,
-                borderRadius:12,
-                border:"2px solid " + (dayData?.status ? bgColor : "#e5e7eb"),
+                padding: 12,
+                borderRadius: 12,
+                border: "2px solid " + (dayData?.status ? bgColor : "#e5e7eb"),
                 background: dayData?.status ? bgColor + "20" : "#fff",
                 cursor: isAdmin ? "pointer" : "default",
-                textAlign:"center",
-                minHeight:80,
-                display:"flex",
-                flexDirection:"column",
-                justifyContent:"space-between"
+                textAlign: "center",
+                minHeight: 80,
+                display: "flex",
+                flexDirection: "column",
+                justifyContent: "space-between"
               }}
             >
-              <div style={{fontWeight:700, fontSize:18}}>{day}</div>
+              <div style={{ fontWeight: 700, fontSize: 18 }}>{day}</div>
               {dayData?.status && (
                 <>
                   <div className="small" style={{
                     color: bgColor,
-                    fontWeight:600,
-                    marginTop:4
+                    fontWeight: 600,
+                    marginTop: 4
                   }}>
                     {ATTENDANCE_LABELS[dayData.status]}
                   </div>
                   {/* 🕐 Mesai saatleri göster */}
                   {dayData.startTime && dayData.endTime && (
-                    <div style={{fontSize:10, marginTop:2, color:'#64748b'}}>
+                    <div style={{ fontSize: 10, marginTop: 2, color: '#64748b' }}>
                       {dayData.startTime}-{dayData.endTime}
                     </div>
                   )}
                   {/* ⏱️ Fazla mesai göster */}
                   {dayData.overtime > 0 && (
-                    <div style={{fontSize:10, fontWeight:700, color:'#f59e0b', marginTop:2}}>
+                    <div style={{ fontSize: 10, fontWeight: 700, color: '#f59e0b', marginTop: 2 }}>
                       FM: {dayData.overtime}s
                     </div>
                   )}
@@ -8189,7 +8160,7 @@ function AttendanceCalendarView({ employee, monthKey, year, month, monthDays, mo
           );
         })}
       </div>
-      
+
       {isAdmin && selectedDay && (
         <div style={{
           position: "fixed",
@@ -8214,11 +8185,11 @@ function AttendanceCalendarView({ employee, monthKey, year, month, monthDays, mo
               alignItems: "center",
               marginBottom: 20
             }}>
-              <h3 style={{margin:0}}>{employee.name} - {selectedDay} {monthKey}</h3>
+              <h3 style={{ margin: 0 }}>{employee.name} - {selectedDay} {monthKey}</h3>
               <button className="btn" onClick={() => setSelectedDay(null)}>✕</button>
             </div>
-            
-            <div className="grid" style={{gridTemplateColumns:"repeat(3, 1fr)", gap:8}}>
+
+            <div className="grid" style={{ gridTemplateColumns: "repeat(3, 1fr)", gap: 8 }}>
               {Object.entries(ATTENDANCE_LABELS).slice(0, 6).map(([key, label]) => (
                 <button
                   key={key}
@@ -8235,8 +8206,8 @@ function AttendanceCalendarView({ employee, monthKey, year, month, monthDays, mo
                 </button>
               ))}
             </div>
-            
-            <div className="field" style={{marginTop:12}}>
+
+            <div className="field" style={{ marginTop: 12 }}>
               <label>Tüm Durumlar</label>
               <select value={status} onChange={e => setStatus(e.target.value)}>
                 {Object.entries(ATTENDANCE_LABELS).map(([key, label]) => (
@@ -8244,23 +8215,23 @@ function AttendanceCalendarView({ employee, monthKey, year, month, monthDays, mo
                 ))}
               </select>
             </div>
-            
+
             <div className="field">
               <label>Açıklama / Not</label>
-              <textarea 
-                value={note} 
+              <textarea
+                value={note}
                 onChange={e => setNote(e.target.value)}
                 placeholder="İsteğe bağlı..."
                 rows={3}
               />
             </div>
-            
+
             {/* 🕐 MESAİ SAATLERİ v005 */}
             <div className="attendance-time-row">
               <div className="attendance-time-group">
                 <label className="attendance-time-label">🕐 Giriş Saati</label>
-                <input 
-                  type="time" 
+                <input
+                  type="time"
                   className="attendance-time-input"
                   value={startTime}
                   onChange={e => setStartTime(e.target.value)}
@@ -8268,31 +8239,31 @@ function AttendanceCalendarView({ employee, monthKey, year, month, monthDays, mo
               </div>
               <div className="attendance-time-group">
                 <label className="attendance-time-label">🕐 Çıkış Saati</label>
-                <input 
-                  type="time" 
+                <input
+                  type="time"
                   className="attendance-time-input"
                   value={endTime}
                   onChange={e => setEndTime(e.target.value)}
                 />
               </div>
             </div>
-            
+
             {/* FAZLA MESAİ BİLGİSİ */}
             {startTime && endTime && (
               <div className="attendance-overtime-info">
-                <span style={{fontSize:14}}>⏱️ Fazla Mesai:</span>
+                <span style={{ fontSize: 14 }}>⏱️ Fazla Mesai:</span>
                 <span className="attendance-overtime-value">
                   {calculateOvertime(startTime, endTime)} saat
                 </span>
               </div>
             )}
-            
-            <div style={{marginTop:12, padding:12, background:'#f0f9ff', borderRadius:8, fontSize:12, color:'#0369a1'}}>
+
+            <div style={{ marginTop: 12, padding: 12, background: '#f0f9ff', borderRadius: 8, fontSize: 12, color: '#0369a1' }}>
               💡 <strong>Not:</strong> Günlük mesai 8 saat (30dk mola dahil). 7:30 saatin üzeri fazla mesai olarak hesaplanır.
-              <br/>📌 SOCAR: 08:00-16:00 | Tüpraş: 08:30-17:30
+              <br />📌 SOCAR: 08:00-16:00 | Tüpraş: 08:30-17:30
             </div>
-            
-            <div className="row" style={{gap:8, marginTop:16}}>
+
+            <div className="row" style={{ gap: 8, marginTop: 16 }}>
               <button className="btn primary" onClick={handleSave}>Kaydet</button>
               <button className="btn" onClick={() => setSelectedDay(null)}>İptal</button>
             </div>
@@ -8303,19 +8274,19 @@ function AttendanceCalendarView({ employee, monthKey, year, month, monthDays, mo
   );
 }
 
-function AttendanceSummaryView({ employee, monthKey, monthData }){
-  if(!monthData.stats){
-    return <div className="muted" style={{marginTop:20}}>İstatistik hesaplanmadı.</div>;
+function AttendanceSummaryView({ employee, monthKey, monthData }) {
+  if (!monthData.stats) {
+    return <div className="muted" style={{ marginTop: 20 }}>İstatistik hesaplanmadı.</div>;
   }
-  
+
   const stats = monthData.stats;
-  
+
   return (
-    <div style={{marginTop:16}}>
-      <div className="card" style={{background:"#f9fafb"}}>
+    <div style={{ marginTop: 16 }}>
+      <div className="card" style={{ background: "#f9fafb" }}>
         <h3>{employee.name} - {monthKey} Özet Raporu</h3>
-        
-        <div className="grid" style={{gridTemplateColumns:"repeat(auto-fit,minmax(140px,1fr))", gap:12, marginTop:16}}>
+
+        <div className="grid" style={{ gridTemplateColumns: "repeat(auto-fit,minmax(140px,1fr))", gap: 12, marginTop: 16 }}>
           <SummaryItem label="Toplam Gün" value={stats.totalDays} />
           <SummaryItem label="Çalışma Günü" value={stats.workDays} color="#10b981" />
           <SummaryItem label="Tam Gün Çalıştı" value={stats.present} color="#3b82f6" />
@@ -8329,32 +8300,32 @@ function AttendanceSummaryView({ employee, monthKey, monthData }){
           <SummaryItem label="Gelmedi" value={stats.absent} color="#ef4444" />
           <SummaryItem label="Girilmemiş" value={stats.unset} color="#9ca3af" />
         </div>
-        
-        <div style={{marginTop:20, padding:16, background:"#fff", borderRadius:12}}>
-          <div style={{fontSize:18, fontWeight:700, marginBottom:8}}>
+
+        <div style={{ marginTop: 20, padding: 16, background: "#fff", borderRadius: 12 }}>
+          <div style={{ fontSize: 18, fontWeight: 700, marginBottom: 8 }}>
             Tamamlanma Oranı
           </div>
           <div style={{
-            height:40,
-            background:"#e5e7eb",
-            borderRadius:999,
-            overflow:"hidden",
-            position:"relative"
+            height: 40,
+            background: "#e5e7eb",
+            borderRadius: 999,
+            overflow: "hidden",
+            position: "relative"
           }}>
             <div style={{
-              height:"100%",
+              height: "100%",
               width: stats.completionRate + "%",
-              background:"linear-gradient(90deg, #10b981, #3b82f6)",
-              transition:"width 0.3s ease"
+              background: "linear-gradient(90deg, #10b981, #3b82f6)",
+              transition: "width 0.3s ease"
             }} />
             <div style={{
-              position:"absolute",
-              inset:0,
-              display:"flex",
-              alignItems:"center",
-              justifyContent:"center",
-              fontWeight:700,
-              color:"#1f2937"
+              position: "absolute",
+              inset: 0,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontWeight: 700,
+              color: "#1f2937"
             }}>
               {stats.completionRate}%
             </div>
@@ -8365,36 +8336,36 @@ function AttendanceSummaryView({ employee, monthKey, monthData }){
   );
 }
 
-function SummaryItem({ label, value, color }){
+function SummaryItem({ label, value, color }) {
   return (
     <div style={{
-      padding:16,
-      background:"#fff",
-      borderRadius:12,
-      border:"2px solid " + (color ? color + "20" : "#e5e7eb")
+      padding: 16,
+      background: "#fff",
+      borderRadius: 12,
+      border: "2px solid " + (color ? color + "20" : "#e5e7eb")
     }}>
       <div style={{
-        fontSize:28,
-        fontWeight:800,
+        fontSize: 28,
+        fontWeight: 800,
         color: color || "#1f2937"
       }}>
         {value}
       </div>
-      <div className="small muted" style={{marginTop:4}}>{label}</div>
+      <div className="small muted" style={{ marginTop: 4 }}>{label}</div>
     </div>
   );
 }
 
-function StatCard({ label, value, color }){
+function StatCard({ label, value, color }) {
   return (
     <div style={{
-      padding:"12px 16px",
-      borderRadius:12,
-      border:`2px solid ${color}20`,
-      background:`${color}08`,
-      textAlign:"center"
+      padding: "12px 16px",
+      borderRadius: 12,
+      border: `2px solid ${color}20`,
+      background: `${color}08`,
+      textAlign: "center"
     }}>
-      <div style={{fontSize:24, fontWeight:800, color}}>{value}</div>
+      <div style={{ fontSize: 24, fontWeight: 800, color }}>{value}</div>
       <div className="small muted">{label}</div>
     </div>
   );
@@ -8402,17 +8373,17 @@ function StatCard({ label, value, color }){
 
 // Simple ErrorBoundary to avoid blank screen on runtime errors
 
-class ErrorBoundary extends React.Component{
-  constructor(props){ super(props); this.state={error:null}; }
-  static getDerivedStateFromError(error){ return {error}; }
-  componentDidCatch(error, info){ try{ console.error(error, info); }catch(e){} }
-  render(){
-    if(this.state.error){
+class ErrorBoundary extends React.Component {
+  constructor(props) { super(props); this.state = { error: null }; }
+  static getDerivedStateFromError(error) { return { error }; }
+  componentDidCatch(error, info) { try { console.error(error, info); } catch (e) { } }
+  render() {
+    if (this.state.error) {
       return (
-        <div style={{padding:16, fontFamily:"ui-sans-serif, system-ui"}}>
-          <h2 style={{margin:"0 0 8px 0"}}>Uygulama Hatası</h2>
-          <div style={{opacity:.8, marginBottom:10}}>Konsoldaki ilk hata satırını bana atarsan tek seferde düzeltirim.</div>
-          <pre style={{whiteSpace:"pre-wrap", background:"rgba(0,0,0,.06)", padding:12, borderRadius:12}}>
+        <div style={{ padding: 16, fontFamily: "ui-sans-serif, system-ui" }}>
+          <h2 style={{ margin: "0 0 8px 0" }}>Uygulama Hatası</h2>
+          <div style={{ opacity: .8, marginBottom: 10 }}>Konsoldaki ilk hata satırını bana atarsan tek seferde düzeltirim.</div>
+          <pre style={{ whiteSpace: "pre-wrap", background: "rgba(0,0,0,.06)", padding: 12, borderRadius: 12 }}>
             {String(this.state.error && (this.state.error.stack || this.state.error.message || this.state.error))}
           </pre>
         </div>
@@ -8422,7 +8393,7 @@ class ErrorBoundary extends React.Component{
   }
 }
 
-export default function App(){
+export default function App() {
   return (
     <ErrorBoundary>
       <AppInner />
