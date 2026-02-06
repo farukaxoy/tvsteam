@@ -488,19 +488,6 @@ const NAV_CSS = `
 }
 .logoutBtn:hover{ background: rgba(239,68,68,.10); }
 
-/* Keep main grid from touching top */
-.mainArea{ 
-  padding: 24px; 
-  max-width: 1400px; 
-  margin: 0 auto; 
-  width: 100%;
-}
-
-.mainArea.dashboard-view {
-  max-width: 100%;
-  padding: 16px;
-}
-
 /* Mobile Responsive */
 @media (max-width: 900px){
   .brandRow{ min-width: unset; }
