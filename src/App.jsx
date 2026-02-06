@@ -5633,6 +5633,13 @@ function AdminView(props) {
   }, [safeProjects, safeCategories, selectedProjectId]);
 
 
+  const [deleteMode, setDeleteMode] = useState(false);
+  const [deleteCatKey, setDeleteCatKey] = useState((safeCategories && safeCategories[0] && safeCategories[0].key) ? safeCategories[0].key : "");
+
+  // YENI: Hızlı proje filtresi (summaryRows'dan ÖNCE tanımlanmalı)
+  const [selectedProjectFilter, setSelectedProjectFilter] = useState("");
+
+  // summaryRows - filtreyi kullanıyor, bu yüzden sonra tanımlanmalı
   const summaryRows = useMemo(() => {
     const out = [];
     // GÜNCELLEME: filteredProjects kullan
@@ -5670,17 +5677,6 @@ function AdminView(props) {
     }
     return out;
   }, [projects, categories, monthKey, selectedProjectFilter]);
-
-  const [deleteMode, setDeleteMode] = useState(false);
-  const [deleteCatKey, setDeleteCatKey] = useState((safeCategories && safeCategories[0] && safeCategories[0].key) ? safeCategories[0].key : "");
-
-  // YENI: Hızlı proje filtresi
-  const [selectedProjectFilter, setSelectedProjectFilter] = useState("");
-
-  // YENI: Filtrelenmiş projeler
-  const filteredProjects = selectedProjectFilter
-    ? safeProjects.filter(p => p.id === selectedProjectFilter)
-    : safeProjects;
 
   // YENI: İstatistikler
   const adminStats = useMemo(() => {
