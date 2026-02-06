@@ -979,3 +979,29 @@ tr:hover td {
 .themeBtn:hover {
   transform: translateY(-1px);
 }
+
+/* Main Area */
+.mainArea {
+  padding: 24px;
+  max-width: 1400px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.mainArea.dashboard-view {
+  max-width: 100%;
+  padding: 16px;
+}
+
+/* Mobile Responsive for Main Area */
+@media (max-width: 900px) {
+  .mainArea {
+    padding: 16px;
+  }
+}
+
+@media (max-width: 640px) {
+  .mainArea {
+    padding: 12px;
+  }
+}
