@@ -5635,7 +5635,12 @@ function AdminView(props) {
 
   const summaryRows = useMemo(() => {
     const out = [];
-    for (const p of safeProjects) {
+    // GÜNCELLEME: filteredProjects kullan
+    const projectsToUse = selectedProjectFilter
+      ? safeProjects.filter(p => p.id === selectedProjectFilter)
+      : safeProjects;
+
+    for (const p of projectsToUse) {
       for (const c of safeCategories) {
         const arr = p.itemsByCategory?.[c.key] || [];
         const total = arr.length;
@@ -5664,10 +5669,30 @@ function AdminView(props) {
       }
     }
     return out;
-  }, [projects, categories, monthKey]);
+  }, [projects, categories, monthKey, selectedProjectFilter]);
 
   const [deleteMode, setDeleteMode] = useState(false);
   const [deleteCatKey, setDeleteCatKey] = useState((safeCategories && safeCategories[0] && safeCategories[0].key) ? safeCategories[0].key : "");
+
+  // YENI: Hızlı proje filtresi
+  const [selectedProjectFilter, setSelectedProjectFilter] = useState("");
+
+  // YENI: Filtrelenmiş projeler
+  const filteredProjects = selectedProjectFilter
+    ? safeProjects.filter(p => p.id === selectedProjectFilter)
+    : safeProjects;
+
+  // YENI: İstatistikler
+  const adminStats = useMemo(() => {
+    const totalApproved = summaryRows.reduce((sum, row) => sum + row.approvedMonths, 0);
+    const totalPending = summaryRows.reduce((sum, row) => sum + row.pendingMonths, 0);
+    return {
+      totalProjects: safeProjects.length,
+      totalCategories: safeCategories.length,
+      approvedItems: totalApproved,
+      pendingItems: totalPending
+    };
+  }, [safeProjects, safeCategories, summaryRows]);
 
   useEffect(() => {
     // kategori listesi değişirse seçimi düzelt
@@ -5679,10 +5704,88 @@ function AdminView(props) {
 
   return (
     <div className="admin-modern-wrapper">
+
+      {/* YENI: Hızlı Filtre Bölümü */}
+      <div className="quick-filter-section">
+        <label className="filter-label">🎯 Hızlı Proje Filtresi</label>
+        <div className="modern-select-wrapper">
+          <select
+            className="modern-select"
+            value={selectedProjectFilter}
+            onChange={(e) => setSelectedProjectFilter(e.target.value)}
+          >
+            <option value="">📋 Tüm Projeler</option>
+            {safeProjects.map(p => (
+              <option key={p.id} value={p.id}>
+                🏢 {p.name}
+              </option>
+            ))}
+          </select>
+        </div>
+        {selectedProjectFilter && (
+          <button
+            className="btn btn-warn"
+            onClick={() => setSelectedProjectFilter("")}
+            style={{ marginTop: '10px' }}
+          >
+            ✖ Filtreyi Temizle
+          </button>
+        )}
+      </div>
+
+      {/* YENI: İstatistik Kartları */}
       <div className="card">
-        <div className="cardTitleRow">
-          <h2>Admin • Kategori Yönetimi</h2>
-          <Badge>{monthKey}</Badge>
+        <div className="admin-section-header">
+          <h3>📊 Sistem İstatistikleri</h3>
+        </div>
+
+        <div className="admin-grid">
+          <div className="admin-stat-card">
+            <div className="admin-stat-label">Toplam Proje</div>
+            <div className="admin-stat-value">{adminStats.totalProjects}</div>
+          </div>
+
+          <div className="admin-stat-card">
+            <div className="admin-stat-label">Kategoriler</div>
+            <div className="admin-stat-value">{adminStats.totalCategories}</div>
+          </div>
+
+          <div className="admin-stat-card">
+            <div className="admin-stat-label">Onaylı Kayıt</div>
+            <div className="admin-stat-value">{adminStats.approvedItems}</div>
+          </div>
+
+          <div className="admin-stat-card">
+            <div className="admin-stat-label">Bekleyen Onay</div>
+            <div className="admin-stat-value">{adminStats.pendingItems}</div>
+          </div>
+        </div>
+
+        {/* Aksiyon Butonları */}
+        <div className="admin-action-bar">
+          <button className="btn btn-primary" onClick={onDownloadBackup}>
+            💾 Yedek Al
+          </button>
+          <button className="btn btn-ok" onClick={() => document.getElementById('import-backup-input')?.click()}>
+            📥 Yedek Yükle
+          </button>
+          <input
+            id="import-backup-input"
+            type="file"
+            accept=".json"
+            style={{ display: 'none' }}
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) onImportBackup(file);
+              e.target.value = '';
+            }}
+          />
+        </div>
+      </div>
+
+      <div className="card">
+        <div className="admin-section-header">
+          <h3>🗂️ Kategori Yönetimi</h3>
         </div>
         <div className="small" style={{ marginTop: 6 }}>
           Yeni kategori oluşturabilir, alanlar ekleyebilirsin. (Uzman/Araç gibi)
@@ -7796,6 +7899,16 @@ function AttendanceView({
   const [selectedEmployee, setSelectedEmployee] = useState("");
   const [viewMode, setViewMode] = useState("grid");
 
+  // YENI: Accordion açık/kapalı state'leri
+  const [openSections, setOpenSections] = useState({});
+
+  const toggleSection = (key) => {
+    setOpenSections(prev => ({
+      ...prev,
+      [key]: !prev[key]
+    }));
+  };
+
   // Member kendi projesi için yazabilir, admin hepsini
   const myProjectName = !isAdmin ? (auth?.project || "") : "";
 
@@ -7831,74 +7944,200 @@ function AttendanceView({
   const [year, month] = monthKey.split("-").map(Number);
 
   return (
-    <div className="card">
-      <div className="cardHeader">
-        <div>
-          <div className="h2">📅 Aylık Puantaj Takibi</div>
-          <div className="muted">
-            Personel devam durumu ve izin takibi - {monthKey}
-            {!isAdmin && myProjectName && <span style={{ marginLeft: 10, color: "#3b82f6", fontWeight: 600 }}>• {myProjectName}</span>}
-          </div>
+    <div>
+      {/* YENI: Modern Ay Seçici */}
+      <div className="month-selector-modern" style={{ marginBottom: 20 }}>
+        <button className="month-nav-btn">
+          ←
+        </button>
+        <div className="month-display">
+          📅 {monthKey}
         </div>
+        <button className="month-nav-btn">
+          →
+        </button>
       </div>
 
-      <div className="grid" style={{ gridTemplateColumns: "repeat(auto-fit,minmax(200px,1fr))", gap: 10, marginTop: 12 }}>
-        {isAdmin && (
-          <div className="field">
-            <label>Proje</label>
-            <select value={selectedProject} onChange={e => setSelectedProject(e.target.value)}>
-              <option value="">Tüm Projeler</option>
-              {(projects || []).map(p => (
-                <option key={p.id} value={p.id}>{p.name}</option>
-              ))}
-            </select>
+      {/* YENI: Toplu İşlemler Bar */}
+      {isAdmin && (
+        <div className="bulk-actions-bar">
+          <div className="bulk-action-title">
+            ⚡ Toplu İşlemler
           </div>
-        )}
-
-        <div className="field">
-          <label>Personel</label>
-          <select value={selectedEmployee} onChange={e => setSelectedEmployee(e.target.value)}>
-            <option value="">Personel Seçin</option>
-            {projectEmployees.map(e => (
-              <option key={e.id} value={e.id}>
-                {e.name} ({e.title || "Personel"})
-              </option>
-            ))}
-          </select>
+          <button className="btn btn-ok" onClick={() => {
+            if (selectedEmployee) {
+              autoMarkWeekends(selectedEmployee, monthKey, year, month);
+            } else {
+              alert('Lütfen önce personel seçin');
+            }
+          }}>
+            🗓️ Hafta Sonlarını İşaretle
+          </button>
+          <button className="btn btn-warn" onClick={() => {
+            if (selectedEmployee) {
+              autoMarkHolidays(selectedEmployee, monthKey, year, month);
+            } else {
+              alert('Lütfen önce resmi tatilleri işaretlemek için personel seçin');
+            }
+          }}>
+            🎉 Tatilleri İşaretle
+          </button>
+          <button className="btn btn-primary" onClick={() => {
+            if (selectedEmployee) {
+              exportAttendanceToExcel(selectedEmployee, monthKey);
+            } else {
+              alert('Lütfen önce Excel indirmek için personel seçin');
+            }
+          }}>
+            📊 Excel İndir
+          </button>
         </div>
+      )}
 
-        <div className="field">
-          <label>Görünüm</label>
-          <select value={viewMode} onChange={e => setViewMode(e.target.value)}>
-            <option value="grid">Tablo Görünümü</option>
-            <option value="calendar">Takvim Görünümü</option>
-            <option value="summary">Özet Rapor</option>
-          </select>
-        </div>
-      </div>
+      {/* YENI: Proje Bazlı Accordion'lar */}
+      {(projects || []).map(project => {
+        const projectEmps = (employees || []).filter(e => e.project === project.name);
+        if (projectEmps.length === 0) return null;
 
-      {!selectedEmployee ? (
-        <div className="muted" style={{ marginTop: 20, padding: 20, textAlign: "center" }}>
-          👆 Yukarıdan personel seçin
-        </div>
-      ) : (
-        <>
+        const sectionKey = `project-${project.id}`;
+        const isOpen = openSections[sectionKey];
+
+        // İstatistikler hesapla
+        const stats = projectEmps.reduce((acc, emp) => {
+          const empData = attendance?.[emp.id]?.[monthKey];
+          if (empData?.stats) {
+            acc.approved += empData.stats.workdays || 0;
+            acc.pending += empData.stats.leave || 0;
+          }
+          return acc;
+        }, { approved: 0, pending: 0 });
+
+        return (
+          <div
+            key={project.id}
+            className={`attendance-accordion ${isOpen ? 'open' : ''}`}
+          >
+            {/* Accordion Header */}
+            <div
+              className="attendance-header"
+              onClick={() => toggleSection(sectionKey)}
+            >
+              <div className="attendance-header-left">
+                <div className="attendance-icon">
+                  🏢
+                </div>
+                <div>
+                  <h3 className="attendance-title">{project.name}</h3>
+                  <div className="attendance-subtitle">
+                    {projectEmps.length} çalışan
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                <span className="attendance-stat-badge ok">
+                  ✓ {stats.approved} İş Günü
+                </span>
+                <span className="attendance-stat-badge warn">
+                  🏖️ {stats.pending} İzin
+                </span>
+                <div className="attendance-arrow">
+                  ▼
+                </div>
+              </div>
+            </div>
+
+            {/* Accordion Body */}
+            <div className="attendance-body">
+              <div className="attendance-content">
+
+                {/* Çalışan Listesi */}
+                {projectEmps.map(emp => {
+                  const empData = attendance?.[emp.id]?.[monthKey];
+                  const workdays = empData?.stats?.workdays || 0;
+                  const leave = empData?.stats?.leave || 0;
+
+                  return (
+                    <div
+                      key={emp.id}
+                      className="employee-row-modern"
+                      onClick={() => setSelectedEmployee(emp.id)}
+                      style={{ cursor: 'pointer' }}
+                    >
+                      <div className="employee-avatar-circle">
+                        {emp.name.charAt(0).toUpperCase()}
+                      </div>
+                      <div className="employee-info-modern">
+                        <div className="employee-name-modern">
+                          {emp.name}
+                        </div>
+                        <div className="employee-role-modern">
+                          {emp.title || 'Çalışan'}
+                        </div>
+                      </div>
+                      <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                        <span className="badge ok">{workdays} gün</span>
+                        <span className="badge warn">{leave} izin</span>
+                        <button
+                          className="btn btn-primary"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedEmployee(emp.id);
+                          }}
+                        >
+                          Detay
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+
+              </div>
+            </div>
+          </div>
+        );
+      })}
+
+      {/* Eski Kart - Seçili Personel Detayı */}
+      {selectedEmployee && (
+        <div className="card" style={{ marginTop: 20 }}>
+          <div className="cardHeader">
+            <div>
+              <div className="h2">📅 Detaylı Puantaj Görünümü</div>
+              <div className="muted">
+                {employee?.name} - {monthKey}
+                {!isAdmin && myProjectName && <span style={{ marginLeft: 10, color: "#3b82f6", fontWeight: 600 }}>• {myProjectName}</span>}
+              </div>
+            </div>
+          </div>
+
+          <div className="grid" style={{ gridTemplateColumns: "repeat(auto-fit,minmax(200px,1fr))", gap: 10, marginTop: 12 }}>
+            <div className="field">
+              <label>Görünüm</label>
+              <select value={viewMode} onChange={e => setViewMode(e.target.value)}>
+                <option value="grid">Tablo Görünümü</option>
+                <option value="calendar">Takvim Görünümü</option>
+                <option value="summary">Özet Rapor</option>
+              </select>
+            </div>
+          </div>
+
           {canEdit && (
             <div className="row" style={{ gap: 8, marginTop: 12, flexWrap: "wrap" }}>
               <button
-                className="btn"
+                className="btn btn-ok"
                 onClick={() => autoMarkWeekends(selectedEmployee, monthKey, year, month)}
               >
                 🗓️ Hafta Sonlarını İşaretle
               </button>
               <button
-                className="btn"
+                className="btn btn-warn"
                 onClick={() => autoMarkHolidays(selectedEmployee, monthKey, year, month)}
               >
                 🎉 Resmi Tatilleri İşaretle
               </button>
               <button
-                className="btn primary"
+                className="btn btn-primary"
                 onClick={() => exportAttendanceToExcel(selectedEmployee, monthKey)}
               >
                 📥 Excel İndir
@@ -7942,7 +8181,7 @@ function AttendanceView({
               monthData={monthData}
             />
           )}
-        </>
+        </div>
       )}
     </div>
   );
