@@ -3477,7 +3477,7 @@ function AppInner() {
             <div className="user-avatar-modern">
               {auth?.username?.charAt(0).toUpperCase() || 'U'}
             </div>
-            <button className="logout-btn-modern" onClick={handleLogout}>
+            <button className="logout-btn-modern" onClick={doLogout}>
               Çıkış
             </button>
           </div>
