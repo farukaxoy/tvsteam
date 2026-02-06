@@ -666,18 +666,20 @@ body {
 .navbar-container {
   max-width: 1400px;
   margin: 0 auto;
-  padding: 0 24px;
-  height: 70px;
+  padding: 12px 24px;
+  min-height: 70px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 24px;
+  flex-wrap: wrap;
 }
 
 .navbar-left {
   display: flex;
   align-items: center;
   gap: 16px;
+  order: 1;
 }
 
 .navbar-brand {
@@ -692,8 +694,12 @@ body {
 .navbar-center {
   display: flex;
   gap: 8px;
-  flex: 1;
+  flex: 1 1 100%;
   justify-content: center;
+  flex-wrap: wrap;
+  padding: 4px 0;
+  max-width: 100%;
+  order: 3;
 }
 
 .navbar-tab {
@@ -734,6 +740,7 @@ body {
   display: flex;
   align-items: center;
   gap: 12px;
+  order: 2;
 }
 
 .theme-toggle-modern {
@@ -3494,6 +3501,18 @@ function AppInner() {
             >
               🎯 Aksiyonlar
             </button>
+            <button
+              className={`navbar-tab ${tab === 'announcements' ? 'active' : ''}`}
+              onClick={() => navigate('announcements')}
+            >
+              📢 Duyurular
+            </button>
+            <button
+              className={`navbar-tab ${tab === 'contact' ? 'active' : ''}`}
+              onClick={() => navigate('contact')}
+            >
+              💬 İletişim
+            </button>
             {isAdmin && (
               <button
                 className={`navbar-tab ${tab === 'admin' ? 'active' : ''}`}
@@ -3611,136 +3630,7 @@ function AppInner() {
         <div className="mainArea">
           <div className={`grid ${tab === "dashboard" ? "gridSingle" : ""}`}>
             {/* LEFT PANEL */}
-            {tab !== "dashboard" && (
-              <div className="card">
-                <div className="cardTitleRow">
-                  <h3>Filtreler</h3>
-                  <Badge kind="ok">{monthDays} gün</Badge>
-                </div>
 
-                <div className="small" style={{ marginTop: 6 }}>
-                  Kategori seç (Uzman/Araç/diğer). Veri girişi ve dashboard o kategoriye göre çalışır.
-                </div>
-
-                <hr className="sep" />
-
-                <div className="row">
-                  <select
-                    className="input sm"
-                    value={activeYear}
-                    onChange={(e) => setActiveYear(safeNum(e.target.value))}
-                  >
-                    {yearOptions().map((yy) => (
-                      <option key={yy} value={yy}>{yy}</option>
-                    ))}
-                  </select>
-
-                  <select
-                    className="input sm"
-                    value={activeMonth}
-                    onChange={(e) => setActiveMonth(e.target.value)}
-                  >
-                    {monthOptions().map((mm) => (
-                      <option key={mm.key} value={mm.key}>{mm.label}</option>
-                    ))}
-                  </select>
-                </div>
-
-                <div style={{ height: 10 }} />
-
-                {isAdmin && tab === "entry" && (
-                  <>
-                    <select
-                      className="input"
-                      value={entryProjectId || ""}
-                      onChange={(e) => setEntryProjectId(e.target.value)}
-                    >
-                      {(state.projects || []).map((p) => (
-                        <option key={p.id} value={p.id}>{p.name}</option>
-                      ))}
-                    </select>
-                    <div style={{ height: 10 }} />
-                  </>
-                )}
-
-                <select
-                  className="input sm"
-                  value={categoryKey}
-                  onChange={(e) => setCategoryKey(e.target.value)}
-                >
-                  {visibleCategories.map((c) => (
-                    <option key={c.key} value={c.key}>{c.name}</option>
-                  ))}
-                </select>
-
-                <div style={{ height: 10 }} />
-
-                <input
-                  className="input sm"
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  placeholder={`${activeCategory?.itemLabel || "Kayıt"} ara...`}
-                />
-
-                {!isAdmin && activeCategory?.key !== "monthly_controls" && (
-                  <>
-                    <hr className="sep" />
-                    <div className="cardTitleRow">
-                      <h3>{activeCategory?.itemLabel || "Kayıt"} Talebi</h3>
-                      <Badge kind="warn">Admin onayı</Badge>
-                    </div>
-
-                    <div style={{ marginTop: 10 }} className="row">
-                      <input
-                        className="input"
-                        value={newItemName}
-                        onChange={(e) => setNewItemName(e.target.value)}
-                        placeholder={`${activeCategory?.itemLabel || "Kayıt"} adı (ör: Faruk Aksoy / 34 ABC 123)`}
-                      />
-                      <button className="btn primary" onClick={() => requestItem(visibleProjects[0]?.id)}>
-                        Gönder
-                      </button>
-                    </div>
-
-                    {myPendingItems.length > 0 && (
-                      <>
-                        <hr className="sep" />
-                        <div className="cardTitleRow">
-                          <h3>Bekleyen Taleplerim</h3>
-                          <Badge kind="warn">{myPendingItems.length}</Badge>
-                        </div>
-                        <div className="list">
-                          {myPendingItems.map((it) => (
-                            <div key={it.id} className="item">
-                              <div className="itemLeft">
-                                <b>{it.name}</b>
-                                <span className="small">{formatDT(it.createdAt)}</span>
-                              </div>
-                              <Badge kind="warn">Onay Bekliyor</Badge>
-                            </div>
-                          ))}
-                        </div>
-                      </>
-                    )}
-                  </>
-                )}
-
-                {isAdmin && (
-                  <>
-                    <hr className="sep" />
-                    <div className="cardTitleRow">
-                      <h3>Bekleyenler</h3>
-                      <Badge kind={(pendingItemRequests.length + pendingMonthApprovals.length) ? "warn" : "ok"}>
-                        {pendingItemRequests.length + pendingMonthApprovals.length}
-                      </Badge>
-                    </div>
-                    <div className="small" style={{ marginTop: 6 }}>
-                      Onaylar sekmesinden yönet.
-                    </div>
-                  </>
-                )}
-              </div>
-            )}
 
             {/* RIGHT CONTENT */}
             <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
@@ -3778,6 +3668,44 @@ function AppInner() {
                     </div>
                   </div>
 
+
+                  {/* 📢 DUYURULAR */}
+                  <div className="card" style={{ marginTop: 32 }}>
+                    <h2 style={{ marginBottom: 20 }}>📢 Duyurular</h2>
+                    {(state.announcements || []).filter(a => !a.archived).slice(0, 5).length > 0 ? (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                        {(state.announcements || []).filter(a => !a.archived).slice(0, 5).map(ann => (
+                          <div key={ann.id} style={{
+                            padding: 16,
+                            borderRadius: 12,
+                            background: 'linear-gradient(135deg, #f0f9ff, #e0f2fe)',
+                            border: '2px solid #0ea5e9',
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'start'
+                          }}>
+                            <div style={{ flex: 1 }}>
+                              <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 4 }}>
+                                {ann.title || 'Duyuru'}
+                              </div>
+                              <div style={{ fontSize: 14, opacity: 0.8, marginBottom: 8 }}>
+                                {ann.message}
+                              </div>
+                              <div style={{ fontSize: 12, opacity: 0.6 }}>
+                                {ann.projectScope === 'ALL' ? '🌍 Tüm Projeler' : `📁 ${ann.projectScope}`} •
+                                {formatDate(ann.createdAt)}
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div style={{ textAlign: 'center', padding: 40, opacity: 0.5 }}>
+                        Henüz duyuru bulunmuyor
+                      </div>
+                    )}
+                  </div>
+
                   <div className="card" style={{ marginTop: 32 }}>
                     <h2 style={{ marginBottom: 20 }}>⚡ Hızlı Erişim</h2>
                     <div className="grid grid-3" style={{ gap: 16 }}>
@@ -3801,6 +3729,27 @@ function AppInner() {
                         onClick={() => navigate('actions')}
                       >
                         🎯 Aksiyonlar
+                      </button>
+                      <button
+                        className="btn"
+                        style={{ padding: 24, fontSize: 16, borderRadius: 16, background: 'linear-gradient(135deg, #3b82f6, #2563eb)', color: 'white', border: 'none', cursor: 'pointer' }}
+                        onClick={() => navigate('docs')}
+                      >
+                        📄 Doküman
+                      </button>
+                      <button
+                        className="btn"
+                        style={{ padding: 24, fontSize: 16, borderRadius: 16, background: 'linear-gradient(135deg, #ec4899, #db2777)', color: 'white', border: 'none', cursor: 'pointer' }}
+                        onClick={() => navigate('docTrack')}
+                      >
+                        🗂️ Evrak Takip
+                      </button>
+                      <button
+                        className="btn"
+                        style={{ padding: 24, fontSize: 16, borderRadius: 16, background: 'linear-gradient(135deg, #8b5cf6, #7c3aed)', color: 'white', border: 'none', cursor: 'pointer' }}
+                        onClick={() => navigate('announcements')}
+                      >
+                        📢 Duyurular
                       </button>
                     </div>
                   </div>
@@ -6419,7 +6368,7 @@ function EmployeesView({ isAdmin, auth, employees, projects, updateState }) {
     return map;
   }, [filtered]);
 
-  function addEmployee(name, role, project) {
+  function addEmployee(name, role, project, emergencyContact, emergencyPhone) {
     updateState(d => {
       d.employees ||= [];
 
@@ -6439,6 +6388,8 @@ function EmployeesView({ isAdmin, auth, employees, projects, updateState }) {
         approvedAt: new Date().toISOString(),
         approvedBy: auth.username,
         createdAt: new Date().toISOString(),
+        emergencyContact: (emergencyContact || "").trim(),
+        emergencyPhone: (emergencyPhone || "").trim(),
         // uzman (experts) kaydıyla eşleştirme için
         expertItemId: null
       };
@@ -6582,6 +6533,8 @@ function EmployeesView({ isAdmin, auth, employees, projects, updateState }) {
                   <tr>
                     <th>Ad Soyad</th>
                     <th>Görev</th>
+                    {isAdmin ? <th>Acil Durum Kişisi</th> : null}
+                    {isAdmin ? <th>Acil Durum Tel</th> : null}
                     <th>Durum</th>
                     {isAdmin ? <th></th> : null}
                   </tr>
@@ -6591,6 +6544,8 @@ function EmployeesView({ isAdmin, auth, employees, projects, updateState }) {
                     <tr key={e.id} style={{ opacity: e.active ? 1 : .65 }}>
                       <td style={{ display: "flex", alignItems: "center", gap: 8 }}><div className="avatar" style={{ width: 26, height: 26, fontSize: 12 }} title={e.name}>{(String(e.name || "U").slice(0, 1)).toUpperCase()}</div><b>{e.name}</b></td>
                       <td>{e.role || "-"}</td>
+                      {isAdmin ? <td>{e.emergencyContact || "-"}</td> : null}
+                      {isAdmin ? <td>{e.emergencyPhone || "-"}</td> : null}
                       <td>
                         <Badge kind={e.active ? "ok" : "warn"}>{e.active ? "Aktif" : "Pasif"}</Badge>
                       </td>
@@ -6624,6 +6579,8 @@ function EmployeeAddForm({ projects, onAdd }) {
   const [name, setName] = useState("");
   const [role, setRole] = useState("");
   const [project, setProject] = useState("");
+  const [emergencyContact, setEmergencyContact] = useState("");
+  const [emergencyPhone, setEmergencyPhone] = useState("");
   return (
     <>
       <hr className="sep" />
@@ -6648,12 +6605,29 @@ function EmployeeAddForm({ projects, onAdd }) {
             <option key={p.id} value={p.name}>{p.name}</option>
           ))}
         </select>
+      </div>
+
+      <div className="row" style={{ flexWrap: "wrap", marginTop: 12 }}>
+        <input
+          className="input"
+          placeholder="Acil Durum Kişisi"
+          value={emergencyContact}
+          onChange={e => setEmergencyContact(e.target.value)}
+          style={{ minWidth: 220, flex: "1 1 240px" }}
+        />
+        <input
+          className="input"
+          placeholder="Acil Durum Telefonu"
+          value={emergencyPhone}
+          onChange={e => setEmergencyPhone(e.target.value)}
+          style={{ minWidth: 220, flex: "1 1 240px" }}
+        />
         <button
           className="btn primary"
           onClick={() => {
             if (!name.trim() || !project) return;
-            onAdd(name, role, project);
-            setName(""); setRole(""); setProject("");
+            onAdd(name, role, project, emergencyContact, emergencyPhone);
+            setName(""); setRole(""); setProject(""); setEmergencyContact(""); setEmergencyPhone("");
           }}
           style={{ flex: "0 0 auto" }}
         >
