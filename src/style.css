@@ -246,8 +246,8 @@ body {
 body {
   margin: 0;
   background:
-    radial-gradient(1200px 700px at 10% 10%, rgba(255, 193, 7, .18), transparent 55%),
-    radial-gradient(1200px 700px at 70% 10%, rgba(13, 110, 253, .14), transparent 50%),
+    radial-gradient(1400px 700px at 10% 10%, rgba(255, 193, 7, .18), transparent 55%),
+    radial-gradient(1400px 700px at 70% 10%, rgba(13, 110, 253, .14), transparent 50%),
     radial-gradient(900px 650px at 95% 55%, rgba(25, 135, 84, .16), transparent 55%),
     linear-gradient(135deg, rgba(20, 132, 255, .06), rgba(0, 0, 0, 0)),
     var(--bg);
