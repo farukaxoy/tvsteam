@@ -467,7 +467,7 @@ const NAV_CSS = `
   display:flex; align-items:center; gap:8px;
   color: rgba(15,23,42,.80);
   font-weight: 700;
-  max-width: 260px;
+  max-width: 1400px;
 }
 
 [data-theme="dark"] .userPill{
