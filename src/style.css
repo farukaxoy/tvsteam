@@ -266,82 +266,51 @@ body {
     var(--bg);
 }
 
+
 /* ===== RESPONSIVE LAYOUT ===== */
+
 .container {
   width: 100%;
   max-width: 100%;
-  /* Sınırsız genişlik */
   margin: 18px auto 34px;
   padding: 0 40px;
-  /* Yan padding artırıldı */
 }
 
-@media (max-width: 1680px) {
-  .container {
-    max-width: 100%;
-    padding: 0 32px;
-  }
-}
-
-@media (max-width: 1440px) {
-  .container {
-    max-width: 100%;
-    padding: 0 28px;
-  }
-}
-
-@media (max-width: 1024px) {
-  .container {
-    max-width: 100%;
-    padding: 0 20px;
-  }
-}
-
-@media (max-width: 768px) {
-  .container {
-    max-width: 100%;
-    padding: 0 16px;
-  }
-}
-
-/* Main Area - Fully Responsive */
+/* ===== MAIN AREA ===== */
 .mainArea {
   width: 100%;
-  max-width: 100%;
-  /* Sınırsız genişlik */
+  max-width: 1400px;
+  /* 🔥 ASIL DÜZELTME */
   margin: 0 auto;
   padding: 24px 40px;
-  /* Yan padding artırıldı */
 }
 
+/* Dashboard her zaman full width */
 .mainArea.dashboard-view {
   max-width: 100%;
 }
 
+/* responsive padding’ler KORUNDU */
 @media (max-width: 1680px) {
   .mainArea {
-    max-width: 100%;
     padding: 24px 32px;
   }
 }
 
 @media (max-width: 1440px) {
   .mainArea {
-    max-width: 100%;
     padding: 20px 28px;
   }
 }
 
 @media (max-width: 1024px) {
   .mainArea {
-    max-width: 100%;
     padding: 20px 20px;
   }
 }
 
 @media (max-width: 768px) {
   .mainArea {
-    max-width: 100%;
     padding: 16px 16px;
   }
 }
