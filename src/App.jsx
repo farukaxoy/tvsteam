@@ -1552,7 +1552,12 @@ function AdminMessageComposer({ projects, users, onSend }) {
       <div className="row" style={{ marginTop: 10 }}>
         <div style={{ flex: 1 }}>
           <span className="lbl">Mesaj</span>
-          <textarea className="input" value={body} onChange={e => setBody(e.target.value)} placeholder="Mesaj içeriği..." />
+          <textarea
+            className="contact-message-box"
+            value={body}
+            onChange={e => setBody(e.target.value)}
+            placeholder="Mesaj içeriği..."
+          />
         </div>
       </div>
 
@@ -5679,9 +5684,6 @@ function AdminView(props) {
   // YENI: Hızlı proje filtresi (summaryRows'dan ÖNCE tanımlanmalı)
   const [selectedProjectFilter, setSelectedProjectFilter] = useState("");
 
-  // YENI: Admin tab navigation
-  const [adminTab, setAdminTab] = useState("overview");
-
   // summaryRows - filtreyi kullanıyor, bu yüzden sonra tanımlanmalı
   const summaryRows = useMemo(() => {
     const out = [];
@@ -5743,36 +5745,6 @@ function AdminView(props) {
 
   return (
     <div className="admin-modern-wrapper">
-
-      {/* YENI: Modern Tab Navigation */}
-      <div className="admin-tab-navigation">
-        <button
-          className={`admin-tab-btn ${adminTab === 'overview' ? 'active' : ''}`}
-          onClick={() => setAdminTab('overview')}
-        >
-          📊 Genel Bakış
-        </button>
-        <button
-          className={`admin-tab-btn ${adminTab === 'categories' ? 'active' : ''}`}
-          onClick={() => setAdminTab('categories')}
-        >
-          🗂️ Kategoriler
-        </button>
-        <button
-          className={`admin-tab-btn ${adminTab === 'projects' ? 'active' : ''}`}
-          onClick={() => setAdminTab('projects')}
-        >
-          🏗️ Projeler
-        </button>
-        <button
-          className={`admin-tab-btn ${adminTab === 'docs' ? 'active' : ''}`}
-          onClick={() => setAdminTab('docs')}
-        >
-          📄 Dokümanlar
-        </button>
-      </div>
-
-      <div className="admin-section-divider"></div>
 
       {/* YENI: Hızlı Filtre Bölümü */}
       <div className="quick-filter-section">
@@ -6321,7 +6293,12 @@ function AnnouncementsView({ isAdmin, auth, announcements, projects, addAnnounce
             <div className="row" style={{ marginTop: 10 }}>
               <div style={{ flex: 1 }}>
                 <span className="lbl">Mesaj</span>
-                <textarea className="input" value={body} onChange={e => setBody(e.target.value)} placeholder="Duyuru içeriği..." />
+                <textarea
+                  className="contact-message-box"
+                  value={body}
+                  onChange={e => setBody(e.target.value)}
+                  placeholder="Duyuru içeriği..."
+                />
               </div>
             </div>
 
@@ -6384,31 +6361,31 @@ function ContactView({
 
   return (
     <div className="contact-modern-wrapper">
-      <div className="card">
-        <div className="cardTitleRow">
-          <h2>💬 İletişim</h2>
-          <Badge kind={isAdmin ? "ok" : "warn"}>{isAdmin ? "Admin" : "Kullanıcı"}</Badge>
-        </div>
-        <div className="small" style={{ marginTop: 6 }}>
-          {isAdmin ? "Admin olarak mesaj gönderebilir ve tüm mesajları görüntüleyebilirsin." : "Kullanıcı mesajları sadece admin tarafından görüntülenir."}
-        </div>
+      {/* Kullanıcı Mesaj Gönderme */}
+      {!isAdmin && (
+        <div className="card">
+          <div className="cardTitleRow">
+            <h2>💬 İletişim</h2>
+            <Badge kind="warn">Mesaj Gönder</Badge>
+          </div>
+          <div className="small" style={{ marginTop: 6 }}>
+            Kullanıcı mesajları sadece admin tarafından görüntülenir.
+          </div>
 
-        {/* HERKES İÇİN MESAJ GÖNDERME ALANI */}
-        <>
           <hr className="sep" />
           <textarea
             className="contact-message-box"
             value={contactText}
             onChange={e => setContactText(e.target.value)}
-            placeholder={isAdmin ? "Admin mesajınızı buraya yazın..." : "Mesajınızı buraya yazın... (Admin'e ulaştırılacaktır)"}
+            placeholder="Mesajınızı buraya yazın... (Admin'e ulaştırılacaktır)"
           />
           <div style={{ marginTop: 14 }}>
             <button className="contact-send-btn" onClick={sendContact}>
-              📤 {isAdmin ? "Admin Mesajı Gönder" : "Mesaj Gönder"}
+              📤 Mesaj Gönder
             </button>
           </div>
-        </>
-      </div>
+        </div>
+      )}
 
       {isAdmin && (
         <>
