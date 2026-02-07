@@ -8000,53 +8000,82 @@ function AttendanceView({
 
   // Seçilen personel bu kullanıcının projesi mi? → yazma izni
   const canEdit = useMemo(() => {
-    if (isAdmin) return true;
-    if (!selectedEmployee) return false;
+    if (isAdmin) {
+      console.log('canEdit: Admin always TRUE ✅');
+      return true;
+    }
+    if (!selectedEmployee) {
+      console.log('canEdit: No employee selected');
+      return false;
+    }
 
     // Member için: seçilen çalışanın projesi, kullanıcının projesiyle aynı mı?
     const emp = (employees || []).find(e => e.id === selectedEmployee);
-    if (!emp) return false;
+    if (!emp) {
+      console.log('canEdit: Employee not found ❌', { selectedEmployee });
+      return false;
+    }
 
     // Member'ın kendi projesi
     const userProjectValue = auth?.project || "";
-    if (!userProjectValue) return false;
+    if (!userProjectValue) {
+      console.log('canEdit: No user project ❌', { auth });
+      return false;
+    }
 
     // Çalışanın projesi
     const empProjectName = emp.project || "";
-    if (!empProjectName) return false;
+    if (!empProjectName) {
+      console.log('canEdit: No employee project ❌', { emp });
+      return false;
+    }
+
+    console.log('🔍 canEdit DEBUG:', {
+      userProjectValue,
+      empProjectName,
+      projectsCount: (projects || []).length,
+      allProjects: (projects || []).map(p => ({ id: p.id, name: p.name, code: p.code || p.project_code }))
+    });
 
     // ÇÖZÜM: Birden fazla karşılaştırma yap
-    // 1. Direkt eşleşme (SOCAR gibi)
-    if (userProjectValue === empProjectName) {
-      console.log('canEdit: Direct match ✅', { userProjectValue, empProjectName });
+    // 1. Direkt eşleşme (SOCAR gibi) - case insensitive
+    const userProjLower = userProjectValue.toLowerCase().trim();
+    const empProjLower = empProjectName.toLowerCase().trim();
+
+    if (userProjLower === empProjLower) {
+      console.log('✅ canEdit: Direct match (case-insensitive)', { userProjectValue, empProjectName });
       return true;
     }
 
     // 2. Kullanıcının project değeri ile projelerden birini bul
     const userProject = (projects || []).find(p => {
+      const pid = (p.id || "").toString().toLowerCase().trim();
+      const pname = (p.name || "").toString().toLowerCase().trim();
+      const pcode = (p.project_code || p.code || p.projectCode || "").toString().toLowerCase().trim();
+
       return (
-        p.id === userProjectValue ||
-        p.name === userProjectValue ||
-        p.project_code === userProjectValue ||
-        p.code === userProjectValue ||
-        p.projectCode === userProjectValue
+        pid === userProjLower ||
+        pname === userProjLower ||
+        pcode === userProjLower
       );
     });
 
     if (userProject) {
-      // Kullanıcının projesinin ADI ile çalışanın projesi eşleşiyor mu?
-      const match = userProject.name === empProjectName;
-      console.log('canEdit check:', {
+      // Kullanıcının projesinin ADI ile çalışanın projesi eşleşiyor mu? - case insensitive
+      const userProjNameLower = (userProject.name || "").toLowerCase().trim();
+      const match = userProjNameLower === empProjLower;
+
+      console.log('canEdit check (project found):', {
         userProjectValue,
         userProjectName: userProject.name,
         empProjectName,
-        match
+        match: match ? '✅' : '❌'
       });
       return match;
     }
 
     // 3. Hiçbir eşleşme bulunamadı
-    console.log('canEdit: No match ❌', {
+    console.log('❌ canEdit: No match', {
       userProjectValue,
       empProjectName,
       projectsCount: (projects || []).length
