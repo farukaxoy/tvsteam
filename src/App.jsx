@@ -134,27 +134,7 @@ function diffDays(fromIso, toIso) {
 }
 
 // 🕐 FAZLA MESAİ HESAPLAMA (v005)
-function calculateOvertime(startTime, endTime) {
-  if (!startTime || !endTime) return 0;
-
-  const [startH, startM] = startTime.split(':').map(Number);
-  const [endH, endM] = endTime.split(':').map(Number);
-
-  let totalMinutes = (endH * 60 + endM) - (startH * 60 + startM);
-  if (totalMinutes < 0) totalMinutes += 24 * 60; // Gece vardiyası
-
-  // 30 dakika mola düş
-  totalMinutes -= 30;
-
-  // Günlük normal mesai: 8 saat = 480 dakika
-  const normalWorkMinutes = 480;
-
-  // Fazla mesai hesapla
-  const overtimeMinutes = Math.max(0, totalMinutes - normalWorkMinutes);
-  const overtimeDecimal = (overtimeMinutes / 60).toFixed(2);
-
-  return overtimeDecimal;
-}
+// calculateOvertime fonksiyonu kaldırıldı - sadece giriş/çıkış saati tutulacak
 
 // Proje bazlı varsayılan mesai saatleri
 const PROJECT_WORK_HOURS = {
@@ -3935,6 +3915,37 @@ function AppInner() {
                     </div>
                   )}
 
+                  {/* YENI: Ay/Yıl Seçici - Tüm Kullanıcılar İçin */}
+                  <div className="card">
+                    <div className="month-selector-modern">
+                      <button
+                        className="month-nav-btn"
+                        onClick={() => {
+                          const newMonth = activeMonth === '01' ? '12' : String(parseInt(activeMonth) - 1).padStart(2, '0');
+                          const newYear = activeMonth === '01' ? activeYear - 1 : activeYear;
+                          setActiveYear(newYear);
+                          setActiveMonth(newMonth);
+                        }}
+                      >
+                        ←
+                      </button>
+                      <div className="month-display">
+                        📅 {monthKey}
+                      </div>
+                      <button
+                        className="month-nav-btn"
+                        onClick={() => {
+                          const newMonth = activeMonth === '12' ? '01' : String(parseInt(activeMonth) + 1).padStart(2, '0');
+                          const newYear = activeMonth === '12' ? activeYear + 1 : activeYear;
+                          setActiveYear(newYear);
+                          setActiveMonth(newMonth);
+                        }}
+                      >
+                        →
+                      </button>
+                    </div>
+                  </div>
+
                   <div className="card">
                     <div className="cardTitleRow">
                       <h3>Hızlı Menü</h3>
@@ -4098,13 +4109,6 @@ function AppInner() {
                     adminSetProjectHiddenFields={adminSetProjectHiddenFields}
                   />
 
-                  <ProjectUserMapping
-                    authUsers={state.authUsers}
-                    projects={visibleProjects}
-                    onUpsert={adminUpsertAuthUser}
-                    onDelete={adminDeleteAuthUser}
-                  />
-
                   <VehiclesAdminView
                     isAdmin={isAdmin}
                     auth={auth}
@@ -4184,6 +4188,10 @@ function AppInner() {
                   autoMarkWeekends={autoMarkWeekends}
                   autoMarkHolidays={autoMarkHolidays}
                   exportAttendanceToExcel={exportAttendanceToExcel}
+                  setActiveYear={setActiveYear}
+                  setActiveMonth={setActiveMonth}
+                  activeYear={activeYear}
+                  activeMonth={activeMonth}
                 />
               )}
 
@@ -5669,6 +5677,9 @@ function AdminView(props) {
   // YENI: Hızlı proje filtresi (summaryRows'dan ÖNCE tanımlanmalı)
   const [selectedProjectFilter, setSelectedProjectFilter] = useState("");
 
+  // YENI: Admin tab navigation
+  const [adminTab, setAdminTab] = useState("overview");
+
   // summaryRows - filtreyi kullanıyor, bu yüzden sonra tanımlanmalı
   const summaryRows = useMemo(() => {
     const out = [];
@@ -5730,6 +5741,36 @@ function AdminView(props) {
 
   return (
     <div className="admin-modern-wrapper">
+
+      {/* YENI: Modern Tab Navigation */}
+      <div className="admin-tab-navigation">
+        <button
+          className={`admin-tab-btn ${adminTab === 'overview' ? 'active' : ''}`}
+          onClick={() => setAdminTab('overview')}
+        >
+          📊 Genel Bakış
+        </button>
+        <button
+          className={`admin-tab-btn ${adminTab === 'categories' ? 'active' : ''}`}
+          onClick={() => setAdminTab('categories')}
+        >
+          🗂️ Kategoriler
+        </button>
+        <button
+          className={`admin-tab-btn ${adminTab === 'projects' ? 'active' : ''}`}
+          onClick={() => setAdminTab('projects')}
+        >
+          🏗️ Projeler
+        </button>
+        <button
+          className={`admin-tab-btn ${adminTab === 'docs' ? 'active' : ''}`}
+          onClick={() => setAdminTab('docs')}
+        >
+          📄 Dokümanlar
+        </button>
+      </div>
+
+      <div className="admin-section-divider"></div>
 
       {/* YENI: Hızlı Filtre Bölümü */}
       <div className="quick-filter-section">
@@ -6324,10 +6365,10 @@ function ContactView({
   const safeProjects = Array.isArray(projects) ? projects : [];
 
   return (
-    <>
+    <div className="contact-modern-wrapper">
       <div className="card">
         <div className="cardTitleRow">
-          <h2>İletişim</h2>
+          <h2>💬 İletişim</h2>
           <Badge kind={isAdmin ? "ok" : "warn"}>{isAdmin ? "Admin Görür" : "Mesaj Gönder"}</Badge>
         </div>
         <div className="small" style={{ marginTop: 6 }}>
@@ -6338,13 +6379,15 @@ function ContactView({
           <>
             <hr className="sep" />
             <textarea
-              className="input"
+              className="contact-message-box"
               value={contactText}
               onChange={e => setContactText(e.target.value)}
-              placeholder="Mesajınız..."
+              placeholder="Mesajınızı buraya yazın... (Admin'e ulaştırılacaktır)"
             />
-            <div style={{ marginTop: 10 }}>
-              <button className="btn primary" onClick={sendContact}>Gönder</button>
+            <div style={{ marginTop: 14 }}>
+              <button className="contact-send-btn" onClick={sendContact}>
+                📤 Mesaj Gönder
+              </button>
             </div>
           </>
         )}
@@ -6393,7 +6436,7 @@ function ContactView({
           </div>
         </>
       )}
-    </>
+    </div>
   );
 }
 
@@ -7919,7 +7962,11 @@ function AttendanceView({
   bulkSetAttendance,
   autoMarkWeekends,
   autoMarkHolidays,
-  exportAttendanceToExcel
+  exportAttendanceToExcel,
+  setActiveYear,
+  setActiveMonth,
+  activeYear,
+  activeMonth
 }) {
   const [selectedProject, setSelectedProject] = useState("");
   const [selectedEmployee, setSelectedEmployee] = useState("");
@@ -7973,13 +8020,29 @@ function AttendanceView({
     <div>
       {/* YENI: Modern Ay Seçici */}
       <div className="month-selector-modern" style={{ marginBottom: 20 }}>
-        <button className="month-nav-btn">
+        <button
+          className="month-nav-btn"
+          onClick={() => {
+            const newMonth = activeMonth === '01' ? '12' : String(parseInt(activeMonth) - 1).padStart(2, '0');
+            const newYear = activeMonth === '01' ? activeYear - 1 : activeYear;
+            setActiveYear(newYear);
+            setActiveMonth(newMonth);
+          }}
+        >
           ←
         </button>
         <div className="month-display">
           📅 {monthKey}
         </div>
-        <button className="month-nav-btn">
+        <button
+          className="month-nav-btn"
+          onClick={() => {
+            const newMonth = activeMonth === '12' ? '01' : String(parseInt(activeMonth) + 1).padStart(2, '0');
+            const newYear = activeMonth === '12' ? activeYear + 1 : activeYear;
+            setActiveYear(newYear);
+            setActiveMonth(newMonth);
+          }}
+        >
           →
         </button>
       </div>
@@ -8395,9 +8458,8 @@ function AttendanceCalendarView({ employee, monthKey, year, month, monthDays, mo
 
   function handleSave() {
     if (!selectedDay) return;
-    const overtime = calculateOvertime(startTime, endTime);
-    // Mesai saatleri ile birlikte kaydet
-    setAttendanceDay(employee.id, monthKey, selectedDay, status, note, startTime, endTime, overtime);
+    // Fazla mesai hesaplaması kaldırıldı - sadece saat bilgisi kaydediliyor
+    setAttendanceDay(employee.id, monthKey, selectedDay, status, note, startTime, endTime, 0);
     setSelectedDay(null);
     setStatus("present");
     setNote("");
