@@ -1011,6 +1011,53 @@ select.modern-select:hover,
 [data-theme="dark"] .admin-modern-wrapper .card:hover {
   box-shadow: 0 4px 16px rgba(0,0,0,0.3);
 }
+
+/* Modern Notification Animations */
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.7;
+    transform: scale(1.1);
+  }
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes bellRing {
+  0%, 100% { transform: rotate(0deg); }
+  10%, 30% { transform: rotate(-10deg); }
+  20%, 40% { transform: rotate(10deg); }
+  50% { transform: rotate(0deg); }
+}
+
+/* Dark mode notification panel */
+[data-theme="dark"] div[style*="linear-gradient(135deg, rgba(255, 255, 255, 0.95)"] {
+  background: linear-gradient(135deg, rgba(30, 41, 59, 0.95) 0%, rgba(15, 23, 42, 0.95) 100%) !important;
+  border-color: rgba(255, 255, 255, 0.1) !important;
+}
 `;
 
 // ===================== AUTH MODE =====================
@@ -3578,29 +3625,68 @@ function AppInner() {
 
       <div className="appContent" style={{ paddingTop: 0 }}>
         <div ref={notifRef} style={{ position: "absolute", top: 80, right: 20, zIndex: 1000 }}>
+          {/* Modern Notification Bell Button */}
           <button
             type="button"
-            className="navBtn"
-            style={{ padding: "8px 10px", minWidth: 44 }}
             onClick={() => setNotifOpen(v => !v)}
             title="Bildirimler"
+            style={{
+              position: "relative",
+              background: notifOpen
+                ? "linear-gradient(135deg, #667eea 0%, #764ba2 100%)"
+                : "rgba(255, 255, 255, 0.9)",
+              backdropFilter: "blur(10px)",
+              border: notifOpen ? "none" : "1px solid rgba(0, 0, 0, 0.1)",
+              borderRadius: "50%",
+              width: 48,
+              height: 48,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              cursor: "pointer",
+              transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+              boxShadow: notifOpen
+                ? "0 8px 32px rgba(102, 126, 234, 0.4)"
+                : "0 4px 16px rgba(0, 0, 0, 0.1)",
+              transform: notifOpen ? "scale(1.05)" : "scale(1)",
+            }}
+            onMouseEnter={(e) => {
+              if (!notifOpen) e.currentTarget.style.transform = "scale(1.1)";
+            }}
+            onMouseLeave={(e) => {
+              if (!notifOpen) e.currentTarget.style.transform = "scale(1)";
+            }}
           >
-            <span style={{ fontSize: 16 }}>🔔</span>
+            <span style={{
+              fontSize: 22,
+              transition: "transform 0.3s",
+              transform: notifOpen ? "rotate(20deg)" : "rotate(0deg)",
+              filter: notifOpen ? "brightness(0) invert(1)" : "none"
+            }}>
+              🔔
+            </span>
             {unreadCount > 0 && (
               <span
                 style={{
-                  marginLeft: 6,
-                  background: "#d81b60",
+                  position: "absolute",
+                  top: -2,
+                  right: -2,
+                  background: "linear-gradient(135deg, #f093fb 0%, #f5576c 100%)",
                   color: "#fff",
-                  borderRadius: 999,
-                  padding: "1px 7px",
-                  fontSize: 12,
+                  borderRadius: "50%",
+                  width: 22,
+                  height: 22,
+                  fontSize: 11,
                   fontWeight: 700,
-                  lineHeight: "18px",
-                  display: "inline-block"
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  border: "2px solid white",
+                  boxShadow: "0 2px 8px rgba(245, 87, 108, 0.4)",
+                  animation: "pulse 2s infinite"
                 }}
               >
-                {unreadCount}
+                {unreadCount > 9 ? "9+" : unreadCount}
               </span>
             )}
           </button>
@@ -3610,59 +3696,230 @@ function AppInner() {
               style={{
                 position: "absolute",
                 right: 0,
-                top: "110%",
-                width: 360,
-                maxWidth: "80vw",
-                background: "#ffffff",
-                border: "1px solid #e5e7eb",
-                borderRadius: 12,
-                padding: 10,
+                top: "calc(100% + 12px)",
+                width: 420,
+                maxWidth: "90vw",
+                background: "linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 0.9) 100%)",
+                backdropFilter: "blur(20px) saturate(180%)",
+                border: "1px solid rgba(255, 255, 255, 0.5)",
+                borderRadius: 20,
+                padding: 0,
                 zIndex: 50,
-                boxShadow: "0 10px 30px rgba(0,0,0,.12)"
+                boxShadow: "0 20px 60px rgba(0, 0, 0, 0.15), 0 0 1px rgba(0, 0, 0, 0.05)",
+                animation: "slideDown 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+                overflow: "hidden"
               }}
             >
-
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
-                <div style={{ fontWeight: 800 }}>Bildirimler</div>
+              {/* Header */}
+              <div style={{
+                padding: "20px 24px",
+                background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+                color: "white",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between"
+              }}>
+                <div style={{
+                  fontSize: 18,
+                  fontWeight: 800,
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 10
+                }}>
+                  <span style={{ fontSize: 20 }}>🔔</span>
+                  Bildirimler
+                  {unreadCount > 0 && (
+                    <span style={{
+                      background: "rgba(255, 255, 255, 0.3)",
+                      padding: "2px 10px",
+                      borderRadius: 12,
+                      fontSize: 13,
+                      fontWeight: 600
+                    }}>
+                      {unreadCount} yeni
+                    </span>
+                  )}
+                </div>
                 <div style={{ display: "flex", gap: 8 }}>
-                  <button type="button" className="miniBtn" onClick={markAllRead}>Tümü okundu</button>
-                  <button type="button" className="miniBtn" onClick={() => setNotifOpen(false)}>Kapat</button>
+                  <button
+                    type="button"
+                    onClick={markAllRead}
+                    style={{
+                      background: "rgba(255, 255, 255, 0.2)",
+                      border: "1px solid rgba(255, 255, 255, 0.3)",
+                      color: "white",
+                      padding: "6px 12px",
+                      borderRadius: 8,
+                      fontSize: 12,
+                      fontWeight: 600,
+                      cursor: "pointer",
+                      transition: "all 0.2s",
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.background = "rgba(255, 255, 255, 0.3)"}
+                    onMouseLeave={(e) => e.currentTarget.style.background = "rgba(255, 255, 255, 0.2)"}
+                  >
+                    ✓ Tümü okundu
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setNotifOpen(false)}
+                    style={{
+                      background: "rgba(255, 255, 255, 0.2)",
+                      border: "1px solid rgba(255, 255, 255, 0.3)",
+                      color: "white",
+                      width: 32,
+                      height: 32,
+                      borderRadius: 8,
+                      fontSize: 16,
+                      cursor: "pointer",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      transition: "all 0.2s",
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.background = "rgba(255, 255, 255, 0.3)"}
+                    onMouseLeave={(e) => e.currentTarget.style.background = "rgba(255, 255, 255, 0.2)"}
+                  >
+                    ×
+                  </button>
                 </div>
               </div>
 
+              {/* Notifications List */}
               {myNotifications.length === 0 ? (
-                <div style={{ opacity: .8, padding: 8 }}>Bildirim yok.</div>
+                <div style={{
+                  padding: 60,
+                  textAlign: "center",
+                  color: "rgba(0, 0, 0, 0.4)"
+                }}>
+                  <div style={{ fontSize: 48, marginBottom: 12 }}>📭</div>
+                  <div style={{ fontSize: 15, fontWeight: 600 }}>Bildirim yok</div>
+                  <div style={{ fontSize: 13, marginTop: 4 }}>Yeni bildirimler burada görünecek</div>
+                </div>
               ) : (
-                <div style={{ maxHeight: 360, overflow: "auto" }}>
-                  {myNotifications.slice(0, 30).map((n) => (
-                    <button
-                      key={n.id}
-                      type="button"
-                      onClick={() => {
-                        updateState(d => {
-                          const nn = (d.notifications || []).find(x => x.id === n.id);
-                          if (nn) nn.read = true;
-                        });
-                      }}
-                      style={{
-                        width: "100%",
-                        textAlign: "left",
-                        padding: 10,
-                        borderRadius: 10,
-                        border: "1px solid rgba(255,255,255,.08)",
-                        background: n.read ? "rgba(255,255,255,.03)" : "rgba(76,175,80,.10)",
-                        marginBottom: 8,
-                        cursor: "pointer"
-                      }}
-                    >
-                      <div style={{ display: "flex", justifyContent: "space-between", gap: 10 }}>
-                        <div style={{ fontWeight: 800 }}>{n.title || "Bildirim"}</div>
-                        <div style={{ opacity: .7, fontSize: 12 }}>{formatDate(n.createdAt)}</div>
-                      </div>
-                      {n.body ? <div style={{ opacity: .9, marginTop: 4, fontSize: 13 }}>{n.body}</div> : null}
-                      {!n.read ? <div style={{ marginTop: 6, fontSize: 12, opacity: .85 }}>• okunmadı</div> : null}
-                    </button>
-                  ))}
+                <div style={{
+                  maxHeight: 420,
+                  overflow: "auto",
+                  padding: "12px"
+                }}>
+                  {myNotifications.slice(0, 30).map((n, idx) => {
+                    const levelColors = {
+                      info: { bg: "rgba(59, 130, 246, 0.1)", border: "rgba(59, 130, 246, 0.3)", icon: "ℹ️" },
+                      ok: { bg: "rgba(16, 185, 129, 0.1)", border: "rgba(16, 185, 129, 0.3)", icon: "✅" },
+                      warn: { bg: "rgba(251, 191, 36, 0.1)", border: "rgba(251, 191, 36, 0.3)", icon: "⚠️" },
+                      danger: { bg: "rgba(239, 68, 68, 0.1)", border: "rgba(239, 68, 68, 0.3)", icon: "❌" }
+                    };
+                    const style = levelColors[n.level] || levelColors.info;
+
+                    return (
+                      <button
+                        key={n.id}
+                        type="button"
+                        onClick={() => {
+                          updateState(d => {
+                            const nn = (d.notifications || []).find(x => x.id === n.id);
+                            if (nn) nn.read = true;
+                          });
+                        }}
+                        style={{
+                          width: "100%",
+                          textAlign: "left",
+                          padding: 16,
+                          borderRadius: 12,
+                          border: `1px solid ${n.read ? "rgba(0, 0, 0, 0.08)" : style.border}`,
+                          background: n.read ? "rgba(0, 0, 0, 0.02)" : style.bg,
+                          marginBottom: 8,
+                          cursor: "pointer",
+                          transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
+                          position: "relative",
+                          overflow: "hidden",
+                          animation: `slideIn 0.3s ease-out ${idx * 0.05}s both`
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.transform = "translateY(-2px)";
+                          e.currentTarget.style.boxShadow = "0 8px 24px rgba(0, 0, 0, 0.12)";
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.transform = "translateY(0)";
+                          e.currentTarget.style.boxShadow = "none";
+                        }}
+                      >
+                        {!n.read && (
+                          <div style={{
+                            position: "absolute",
+                            left: 0,
+                            top: 0,
+                            bottom: 0,
+                            width: 4,
+                            background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+                          }} />
+                        )}
+
+                        <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
+                          <div style={{ fontSize: 24, flexShrink: 0 }}>
+                            {style.icon}
+                          </div>
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{
+                              display: "flex",
+                              justifyContent: "space-between",
+                              gap: 10,
+                              marginBottom: 4
+                            }}>
+                              <div style={{
+                                fontWeight: n.read ? 600 : 800,
+                                fontSize: 14,
+                                color: n.read ? "rgba(0, 0, 0, 0.6)" : "rgba(0, 0, 0, 0.9)"
+                              }}>
+                                {n.title || "Bildirim"}
+                              </div>
+                              <div style={{
+                                fontSize: 11,
+                                color: "rgba(0, 0, 0, 0.5)",
+                                whiteSpace: "nowrap",
+                                fontWeight: 500
+                              }}>
+                                {formatDate(n.createdAt)}
+                              </div>
+                            </div>
+                            {n.body && (
+                              <div style={{
+                                fontSize: 13,
+                                lineHeight: 1.5,
+                                color: n.read ? "rgba(0, 0, 0, 0.5)" : "rgba(0, 0, 0, 0.7)",
+                                marginTop: 4
+                              }}>
+                                {n.body}
+                              </div>
+                            )}
+                            {!n.read && (
+                              <div style={{
+                                marginTop: 8,
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: 4,
+                                fontSize: 11,
+                                fontWeight: 600,
+                                color: "#667eea",
+                                background: "rgba(102, 126, 234, 0.1)",
+                                padding: "3px 8px",
+                                borderRadius: 6
+                              }}>
+                                <span style={{
+                                  width: 6,
+                                  height: 6,
+                                  borderRadius: "50%",
+                                  background: "#667eea",
+                                  animation: "pulse 2s infinite"
+                                }} />
+                                Yeni
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </button>
+                    );
+                  })}
                 </div>
               )}
             </div>
