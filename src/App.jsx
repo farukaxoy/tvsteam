@@ -2872,7 +2872,7 @@ function AppInner() {
       for (const u of Object.keys(CREDENTIALS)) {
         if (u === "admin") { pushNotification({ to: u, title: "Duyuru", body: shortBody, level: "info" }); continue; }
         const cred = CREDENTIALS[u];
-        if (cred && cred.project === ann.scopeValue) {
+        if (cred && canonProj(cred.project) === canonProj(ann.scopeValue)) {
           pushNotification({ to: u, title: "Duyuru", body: shortBody, level: "info" });
         }
       }
@@ -2901,7 +2901,7 @@ function AppInner() {
       for (const u of Object.keys(CREDENTIALS)) {
         if (u === "admin") continue;
         const cred = CREDENTIALS[u];
-        if (cred && cred.project === scopeValue) {
+        if (cred && canonProj(cred.project) === canonProj(scopeValue)) {
           pushNotification({ to: u, title: `Admin Mesajı • ${t}`, body: b, level: "info" });
         }
       }
@@ -3547,6 +3547,14 @@ function AppInner() {
             >
               💬 İletişim
             </button>
+            {isAdmin && (
+              <button
+                className={`navbar-tab ${tab === 'approvals' ? 'active' : ''}`}
+                onClick={() => navigate('approvals')}
+              >
+                ✅ Onaylar
+              </button>
+            )}
             {isAdmin && (
               <button
                 className={`navbar-tab ${tab === 'admin' ? 'active' : ''}`}
@@ -4256,7 +4264,7 @@ function DashboardView({ monthKey, category, rows, projects, employees, actions,
 
     const zeroAgg = () => ({ present: 0, absent: 0, paid_leave: 0, unpaid_leave: 0, sick_leave: 0, excuse: 0, weekend: 0, holiday: 0, half_day: 0, unset: 0, totalDays: 0, workDays: 0 });
     const blocks = prjs.map(proj => {
-      const projEmps = filteredEmps.filter(e => e.project === proj.name);
+      const projEmps = filteredEmps.filter(e => canonProj(e.project) === canonProj(proj.name) || canonProj(e.project) === canonProj(proj.id));
       const agg = zeroAgg();
       projEmps.forEach(emp => {
         const s = att[emp.id]?.[monthKey]?.stats || {};
@@ -4493,7 +4501,7 @@ function DashboardView({ monthKey, category, rows, projects, employees, actions,
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))", gap: 10 }}>
               {(Array.isArray(projects) ? projects : []).map(p => {
-                const list = (Array.isArray(actions) ? actions : []).filter(a => a?.project === p.name);
+                const list = (Array.isArray(actions) ? actions : []).filter(a => canonProj(a?.project) === canonProj(p.name) || canonProj(a?.project) === canonProj(p.id));
                 const openN = list.filter(a => (a.status || "open") === "open").length;
                 const progN = list.filter(a => (a.status || "open") === "in_progress").length;
                 const doneN = list.filter(a => (a.status || "open") === "done" || (a.status || "open") === "user_done").length;
@@ -4727,7 +4735,7 @@ function DashboardView({ monthKey, category, rows, projects, employees, actions,
                   </tr></thead>
                   <tbody>
                     {(Array.isArray(projects) ? projects : []).map(proj => {
-                      const projEmps = (Array.isArray(employees) ? employees : []).filter(e => e.project === proj.name);
+                      const projEmps = (Array.isArray(employees) ? employees : []).filter(e => canonProj(e.project) === canonProj(proj.name) || canonProj(e.project) === canonProj(proj.id));
                       return (
                         <tr key={proj.id}>
                           <td><b>{proj.name}</b></td>
@@ -4847,7 +4855,7 @@ function buildMonthlyReportHTML({ project, category, monthKey, employees }) {
 
   // Çalışan listesi: employees + (uzmanlar -> çalışan gibi)
   const manual = (Array.isArray(employees) ? employees : [])
-    .filter(e => e.project === prjName && e.approved === true && e.active !== false)
+    .filter(e => (canonProj(e.project) === canonProj(prjName) || canonProj(e.project) === canonProj(project?.id)) && e.approved === true && e.active !== false)
     .map(e => ({ name: e.name, role: e.role || "Çalışan" }));
 
   const experts = (project?.itemsByCategory?.experts || [])
@@ -5373,7 +5381,7 @@ function EntryView({
                         const selectOptions = (category?.key === "monthly_controls" && f.key === "kontrol_eden")
                           ? [
                             "Seçiniz",
-                            ...(employees || []).filter(e => e.active !== false && e.approved !== false && e.project === project.name).map(e => e.name),
+                            ...(employees || []).filter(e => e.active !== false && e.approved !== false && (canonProj(e.project) === canonProj(project.name) || canonProj(e.project) === canonProj(project.id))).map(e => e.name),
                             ...(project.itemsByCategory?.experts || []).filter(x => x.approved).map(x => x.name)
                           ].filter((v, i, a) => a.indexOf(v) === i)
                           : (f.options || ["Seçiniz"]);
@@ -6235,7 +6243,10 @@ function AnnouncementsView({ isAdmin, auth, announcements, projects, addAnnounce
     return list.filter(a => {
       if (!a) return false;
       if (a.scopeType === "all") return true;
-      if (a.scopeType === "project") return (auth && auth.project) === a.scopeValue;
+      if (a.scopeType === "project") {
+        // Türkçe karakter desteği için canonProj kullan
+        return canonProj(auth?.project) === canonProj(a.scopeValue);
+      }
       if (a.scopeType === "user") return (auth && auth.username) === a.scopeValue;
       return true;
     });
@@ -6556,7 +6567,7 @@ function EmployeesView({ isAdmin, auth, employees, projects, updateState }) {
       );
     } else {
       // admin için opsiyonel proje filtresi
-      if (projectFilter) arr = arr.filter(e => e.project === projectFilter);
+      if (projectFilter) arr = arr.filter(e => canonProj(e.project) === canonProj(projectFilter));
     }
 
     if (ql) {
@@ -7128,7 +7139,7 @@ function DocTrackingView({ isAdmin, auth, projects, employees, docRegisterTypes,
 
   // non-admin: visibleEmployees zaten projeye göre filtreli (canonProj). Burada tekrar string eşleştirme yapmıyoruz.
   const employeesInProject = isAdmin
-    ? (curProjectName ? (visibleEmployees || []).filter(e => String(e.project || "").trim() === curProjectName) : (visibleEmployees || []))
+    ? (curProjectName ? (visibleEmployees || []).filter(e => canonProj(e.project) === canonProj(curProjectName)) : (visibleEmployees || []))
     : (visibleEmployees || []);
   const filteredEmployees = employeesInProject;
 
@@ -7391,7 +7402,7 @@ function ActionsView({ auth, projects, employees, actions, updateState }) {
     const s = (q || "").trim().toLowerCase();
 
     return list
-      .filter(a => a && a.project === projectName)
+      .filter(a => a && (canonProj(a.project) === canonProj(projectName)))
       .filter(a => statusFilter === "all" ? true : (a.status || "open") === statusFilter)
       .filter(a => priorityFilter === "all" ? true : (a.priority || "Orta") === priorityFilter)
       .filter(a => typeFilter === "all" ? true : (a.type || "Düzeltici Faaliyet") === typeFilter)
@@ -7462,7 +7473,7 @@ function ActionsView({ auth, projects, employees, actions, updateState }) {
       d.actions ||= [];
       const a = d.actions.find(x => x.id === id);
       if (!a) return;
-      if (a.project !== projectName) return;
+      if (canonProj(a.project) !== canonProj(projectName)) return;
       if (a.status === "closed") return;
       a.status = "user_done";
       a.userDoneAt = new Date().toISOString();
@@ -7990,10 +8001,12 @@ function AttendanceView({
     const list = employees || [];
     if (isAdmin && selectedProject) {
       const pName = (projects || []).find(p => p.id === selectedProject)?.name;
-      return pName ? list.filter(e => e.project === pName) : list;
+      const pId = selectedProject;
+      return pName ? list.filter(e => canonProj(e.project) === canonProj(pName) || canonProj(e.project) === canonProj(pId)) : list;
     }
     if (!isAdmin && myProjectName) {
-      return list.filter(e => e.project === myProjectName);
+      const myProjId = (projects || []).find(p => canonProj(p.name) === canonProj(myProjectName))?.id;
+      return list.filter(e => canonProj(e.project) === canonProj(myProjectName) || (myProjId && canonProj(e.project) === canonProj(myProjId)));
     }
     return list;
   }, [employees, selectedProject, projects, isAdmin, myProjectName]);
@@ -8187,7 +8200,7 @@ function AttendanceView({
 
       {/* YENI: Proje Bazlı Accordion'lar */}
       {(projects || []).map(project => {
-        const projectEmps = (employees || []).filter(e => e.project === project.name);
+        const projectEmps = (employees || []).filter(e => canonProj(e.project) === canonProj(project.name) || canonProj(e.project) === canonProj(project.id));
         if (projectEmps.length === 0) return null;
 
         const sectionKey = `project-${project.id}`;
