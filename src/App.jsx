@@ -4802,13 +4802,19 @@ function BarChart({ title, data }) {
           const w = Math.max(2, Math.round((v / max) * 100));
 
           return (
-            <div key={d.label} style={{ display: "flex", gap: 10, alignItems: "center" }}>
+            <div
+              key={d.label}
+              style={{
+                display: "grid",
+                gridTemplateColumns: "130px 1fr 70px",
+                alignItems: "center",
+                gap: 10
+              }}
+            >
               {/* LABEL */}
               <div
                 className="small"
                 style={{
-                  width: 130,
-                  flexShrink: 0,
                   whiteSpace: "nowrap",
                   overflow: "hidden",
                   textOverflow: "ellipsis"
@@ -4821,7 +4827,6 @@ function BarChart({ title, data }) {
               {/* BAR */}
               <div
                 style={{
-                  flex: 1,
                   background: "rgba(11,94,215,.10)",
                   borderRadius: 10,
                   height: 12,
@@ -4840,13 +4845,11 @@ function BarChart({ title, data }) {
               {/* VALUE */}
               <div
                 style={{
-                  width: 60,
                   textAlign: "right",
-                  flexShrink: 0,
                   fontVariantNumeric: "tabular-nums"
                 }}
               >
-                <b>{String(v)}</b>
+                <b>{v}</b>
               </div>
             </div>
           );
@@ -4855,6 +4858,7 @@ function BarChart({ title, data }) {
     </div>
   );
 }
+
 
 
 
