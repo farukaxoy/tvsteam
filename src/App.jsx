@@ -7979,6 +7979,13 @@ function AttendanceView({
   // Member kendi projesi için yazabilir, admin hepsini
   const myProjectName = !isAdmin ? (auth?.project || "") : "";
 
+  // Debug: myProjectName'i konsola yazdır
+  React.useEffect(() => {
+    if (!isAdmin) {
+      console.log('Member Project Name:', myProjectName, 'Auth:', auth);
+    }
+  }, [isAdmin, myProjectName, auth]);
+
   const projectEmployees = useMemo(() => {
     const list = employees || [];
     if (isAdmin && selectedProject) {
@@ -7995,9 +8002,22 @@ function AttendanceView({
   const canEdit = useMemo(() => {
     if (isAdmin) return true;
     if (!selectedEmployee) return false;
+
+    // Member için: seçilen çalışanın projesi, kullanıcının projesiyle aynı mı?
     const emp = (employees || []).find(e => e.id === selectedEmployee);
-    return emp?.project === myProjectName;
-  }, [isAdmin, selectedEmployee, employees, myProjectName]);
+    if (!emp) return false;
+
+    // Member'ın kendi projesi
+    const userProject = auth?.project || "";
+
+    // Çalışanın projesi
+    const empProject = emp.project || "";
+
+    // Console log for debugging
+    console.log('canEdit check:', { userProject, empProject, match: empProject === userProject });
+
+    return empProject === userProject;
+  }, [isAdmin, selectedEmployee, employees, auth]);
 
   const employee = useMemo(() => {
     return (employees || []).find(e => e.id === selectedEmployee) || null;
