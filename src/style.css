@@ -266,51 +266,82 @@ body {
     var(--bg);
 }
 
-
 /* ===== RESPONSIVE LAYOUT ===== */
-
 .container {
   width: 100%;
   max-width: 100%;
+  /* Sınırsız genişlik */
   margin: 18px auto 34px;
   padding: 0 40px;
+  /* Yan padding artırıldı */
 }
 
-/* ===== MAIN AREA ===== */
+@media (max-width: 1680px) {
+  .container {
+    max-width: 100%;
+    padding: 0 32px;
+  }
+}
+
+@media (max-width: 1440px) {
+  .container {
+    max-width: 100%;
+    padding: 0 28px;
+  }
+}
+
+@media (max-width: 1024px) {
+  .container {
+    max-width: 100%;
+    padding: 0 20px;
+  }
+}
+
+@media (max-width: 768px) {
+  .container {
+    max-width: 100%;
+    padding: 0 16px;
+  }
+}
+
+/* Main Area - Fully Responsive */
 .mainArea {
   width: 100%;
-  max-width: 1400px;
-  /* 🔥 ASIL DÜZELTME */
+  max-width: 100%;
+  /* Sınırsız genişlik */
   margin: 0 auto;
   padding: 24px 40px;
+  /* Yan padding artırıldı */
 }
 
-/* Dashboard her zaman full width */
 .mainArea.dashboard-view {
   max-width: 100%;
 }
 
-/* responsive padding’ler KORUNDU */
 @media (max-width: 1680px) {
   .mainArea {
+    max-width: 100%;
     padding: 24px 32px;
   }
 }
 
 @media (max-width: 1440px) {
   .mainArea {
+    max-width: 100%;
     padding: 20px 28px;
   }
 }
 
 @media (max-width: 1024px) {
   .mainArea {
+    max-width: 100%;
     padding: 20px 20px;
   }
 }
 
 @media (max-width: 768px) {
   .mainArea {
+    max-width: 100%;
     padding: 16px 16px;
   }
 }
@@ -422,14 +453,12 @@ body {
 
 /* ===== GRID LAYOUTS ===== */
 .grid {
-  margin: 14px auto 0;
+  margin-top: 14px;
   display: grid;
-  grid-template-columns: 280px minmax(0, 1fr);
+  grid-template-columns: 280px 1fr;
   gap: 14px;
   align-items: start;
-  max-width: 1400px;
 }
-
 
 @media (max-width: 980px) {
   .grid {
@@ -1553,4 +1582,170 @@ tr:hover td {
 [data-theme="dark"] .month-nav-btn {
   background: rgba(17, 24, 39, .90);
   border: 1px solid rgba(96, 165, 250, .25);
+}
+
+/* ===== İLETİŞİM MODERN STYLES ===== */
+.contact-modern-wrapper {
+  max-width: 100%;
+}
+
+.contact-message-box {
+  width: 100%;
+  min-height: 200px;
+  padding: 16px;
+  border-radius: 14px;
+  border: 2px solid rgba(13, 110, 253, .15);
+  background: rgba(255, 255, 255, .75);
+  font-size: 14px;
+  font-family: inherit;
+  resize: vertical;
+  transition: all 0.2s;
+}
+
+.contact-message-box:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 4px rgba(13, 110, 253, .10);
+  outline: none;
+}
+
+[data-theme="dark"] .contact-message-box {
+  background: rgba(17, 24, 39, .85);
+  border-color: rgba(96, 165, 250, .25);
+  color: var(--text);
+}
+
+.contact-send-btn {
+  width: 100%;
+  padding: 14px;
+  font-size: 16px;
+  font-weight: 700;
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  color: white;
+  border: none;
+  border-radius: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.contact-send-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(99, 102, 241, .3);
+}
+
+/* ===== VERİ GİRİŞİ FORM DÜZENLEMELERİ ===== */
+.entry-form-wrapper {
+  padding: 0;
+}
+
+.entry-form-wrapper .card {
+  padding: 14px;
+  margin-bottom: 14px;
+}
+
+.entry-form-wrapper .field {
+  margin-bottom: 10px;
+}
+
+.entry-form-wrapper input,
+.entry-form-wrapper select,
+.entry-form-wrapper textarea {
+  padding: 8px 10px;
+}
+
+/* ===== ADMIN KATEGORİ FORM STYLES ===== */
+.admin-category-form {
+  background: linear-gradient(135deg, rgba(13, 110, 253, .04) 0%, rgba(96, 165, 250, .02) 100%);
+  border: 1px solid rgba(13, 110, 253, .12);
+  border-radius: 14px;
+  padding: 16px;
+  margin-bottom: 16px;
+}
+
+.admin-category-form .row {
+  gap: 12px;
+  margin-bottom: 0;
+}
+
+.admin-category-form input {
+  padding: 10px 12px;
+}
+
+.admin-field-add-section {
+  background: rgba(255, 255, 255, .5);
+  border: 1px solid rgba(13, 110, 253, .10);
+  border-radius: 12px;
+  padding: 14px;
+  margin-top: 12px;
+}
+
+[data-theme="dark"] .admin-field-add-section {
+  background: rgba(17, 24, 39, .60);
+}
+
+/* ===== ADMIN MODERN PANEL ENHANCEMENTS ===== */
+.admin-modern-wrapper {
+  animation: fadeInUp 0.4s ease;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.admin-tab-navigation {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 20px;
+  padding: 8px;
+  background: linear-gradient(135deg, rgba(13, 110, 253, .06) 0%, rgba(96, 165, 250, .03) 100%);
+  border-radius: 14px;
+  border: 1px solid rgba(13, 110, 253, .10);
+}
+
+[data-theme="dark"] .admin-tab-navigation {
+  background: linear-gradient(135deg, rgba(96, 165, 250, .12) 0%, rgba(59, 130, 246, .06) 100%);
+  border: 1px solid rgba(96, 165, 250, .15);
+}
+
+.admin-tab-btn {
+  flex: 1;
+  padding: 12px 16px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+  color: var(--text);
+  font-size: 13px;
+}
+
+.admin-tab-btn:hover {
+  background: rgba(13, 110, 253, .08);
+  transform: translateY(-1px);
+}
+
+.admin-tab-btn.active {
+  background: var(--accent);
+  color: white;
+  border-color: var(--accent);
+  box-shadow: 0 4px 12px rgba(13, 110, 253, .25);
+}
+
+.admin-section-divider {
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--accent), transparent);
+  margin: 24px 0;
+  opacity: 0.2;
 }
