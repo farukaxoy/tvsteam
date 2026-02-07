@@ -4796,32 +4796,18 @@ function BarChart({ title, data }) {
         <Badge kind="ok">Sayı</Badge>
       </div>
 
-      <div
-        style={{
-          marginTop: 10,
-          display: "flex",
-          flexDirection: "column",
-          gap: 8
-        }}
-      >
+      <div style={{ marginTop: 10, display: "flex", flexDirection: "column", gap: 8 }}>
         {(data || []).map(d => {
           const v = safeNum(d.value);
           const w = Math.max(2, Math.round((v / max) * 100));
 
           return (
-            <div
-              key={d.label}
-              style={{
-                display: "flex",
-                gap: 10,
-                alignItems: "center"
-              }}
-            >
+            <div key={d.label} style={{ display: "flex", gap: 10, alignItems: "center" }}>
               {/* LABEL */}
               <div
                 className="small"
                 style={{
-                  width: 140,
+                  width: 130,
                   flexShrink: 0,
                   whiteSpace: "nowrap",
                   overflow: "hidden",
@@ -4854,13 +4840,13 @@ function BarChart({ title, data }) {
               {/* VALUE */}
               <div
                 style={{
-                  width: 70,
+                  width: 60,
                   textAlign: "right",
                   flexShrink: 0,
                   fontVariantNumeric: "tabular-nums"
                 }}
               >
-                <b>{v}</b>
+                <b>{String(v)}</b>
               </div>
             </div>
           );
@@ -4869,6 +4855,7 @@ function BarChart({ title, data }) {
     </div>
   );
 }
+
 
 
 function openProjectMonthlyReport({ project, category, monthKey, employees }) {
