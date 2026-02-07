@@ -4093,6 +4093,7 @@ function AppInner() {
                     setCatItemLabel={setCatItemLabel}
                     adminAddCategory={adminAddCategory}
                     activeCategory={activeCategory}
+                    setCategoryKey={setCategoryKey}
                     catFieldLabel={catFieldLabel}
                     setCatFieldLabel={setCatFieldLabel}
                     catFieldType={catFieldType}
@@ -4800,7 +4801,7 @@ function BarChart({ title, data }) {
           const w = Math.max(2, Math.round((v / max) * 100));
           return (
             <div key={d.label} style={{ display: "flex", gap: 10, alignItems: "center" }}>
-              <div className="small" style={{ width: 140, flexShrink: 0, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }} title={d.label}>
+              <div className="small" style={{ width: 130, flexShrink: 0, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }} title={d.label}>
                 {d.label}
               </div>
               <div style={{ flex: 1, background: "rgba(11,94,215,.10)", borderRadius: 10, height: 12, overflow: "hidden" }}>
@@ -5602,6 +5603,7 @@ function AdminView(props) {
     catItemLabel, setCatItemLabel,
     adminAddCategory,
     activeCategory,
+    setCategoryKey,
     catFieldLabel, setCatFieldLabel,
     catFieldType, setCatFieldType,
     catFieldOptions, setCatFieldOptions,
@@ -6141,6 +6143,22 @@ function AdminView(props) {
 
         <hr className="sep" />
 
+        {/* YENI: Kategori Seçici */}
+        <div className="quick-filter-section" style={{ marginBottom: 16 }}>
+          <label className="filter-label">🗂️ Kategori Seçin</label>
+          <div className="modern-select-wrapper">
+            <select
+              className="modern-select"
+              value={activeCategory?.key || ""}
+              onChange={(e) => setCategoryKey(e.target.value)}
+            >
+              {safeCategories.map(c => (
+                <option key={c.key} value={c.key}>{c.name}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+
         <div className="row">
           <input className="input" value={catFieldLabel} onChange={e => setCatFieldLabel(e.target.value)} placeholder="Alan adı (örn: Servis KM)" />
           <select className="input" value={catFieldType} onChange={e => setCatFieldType(e.target.value)}>
@@ -6369,28 +6387,27 @@ function ContactView({
       <div className="card">
         <div className="cardTitleRow">
           <h2>💬 İletişim</h2>
-          <Badge kind={isAdmin ? "ok" : "warn"}>{isAdmin ? "Admin Görür" : "Mesaj Gönder"}</Badge>
+          <Badge kind={isAdmin ? "ok" : "warn"}>{isAdmin ? "Admin" : "Kullanıcı"}</Badge>
         </div>
         <div className="small" style={{ marginTop: 6 }}>
-          Kullanıcı mesajları sadece admin tarafından görüntülenir.
+          {isAdmin ? "Admin olarak mesaj gönderebilir ve tüm mesajları görüntüleyebilirsin." : "Kullanıcı mesajları sadece admin tarafından görüntülenir."}
         </div>
 
-        {!isAdmin && (
-          <>
-            <hr className="sep" />
-            <textarea
-              className="contact-message-box"
-              value={contactText}
-              onChange={e => setContactText(e.target.value)}
-              placeholder="Mesajınızı buraya yazın... (Admin'e ulaştırılacaktır)"
-            />
-            <div style={{ marginTop: 14 }}>
-              <button className="contact-send-btn" onClick={sendContact}>
-                📤 Mesaj Gönder
-              </button>
-            </div>
-          </>
-        )}
+        {/* HERKES İÇİN MESAJ GÖNDERME ALANI */}
+        <>
+          <hr className="sep" />
+          <textarea
+            className="contact-message-box"
+            value={contactText}
+            onChange={e => setContactText(e.target.value)}
+            placeholder={isAdmin ? "Admin mesajınızı buraya yazın..." : "Mesajınızı buraya yazın... (Admin'e ulaştırılacaktır)"}
+          />
+          <div style={{ marginTop: 14 }}>
+            <button className="contact-send-btn" onClick={sendContact}>
+              📤 {isAdmin ? "Admin Mesajı Gönder" : "Mesaj Gönder"}
+            </button>
+          </div>
+        </>
       </div>
 
       {isAdmin && (
@@ -8233,7 +8250,7 @@ function AttendanceView({
               </button>
             </div>
           )}
-          {!canEdit && (
+          {!canEdit && !isAdmin && (
             <div className="small" style={{ marginTop: 10, color: "#f59e0b" }}>
               ⚠️ Bu personel başka bir projede — sadece görüntüleme modunda.
             </div>
