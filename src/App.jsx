@@ -8648,19 +8648,9 @@ function AttendanceCalendarView({ employee, monthKey, year, month, monthDays, mo
               </div>
             </div>
 
-            {/* FAZLA MESAİ BİLGİSİ */}
-            {startTime && endTime && (
-              <div className="attendance-overtime-info">
-                <span style={{ fontSize: 14 }}>⏱️ Fazla Mesai:</span>
-                <span className="attendance-overtime-value">
-                  {calculateOvertime(startTime, endTime)} saat
-                </span>
-              </div>
-            )}
-
             <div style={{ marginTop: 12, padding: 12, background: '#f0f9ff', borderRadius: 8, fontSize: 12, color: '#0369a1' }}>
-              💡 <strong>Not:</strong> Günlük mesai 8 saat (30dk mola dahil). 7:30 saatin üzeri fazla mesai olarak hesaplanır.
-              <br />📌 SOCAR: 08:00-16:00 | Tüpraş: 08:30-17:30
+              💡 <strong>Not:</strong> Sadece giriş ve çıkış saati kaydedilir. Fazla mesai otomatik hesaplanmaz.
+              <br />📌 Standart mesai saatleri: SOCAR: 08:00-16:00 | Tüpraş: 08:30-17:30
             </div>
 
             <div className="row" style={{ gap: 8, marginTop: 16 }}>
