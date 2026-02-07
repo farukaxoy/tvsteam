@@ -8008,16 +8008,51 @@ function AttendanceView({
     if (!emp) return false;
 
     // Member'ın kendi projesi
-    const userProject = auth?.project || "";
+    const userProjectValue = auth?.project || "";
+    if (!userProjectValue) return false;
 
     // Çalışanın projesi
-    const empProject = emp.project || "";
+    const empProjectName = emp.project || "";
+    if (!empProjectName) return false;
 
-    // Console log for debugging
-    console.log('canEdit check:', { userProject, empProject, match: empProject === userProject });
+    // ÇÖZÜM: Birden fazla karşılaştırma yap
+    // 1. Direkt eşleşme (SOCAR gibi)
+    if (userProjectValue === empProjectName) {
+      console.log('canEdit: Direct match ✅', { userProjectValue, empProjectName });
+      return true;
+    }
 
-    return empProject === userProject;
-  }, [isAdmin, selectedEmployee, employees, auth]);
+    // 2. Kullanıcının project değeri ile projelerden birini bul
+    const userProject = (projects || []).find(p => {
+      return (
+        p.id === userProjectValue ||
+        p.name === userProjectValue ||
+        p.project_code === userProjectValue ||
+        p.code === userProjectValue ||
+        p.projectCode === userProjectValue
+      );
+    });
+
+    if (userProject) {
+      // Kullanıcının projesinin ADI ile çalışanın projesi eşleşiyor mu?
+      const match = userProject.name === empProjectName;
+      console.log('canEdit check:', {
+        userProjectValue,
+        userProjectName: userProject.name,
+        empProjectName,
+        match
+      });
+      return match;
+    }
+
+    // 3. Hiçbir eşleşme bulunamadı
+    console.log('canEdit: No match ❌', {
+      userProjectValue,
+      empProjectName,
+      projectsCount: (projects || []).length
+    });
+    return false;
+  }, [isAdmin, selectedEmployee, employees, auth, projects]);
 
   const employee = useMemo(() => {
     return (employees || []).find(e => e.id === selectedEmployee) || null;
