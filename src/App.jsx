@@ -8037,47 +8037,71 @@ function AttendanceView({
       allProjects: (projects || []).map(p => ({ id: p.id, name: p.name, code: p.code || p.project_code }))
     });
 
-    // ÇÖZÜM: Birden fazla karşılaştırma yap
-    // 1. Direkt eşleşme (SOCAR gibi) - case insensitive
-    const userProjLower = userProjectValue.toLowerCase().trim();
-    const empProjLower = empProjectName.toLowerCase().trim();
+    // ÇÖZÜM 1: canonProj ile normalize et (Türkçe karakterler → ASCII)
+    const userCanon = canonProj(userProjectValue);
+    const empCanon = canonProj(empProjectName);
 
-    if (userProjLower === empProjLower) {
-      console.log('✅ canEdit: Direct match (case-insensitive)', { userProjectValue, empProjectName });
+    if (userCanon === empCanon) {
+      console.log('✅ canEdit: Canon match', { userCanon, empCanon });
       return true;
     }
 
-    // 2. Kullanıcının project değeri ile projelerden birini bul
-    const userProject = (projects || []).find(p => {
-      const pid = (p.id || "").toString().toLowerCase().trim();
-      const pname = (p.name || "").toString().toLowerCase().trim();
-      const pcode = (p.project_code || p.code || p.projectCode || "").toString().toLowerCase().trim();
+    // ÇÖZÜM 2: slugKey ile normalize et
+    const userSlug = slugKey(userProjectValue);
+    const empSlug = slugKey(empProjectName);
 
-      return (
-        pid === userProjLower ||
-        pname === userProjLower ||
-        pcode === userProjLower
-      );
-    });
+    if (userSlug === empSlug) {
+      console.log('✅ canEdit: Slug match', { userSlug, empSlug });
+      return true;
+    }
 
-    if (userProject) {
-      // Kullanıcının projesinin ADI ile çalışanın projesi eşleşiyor mu? - case insensitive
-      const userProjNameLower = (userProject.name || "").toLowerCase().trim();
-      const match = userProjNameLower === empProjLower;
+    // ÇÖZÜM 3: findProjectAny kullanarak proje objelerini bul
+    const userProject = findProjectAny(projects, userProjectValue);
+    const empProject = findProjectAny(projects, empProjectName);
 
-      console.log('canEdit check (project found):', {
+    if (userProject && empProject) {
+      // İki projenin ID'leri veya kodları eşleşiyor mu?
+      const match = userProject.id === empProject.id ||
+        canonProj(userProject.id) === canonProj(empProject.id) ||
+        (userProject.project_code && empProject.project_code &&
+          canonProj(userProject.project_code) === canonProj(empProject.project_code));
+
+      console.log('canEdit check (both projects found):', {
         userProjectValue,
-        userProjectName: userProject.name,
+        userProject: { id: userProject.id, name: userProject.name, code: userProject.project_code || userProject.code },
         empProjectName,
+        empProject: { id: empProject.id, name: empProject.name, code: empProject.project_code || empProject.code },
         match: match ? '✅' : '❌'
       });
       return match;
     }
 
-    // 3. Hiçbir eşleşme bulunamadı
+    if (userProject) {
+      // Sadece kullanıcının projesi bulundu
+      const match = canonProj(userProject.name) === empCanon ||
+        slugKey(userProject.name) === empSlug ||
+        (userProject.id && canonProj(userProject.id) === empCanon) ||
+        (userProject.project_code && canonProj(userProject.project_code) === empCanon);
+
+      console.log('canEdit check (only user project found):', {
+        userProjectValue,
+        userProject: { id: userProject.id, name: userProject.name, code: userProject.project_code || userProject.code },
+        empProjectName,
+        userCanon: canonProj(userProject.name),
+        empCanon,
+        match: match ? '✅' : '❌'
+      });
+      return match;
+    }
+
+    // ÇÖZÜM 4: Hiçbir eşleşme bulunamadı
     console.log('❌ canEdit: No match', {
       userProjectValue,
       empProjectName,
+      userCanon,
+      empCanon,
+      userSlug,
+      empSlug,
       projectsCount: (projects || []).length
     });
     return false;
