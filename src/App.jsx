@@ -4788,25 +4788,80 @@ function KPI({ label, value }) {
 
 function BarChart({ title, data }) {
   const max = Math.max(1, ...(data || []).map(d => safeNum(d.value)));
+
   return (
     <div className="card" style={{ padding: 14 }}>
       <div className="cardTitleRow">
         <h4 style={{ margin: 0 }}>{title}</h4>
         <Badge kind="ok">Sayı</Badge>
       </div>
-      <div style={{ marginTop: 10, display: "flex", flexDirection: "column", gap: 8 }}>
+
+      <div
+        style={{
+          marginTop: 10,
+          display: "flex",
+          flexDirection: "column",
+          gap: 8
+        }}
+      >
         {(data || []).map(d => {
           const v = safeNum(d.value);
           const w = Math.max(2, Math.round((v / max) * 100));
+
           return (
-            <div key={d.label} style={{ display: "flex", gap: 10, alignItems: "center" }}>
-              <div className="small" style={{ width: 130, flexShrink: 0, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }} title={d.label}>
+            <div
+              key={d.label}
+              style={{
+                display: "flex",
+                gap: 10,
+                alignItems: "center"
+              }}
+            >
+              {/* LABEL */}
+              <div
+                className="small"
+                style={{
+                  width: 140,
+                  flexShrink: 0,
+                  whiteSpace: "nowrap",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis"
+                }}
+                title={d.label}
+              >
                 {d.label}
               </div>
-              <div style={{ flex: 1, background: "rgba(11,94,215,.10)", borderRadius: 10, height: 12, overflow: "hidden" }}>
-                <div style={{ width: w + "%", height: "100%", background: "rgba(11,94,215,.55)" }} />
+
+              {/* BAR */}
+              <div
+                style={{
+                  flex: 1,
+                  background: "rgba(11,94,215,.10)",
+                  borderRadius: 10,
+                  height: 12,
+                  overflow: "hidden"
+                }}
+              >
+                <div
+                  style={{
+                    width: w + "%",
+                    height: "100%",
+                    background: "rgba(11,94,215,.55)"
+                  }}
+                />
               </div>
-              <div style={{ minWidth: 50, textAlign: "right", flexShrink: 0 }}><b>{String(v)}</b></div>
+
+              {/* VALUE */}
+              <div
+                style={{
+                  width: 70,
+                  textAlign: "right",
+                  flexShrink: 0,
+                  fontVariantNumeric: "tabular-nums"
+                }}
+              >
+                <b>{v}</b>
+              </div>
             </div>
           );
         })}
@@ -4814,6 +4869,7 @@ function BarChart({ title, data }) {
     </div>
   );
 }
+
 
 function openProjectMonthlyReport({ project, category, monthKey, employees }) {
   const html = buildMonthlyReportHTML({ project, category, monthKey, employees });
