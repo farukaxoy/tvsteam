@@ -467,7 +467,7 @@ const NAV_CSS = `
   display:flex; align-items:center; gap:8px;
   color: rgba(15,23,42,.80);
   font-weight: 700;
-  max-width: 1400px;
+  max-width: 260px;
 }
 
 [data-theme="dark"] .userPill{
@@ -1015,11 +1015,9 @@ select.modern-select:hover,
 
 /* Admin Modern Styles */
 .admin-modern-wrapper {
-  max-width: 1400px;
+  max-width: 1200px;
   margin: 0 auto;
-  width: 100%;
 }
-
 
 .admin-modern-wrapper .card {
   box-shadow: 0 2px 8px rgba(0,0,0,0.08);
@@ -3679,10 +3677,8 @@ function AppInner() {
         </div>
 
         <div className={`mainArea ${tab === "dashboard" ? "dashboard-view" : ""}`}>
-          <div className={`grid ${tab === "dashboard" ? "gridSingle" : ""}`}>
-            {/* LEFT PANEL */}
-
-
+          {/* Grid artık her zaman tek sütun - sidebar yok */}
+          <div className="gridSingle">
             {/* RIGHT CONTENT */}
             <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
 
@@ -3907,6 +3903,38 @@ function AppInner() {
 
               {tab === "entry" && (
                 <>
+                  {/* YENI: Admin Proje Filtresi */}
+                  {isAdmin && (
+                    <div className="card">
+                      <div className="quick-filter-section" style={{ marginBottom: 0 }}>
+                        <label className="filter-label">🎯 Admin Proje Seçimi</label>
+                        <div className="modern-select-wrapper">
+                          <select
+                            className="modern-select"
+                            value={entryProjectId || ""}
+                            onChange={(e) => setEntryProjectId(e.target.value || null)}
+                          >
+                            <option value="">Proje Seçin</option>
+                            {(state.projects || []).map(p => (
+                              <option key={p.id} value={p.id}>
+                                🏢 {p.name}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                        {entryProjectId && (
+                          <button
+                            className="btn btn-warn"
+                            onClick={() => setEntryProjectId(null)}
+                            style={{ marginTop: '10px' }}
+                          >
+                            ✖ Proje Seçimini Temizle
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
                   <div className="card">
                     <div className="cardTitleRow">
                       <h3>Hızlı Menü</h3>
@@ -4763,14 +4791,14 @@ function BarChart({ title, data }) {
           const v = safeNum(d.value);
           const w = Math.max(2, Math.round((v / max) * 100));
           return (
-            <div key={d.label} style={{ display: "grid", gridTemplateColumns: "130px 1fr 60px", gap: 10, alignItems: "center" }}>
-              <div className="small" style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }} title={d.label}>
+            <div key={d.label} style={{ display: "flex", gap: 10, alignItems: "center" }}>
+              <div className="small" style={{ width: 130, flexShrink: 0, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }} title={d.label}>
                 {d.label}
               </div>
-              <div style={{ background: "rgba(11,94,215,.10)", borderRadius: 10, height: 12, overflow: "hidden" }}>
+              <div style={{ flex: 1, background: "rgba(11,94,215,.10)", borderRadius: 10, height: 12, overflow: "hidden" }}>
                 <div style={{ width: w + "%", height: "100%", background: "rgba(11,94,215,.55)" }} />
               </div>
-              <div style={{ textAlign: "right" }}><b>{String(v)}</b></div>
+              <div style={{ minWidth: 50, textAlign: "right", flexShrink: 0 }}><b>{String(v)}</b></div>
             </div>
           );
         })}
